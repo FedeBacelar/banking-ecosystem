@@ -1,0 +1,258 @@
+// Banking ecosystem database model
+// Source: current Flyway migrations in customer-service and account-service.
+// Important: account_db.account.customer_id is a logical reference to customer-service.
+// It is intentionally not declared as a DBML Ref because there is no physical FK across service databases.
+
+Project banking_ecosystem {
+  database_type: 'MySQL'
+  Note: 'Database model for the current banking ecosystem implementation.'
+}
+
+Enum party_type {
+  NATURAL_PERSON
+  LEGAL_ENTITY
+}
+
+Enum party_lifecycle_status {
+  REGISTERED
+  ARCHIVED
+}
+
+Enum customer_status {
+  PENDING_KYC
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+Enum document_type {
+  DNI
+  PASSPORT
+  CUIT
+}
+
+Enum contact_type {
+  EMAIL
+  PHONE
+}
+
+Enum address_type {
+  HOME
+  LEGAL
+}
+
+Enum risk_level {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+Enum kyc_status {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+Enum account_type {
+  SAVINGS
+  CHECKING
+  SALARY
+}
+
+Enum currency_code {
+  ARS
+  USD
+}
+
+Enum account_status {
+  PENDING_ACTIVATION
+  ACTIVE
+  FROZEN
+  CLOSED
+}
+
+Table customer_db.party {
+  id char(36) [pk, not null]
+  party_type party_type [not null]
+  lifecycle_status party_lifecycle_status [not null]
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+
+  Note: 'Generic party record owned by customer-service.'
+}
+
+Table customer_db.natural_person {
+  party_id char(36) [pk, not null]
+  first_name varchar(120) [not null]
+  middle_name varchar(120)
+  last_name varchar(120) [not null]
+  birth_date date [not null]
+  nationality varchar(2) [not null]
+
+  Note: 'Natural person details for a party.'
+}
+
+Table customer_db.customer {
+  id char(36) [pk, not null]
+  party_id char(36) [not null, unique]
+  customer_number varchar(20) [not null, unique]
+  status customer_status [not null]
+  onboarding_date date [not null]
+  closed_at timestamp(6)
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+  version bigint [not null, default: 0]
+
+  indexes {
+    status [name: 'idx_customer_status']
+  }
+
+  Note: 'Bank customer aggregate persisted by customer-service.'
+}
+
+Table customer_db.identification_document {
+  id char(36) [pk, not null]
+  party_id char(36) [not null]
+  document_type document_type [not null]
+  document_number varchar(80) [not null]
+  issuing_country varchar(2) [not null]
+  expiration_date date
+  primary_document boolean [not null]
+
+  indexes {
+    (document_type, document_number, issuing_country) [unique, name: 'uk_identification_document']
+  }
+
+  Note: 'Identity documents associated with a party.'
+}
+
+Table customer_db.contact_point {
+  id char(36) [pk, not null]
+  party_id char(36) [not null]
+  contact_type contact_type [not null]
+  contact_value varchar(255) [not null]
+  verified boolean [not null]
+  primary_contact boolean [not null]
+
+  Note: 'Contact channels associated with a party.'
+}
+
+Table customer_db.address {
+  id char(36) [pk, not null]
+  party_id char(36) [not null]
+  address_type address_type [not null]
+  street varchar(160) [not null]
+  street_number varchar(40) [not null]
+  city varchar(120) [not null]
+  province varchar(120) [not null]
+  postal_code varchar(30) [not null]
+  country varchar(2) [not null]
+
+  Note: 'Addresses associated with a party.'
+}
+
+Table customer_db.kyc_profile {
+  id char(36) [pk, not null]
+  customer_id char(36) [not null, unique]
+  risk_level risk_level [not null]
+  kyc_status kyc_status [not null]
+  last_review_at timestamp(6)
+  next_review_at timestamp(6)
+
+  Note: 'KYC profile associated with a customer.'
+}
+
+Table customer_db.customer_status_history {
+  id char(36) [pk, not null]
+  customer_id char(36) [not null]
+  previous_status customer_status
+  new_status customer_status [not null]
+  reason varchar(500) [not null]
+  changed_at timestamp(6) [not null]
+
+  indexes {
+    customer_id [name: 'idx_customer_status_history_customer_id']
+  }
+
+  Note: 'Audit trail for customer status transitions.'
+}
+
+Table customer_db.customer_number_sequence {
+  sequence_year int [pk, not null]
+  next_value bigint [not null]
+  updated_at timestamp(6) [not null]
+
+  Note: 'Local sequence used to generate customer numbers.'
+}
+
+Table account_db.account {
+  id char(36) [pk, not null]
+  customer_id char(36) [not null, note: 'Logical reference to customer_db.customer.id. No physical FK across service databases.']
+  account_number varchar(24) [not null, unique]
+  cbu varchar(22) [not null, unique]
+  alias varchar(80) [unique]
+  type account_type [not null]
+  currency currency_code [not null]
+  status account_status [not null]
+  opened_at timestamp(6) [not null]
+  closed_at timestamp(6)
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+  version bigint
+
+  indexes {
+    customer_id [name: 'idx_account_customer_id']
+    status [name: 'idx_account_status']
+    type [name: 'idx_account_type']
+    currency [name: 'idx_account_currency']
+  }
+
+  Note: 'Bank account aggregate persisted by account-service.'
+}
+
+Table account_db.account_balance {
+  id char(36) [pk, not null]
+  account_id char(36) [not null, unique]
+  currency currency_code [not null]
+  current_balance decimal(19,2) [not null]
+  available_balance decimal(19,2) [not null]
+  hold_balance decimal(19,2) [not null]
+  updated_at timestamp(6) [not null]
+  version bigint
+
+  Note: 'Current balance state for an account.'
+}
+
+Table account_db.account_status_history {
+  id char(36) [pk, not null]
+  account_id char(36) [not null]
+  previous_status account_status
+  new_status account_status [not null]
+  reason varchar(500) [not null]
+  changed_by varchar(120) [not null]
+  changed_at timestamp(6) [not null]
+
+  indexes {
+    account_id [name: 'idx_account_status_history_account_id']
+  }
+
+  Note: 'Audit trail for account status transitions.'
+}
+
+Table account_db.account_number_sequence {
+  year int [pk, not null]
+  next_value bigint [not null]
+  updated_at timestamp(6) [not null]
+
+  Note: 'Local sequence used to generate account numbers.'
+}
+
+Ref: customer_db.natural_person.party_id > customer_db.party.id
+Ref: customer_db.customer.party_id > customer_db.party.id
+Ref: customer_db.identification_document.party_id > customer_db.party.id
+Ref: customer_db.contact_point.party_id > customer_db.party.id
+Ref: customer_db.address.party_id > customer_db.party.id
+Ref: customer_db.kyc_profile.customer_id > customer_db.customer.id
+Ref: customer_db.customer_status_history.customer_id > customer_db.customer.id
+Ref: account_db.account_balance.account_id > account_db.account.id
+Ref: account_db.account_status_history.account_id > account_db.account.id

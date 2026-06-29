@@ -1,0 +1,90 @@
+@baseUrl = http://localhost:8080
+@customerId = replace-with-created-customer-id
+@customerNumber = replace-with-created-customer-number
+@documentNumber = 30111222
+
+### Register natural person customer
+POST {{baseUrl}}/customers/natural-persons
+Content-Type: application/json
+
+{
+  "firstName": "Federico",
+  "middleName": null,
+  "lastName": "Bacelar",
+  "birthDate": "1990-01-15",
+  "nationality": "AR",
+  "documentType": "DNI",
+  "documentNumber": "{{documentNumber}}",
+  "issuingCountry": "AR",
+  "documentExpirationDate": null,
+  "contactPoints": [
+    {
+      "type": "EMAIL",
+      "value": "federico@example.com"
+    }
+  ],
+  "addresses": [
+    {
+      "type": "HOME",
+      "street": "Av. Corrientes",
+      "streetNumber": "1234",
+      "city": "Buenos Aires",
+      "province": "CABA",
+      "postalCode": "1043",
+      "country": "AR"
+    }
+  ]
+}
+
+### Get customer by id
+GET {{baseUrl}}/customers/{{customerId}}
+
+### Get customer by document
+GET {{baseUrl}}/customers/by-document?type=DNI&number={{documentNumber}}&country=AR
+
+### Get customer by number
+GET {{baseUrl}}/customers/by-number/{{customerNumber}}
+
+### Approve KYC
+PATCH {{baseUrl}}/customers/{{customerId}}/kyc/approve
+
+### Reject KYC
+PATCH {{baseUrl}}/customers/{{customerId}}/kyc/reject
+Content-Type: application/json
+
+{
+  "reason": "KYC rejected after manual review"
+}
+
+### Suspend customer
+PATCH {{baseUrl}}/customers/{{customerId}}/suspend
+Content-Type: application/json
+
+{
+  "reason": "Risk alert"
+}
+
+### Reactivate customer
+PATCH {{baseUrl}}/customers/{{customerId}}/reactivate
+Content-Type: application/json
+
+{
+  "reason": "Manual review completed"
+}
+
+### Close customer
+PATCH {{baseUrl}}/customers/{{customerId}}/close
+Content-Type: application/json
+
+{
+  "reason": "Customer request"
+}
+
+### Get status history
+GET {{baseUrl}}/customers/{{customerId}}/status-history
+
+### Health
+GET {{baseUrl}}/actuator/health
+
+### Info
+GET {{baseUrl}}/actuator/info

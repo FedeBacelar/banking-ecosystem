@@ -1,0 +1,46 @@
+### Open account
+POST http://localhost:8081/accounts
+Content-Type: application/json
+
+{
+  "customerId": "00000000-0000-0000-0000-000000000000",
+  "type": "SAVINGS",
+  "currency": "ARS",
+  "alias": "fede.bank.ars"
+}
+
+### Get account by id
+GET http://localhost:8081/accounts/00000000-0000-0000-0000-000000000000
+
+### Get customer accounts
+GET http://localhost:8081/accounts/customer/00000000-0000-0000-0000-000000000000
+
+### Get account balance
+GET http://localhost:8081/accounts/00000000-0000-0000-0000-000000000000/balance
+
+### Activate account
+PATCH http://localhost:8081/accounts/00000000-0000-0000-0000-000000000000/activate
+Content-Type: application/json
+
+{
+  "reason": "Initial activation",
+  "changedBy": "system"
+}
+
+### Freeze account
+PATCH http://localhost:8081/accounts/00000000-0000-0000-0000-000000000000/freeze
+Content-Type: application/json
+
+{
+  "reason": "Operational review",
+  "changedBy": "backoffice"
+}
+
+### Close account
+PATCH http://localhost:8081/accounts/00000000-0000-0000-0000-000000000000/close
+Content-Type: application/json
+
+{
+  "reason": "Customer request",
+  "changedBy": "backoffice"
+}

@@ -1,0 +1,31 @@
+﻿# Implementation Documentation
+
+This section documents what exists in the repository today.
+
+It is intentionally different from the business and technical documentation:
+
+- Business docs explain what the banking concepts mean.
+- Technical docs explain the architecture and engineering rules.
+- Implementation docs explain the current code, endpoints, tables, tests, and integrations.
+
+## Current Services
+
+```txt
+customer-service
+account-service
+```
+
+## Service Documentation
+
+- [customer-service](services/customer-service/README.md)
+- [account-service](services/account-service/README.md)
+
+## Platform Documentation
+
+- [eureka-server](platform/eureka-server.md)
+
+## Documentation Rule
+
+Each service folder only documents that service.
+
+Cross-service decisions and platform components are documented in ecosystem-level folders.

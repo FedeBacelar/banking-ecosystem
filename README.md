@@ -1,0 +1,112 @@
+# banking-ecosystem
+
+Professional banking microservices ecosystem built with Java, Spring Boot, Spring Cloud, and MySQL.
+
+The repository is organized as a monorepo. Each service owns its code, configuration, tests, and local README, while shared infrastructure and centralized documentation live at the repository root.
+
+## Structure
+
+- `customer-service`: customer onboarding, customer lifecycle, and initial KYC API.
+- `account-service`: bank accounts, account identifiers, account lifecycle, balances, and customer validation.
+- `eureka-server`: service discovery server for the local microservices ecosystem.
+- `infra/mysql`: local MySQL containers, one database per business service.
+- `docs`: centralized business, technical, implementation, and database documentation.
+
+## Local Infrastructure
+
+Start MySQL containers from the repository root:
+
+```powershell
+docker compose -f infra/mysql/docker-compose.yml up -d
+```
+
+Local defaults:
+
+- Host: `localhost`
+- Customer DB port: `3307`
+- Customer DB: `customer_db`
+- Account DB port: `3308`
+- Account DB: `account_db`
+
+To override local values, create `infra/mysql/.env` from `infra/mysql/.env.example` and run:
+
+```powershell
+docker compose --env-file infra/mysql/.env -f infra/mysql/docker-compose.yml up -d
+```
+
+Local `.env` files must not be committed.
+
+## Run Locally
+
+Start Eureka first:
+
+```powershell
+cd eureka-server
+.\mvnw.cmd spring-boot:run
+```
+
+Eureka dashboard:
+
+```txt
+http://localhost:8761
+```
+
+Start `customer-service`:
+
+```powershell
+cd ..\customer-service
+.\mvnw.cmd spring-boot:run
+```
+
+Customer Swagger:
+
+```txt
+http://localhost:8080/swagger-ui.html
+```
+
+Start `account-service`:
+
+```powershell
+cd ..\account-service
+.\mvnw.cmd spring-boot:run
+```
+
+Account Swagger:
+
+```txt
+http://localhost:8081/swagger-ui.html
+```
+
+## Tests
+
+```powershell
+cd eureka-server
+.\mvnw.cmd test
+```
+
+```powershell
+cd ..\customer-service
+.\mvnw.cmd test
+```
+
+```powershell
+cd ..\account-service
+.\mvnw.cmd test
+```
+
+Integration tests use Testcontainers with MySQL.
+
+## Documentation
+
+Central documentation starts at:
+
+```txt
+docs/README.md
+```
+
+Main sections:
+
+- `docs/business`: banking concepts, business responsibilities, states, and service boundaries.
+- `docs/technical`: architecture, infrastructure, validation, error handling, and testing strategy.
+- `docs/implementation`: current implementation state, endpoints, tables, tests, and integrations.
+- `docs/database`: editable DBML model and visual ERD export.
