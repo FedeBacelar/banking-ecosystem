@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: config-server
+  profiles:
+    active: native
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: ${CONFIG_REPOSITORY_LOCATION:file:../config-repository}
+
+server:
+  port: ${CONFIG_SERVER_PORT:8888}
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: config-server
+    description: Centralized configuration server for banking ecosystem
+    version: 0.0.1-SNAPSHOT

@@ -1,4 +1,4 @@
-﻿# account-service Implementation
+# account-service Implementation
 
 `account-service` is the current account bounded context.
 
@@ -25,6 +25,9 @@ Implemented:
 
 ## Local Runtime
 
+Operational configuration is served by config-server from config-repository/account-service.yaml.
+
+
 Default HTTP port:
 
 ```txt
@@ -50,3 +53,4 @@ account_db on localhost:3308
 - [Tests](tests.md)
 - [Customer integration](customer-integration.md)
 - Business docs: [account-service](../../../business/services/account-service/README.md)
+

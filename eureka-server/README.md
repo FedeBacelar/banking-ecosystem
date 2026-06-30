@@ -31,26 +31,34 @@ http://localhost:8761
 
 ## Run
 
+Start Config Server first:
+
 ```powershell
-cd eureka-server
+cd ..\config-server
+.\mvnw.cmd spring-boot:run
+```
+
+Then start Eureka:
+
+```powershell
+cd ..\eureka-server
 .\mvnw.cmd spring-boot:run
 ```
 
 ## Configuration
 
-Main config file:
+The service reads operational configuration from Config Server.
+
+Config source:
+
+```txt
+../config-repository/eureka-server.yaml
+```
+
+Local bootstrap config remains in:
 
 ```txt
 src/main/resources/application.yaml
-```
-
-Important values:
-
-```txt
-spring.application.name=eureka-server
-server.port=8761
-eureka.client.register-with-eureka=false
-eureka.client.fetch-registry=false
 ```
 
 The server does not register itself as a client.
@@ -61,9 +69,10 @@ Recommended local order:
 
 ```txt
 1. MySQL containers
-2. eureka-server
-3. customer-service
-4. account-service
+2. config-server
+3. eureka-server
+4. customer-service
+5. account-service
 ```
 
 After startup, open:

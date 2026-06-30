@@ -1,4 +1,4 @@
-﻿# customer-service Implementation
+# customer-service Implementation
 
 `customer-service` is the current customer bounded context.
 
@@ -22,6 +22,9 @@ Implemented:
 - Run unit, web adapter, persistence, and E2E tests.
 
 ## Local Runtime
+
+Operational configuration is served by config-server from config-repository/customer-service.yaml.
+
 
 Default HTTP port:
 
@@ -47,3 +50,4 @@ customer_db on localhost:3307
 - [Database](database.md)
 - [Tests](tests.md)
 - Business docs: [customer-service](../../../business/services/customer-service/README.md)
+

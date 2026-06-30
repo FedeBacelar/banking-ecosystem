@@ -1,0 +1,40 @@
+spring:
+  datasource:
+    url: ${ACCOUNT_DB_URL:jdbc:mysql://localhost:3308/account_db}
+    username: ${ACCOUNT_DB_USERNAME:account_user}
+    password: ${ACCOUNT_DB_PASSWORD:account_password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+server:
+  port: ${ACCOUNT_SERVICE_PORT:8081}
+
+banking:
+  identifiers:
+    bank-code: ${BANK_CODE:285}
+    default-branch-code: ${DEFAULT_BRANCH_CODE:0001}
+
+eureka:
+  client:
+    enabled: ${EUREKA_CLIENT_ENABLED:true}
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+info:
+  app:
+    name: account-service
+    description: Account service for banking accounts and operational balances
+    version: 0.0.1-SNAPSHOT

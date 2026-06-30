@@ -42,6 +42,10 @@
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-config</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
@@ -142,6 +146,8 @@
 				<configuration>
 					<argLine>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
 					<systemPropertyVariables>
+						<spring.cloud.config.enabled>false</spring.cloud.config.enabled>
+						<spring.jpa.open-in-view>false</spring.jpa.open-in-view>
 						<eureka.client.enabled>false</eureka.client.enabled>
 					</systemPropertyVariables>
 				</configuration>
@@ -150,3 +156,7 @@
 	</build>
 
 </project>
+
+
+
+

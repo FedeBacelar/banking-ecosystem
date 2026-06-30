@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.fedebacelar.bank</groupId>
-	<artifactId>eureka-server</artifactId>
+	<artifactId>config-server</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>eureka-server</name>
-	<description>Service discovery server for banking ecosystem</description>
+	<name>config-server</name>
+	<description>Centralized configuration server for banking ecosystem</description>
 	<url/>
 	<licenses>
 		<license/>
@@ -37,11 +37,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-starter-config</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
+			<artifactId>spring-cloud-config-server</artifactId>
 		</dependency>
 
 		<dependency>
@@ -68,22 +64,9 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<configuration>
-					<systemPropertyVariables>
-						<spring.cloud.config.enabled>false</spring.cloud.config.enabled>
-						<eureka.client.register-with-eureka>false</eureka.client.register-with-eureka>
-						<eureka.client.fetch-registry>false</eureka.client.fetch-registry>
-					</systemPropertyVariables>
-				</configuration>
-			</plugin>
 		</plugins>
 	</build>
 
 </project>
-
-
 
 

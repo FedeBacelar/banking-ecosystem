@@ -16,6 +16,7 @@ This service owns bank accounts, account identifiers, account lifecycle, and ope
 - Manage account lifecycle.
 - Consume `customer-service` through Feign using Eureka service discovery.
 - Persist its own data in MySQL through Flyway migrations.
+- Read operational configuration from Config Server.
 
 This service does not own customer personal data, KYC, transactions, cards, loans, or exchange rates.
 
@@ -25,6 +26,7 @@ This service does not own customer personal data, KYC, transactions, cards, loan
 - Docker Desktop
 - Maven Wrapper included in the service
 - Local MySQL infrastructure
+- Config Server for centralized configuration
 - Eureka Server for normal local execution
 - `customer-service` running for account opening flows
 
@@ -36,13 +38,7 @@ From the ecosystem root:
 docker compose -f infra/mysql/docker-compose.yml up -d
 ```
 
-Local defaults:
-
-```txt
-URL: jdbc:mysql://localhost:3308/account_db
-User: account_user
-Password: account_password
-```
+Local defaults are served through `config-server` from `config-repository/account-service.yaml`.
 
 Environment overrides:
 
@@ -54,7 +50,14 @@ ACCOUNT_DB_PASSWORD
 
 ## Run
 
-Start Eureka first:
+Start Config Server first:
+
+```powershell
+cd ..\config-server
+.\mvnw.cmd spring-boot:run
+```
+
+Start Eureka:
 
 ```powershell
 cd ..\eureka-server

@@ -1,4 +1,4 @@
-﻿# Implementation Documentation
+# Implementation Documentation
 
 This section documents what exists in the repository today.
 
@@ -22,6 +22,7 @@ account-service
 
 ## Platform Documentation
 
+- [config-server](platform/config-server.md)
 - [eureka-server](platform/eureka-server.md)
 
 ## Documentation Rule
