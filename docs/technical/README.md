@@ -1,4 +1,4 @@
-﻿# Technical Documentation
+# Technical Documentation
 
 This section explains engineering decisions and conventions for the current banking ecosystem.
 
@@ -17,6 +17,7 @@ architecture/testing-strategy.md
 
 ```txt
 infrastructure/local-mysql.md
+infrastructure/config-server.md
 infrastructure/eureka-server.md
 ```
 

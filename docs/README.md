@@ -56,6 +56,7 @@ docs/database/README.md
 ```txt
 customer-service
 account-service
+config-server
 eureka-server
 ```
 
@@ -63,5 +64,6 @@ eureka-server
 
 ```txt
 MySQL local with one database container per business service.
+Config Server for centralized configuration.
 Eureka Server for service discovery.
 ```

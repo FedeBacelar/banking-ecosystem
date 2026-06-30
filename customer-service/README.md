@@ -13,6 +13,7 @@ This service owns the customer's formal relationship with the bank, natural pers
 - Manage customer lifecycle.
 - Persist its own data in MySQL through Flyway migrations.
 - Register itself in Eureka for service discovery.
+- Read operational configuration from Config Server.
 
 This service does not own authentication, accounts, balances, transactions, cards, loans, exchange rates, or external integrations.
 
@@ -22,6 +23,7 @@ This service does not own authentication, accounts, balances, transactions, card
 - Docker Desktop
 - Maven Wrapper included in the service
 - Local MySQL infrastructure
+- Config Server for centralized configuration
 - Eureka Server for normal local execution
 
 ## Local Database
@@ -32,13 +34,7 @@ From the ecosystem root:
 docker compose -f infra/mysql/docker-compose.yml up -d
 ```
 
-Local defaults:
-
-```txt
-URL: jdbc:mysql://localhost:3307/customer_db
-User: customer_user
-Password: customer_password
-```
+Local defaults are served through `config-server` from `config-repository/customer-service.yaml`.
 
 Environment overrides:
 
@@ -50,7 +46,14 @@ CUSTOMER_DB_PASSWORD
 
 ## Run
 
-Start Eureka first:
+Start Config Server first:
+
+```powershell
+cd ..\config-server
+.\mvnw.cmd spring-boot:run
+```
+
+Start Eureka:
 
 ```powershell
 cd ..\eureka-server

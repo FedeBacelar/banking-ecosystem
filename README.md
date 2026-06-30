@@ -8,7 +8,9 @@ The repository is organized as a monorepo. Each service owns its code, configura
 
 - `customer-service`: customer onboarding, customer lifecycle, and initial KYC API.
 - `account-service`: bank accounts, account identifiers, account lifecycle, balances, and customer validation.
+- `config-server`: centralized configuration server for the local ecosystem.
 - `eureka-server`: service discovery server for the local microservices ecosystem.
+- `config-repository`: local configuration source served by `config-server`.
 - `infra/mysql`: local MySQL containers, one database per business service.
 - `docs`: centralized business, technical, implementation, and database documentation.
 
@@ -38,10 +40,24 @@ Local `.env` files must not be committed.
 
 ## Run Locally
 
-Start Eureka first:
+Start `config-server` first:
 
 ```powershell
-cd eureka-server
+cd config-server
+.\mvnw.cmd spring-boot:run
+```
+
+Config Server examples:
+
+```txt
+http://localhost:8888/customer-service/default
+http://localhost:8888/account-service/default
+```
+
+Start `eureka-server`:
+
+```powershell
+cd ..\eureka-server
 .\mvnw.cmd spring-boot:run
 ```
 
@@ -80,7 +96,12 @@ http://localhost:8081/swagger-ui.html
 ## Tests
 
 ```powershell
-cd eureka-server
+cd config-server
+.\mvnw.cmd test
+```
+
+```powershell
+cd ..\eureka-server
 .\mvnw.cmd test
 ```
 
