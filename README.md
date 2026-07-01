@@ -13,6 +13,7 @@ The repository is organized as a monorepo. Each service owns its code, configura
 - `api-gateway`: external HTTP entry point and route layer for the local ecosystem.
 - `config-repository`: local configuration source served by `config-server`.
 - `infra/mysql`: local MySQL containers, one database per business service.
+- `infra/keycloak`: local identity provider infrastructure for future OAuth2/OpenID Connect security.
 - `docs`: centralized business, technical, implementation, and database documentation.
 
 ## Local Infrastructure
@@ -38,6 +39,18 @@ docker compose --env-file infra/mysql/.env -f infra/mysql/docker-compose.yml up 
 ```
 
 Local `.env` files must not be committed.
+
+Start Keycloak local infrastructure:
+
+```powershell
+docker compose -f infra/keycloak/docker-compose.yml up -d
+```
+
+Keycloak admin console:
+
+```txt
+http://localhost:8090
+```
 
 ## Run Locally
 

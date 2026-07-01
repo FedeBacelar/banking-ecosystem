@@ -68,4 +68,5 @@ MySQL local with one database container per business service.
 Config Server for centralized configuration.
 Eureka Server for service discovery.
 API Gateway for external HTTP routing.
+Keycloak for local identity provider infrastructure.
 ```
