@@ -14,6 +14,9 @@ Current capabilities:
 - Exposes the Keycloak admin console locally.
 - Persists local Keycloak data in a Docker volume.
 - Supports local override of port and admin credentials through environment variables.
+- Imports the `banking-ecosystem` realm on first startup.
+- Provides a local `banking-api` client for API token testing.
+- Provides initial API roles for customer and account access.
 
 ## Local Runtime
 
@@ -43,6 +46,12 @@ Local environment example:
 infra/keycloak/.env.example
 ```
 
+Realm import:
+
+```txt
+infra/keycloak/realms/banking-ecosystem-realm.json
+```
+
 ## Start
 
 ```powershell
@@ -55,8 +64,35 @@ docker compose -f infra/keycloak/docker-compose.yml up -d
 docker compose -f infra/keycloak/docker-compose.yml down
 ```
 
+## Current Realm
+
+```txt
+banking-ecosystem
+```
+
+Current client:
+
+```txt
+banking-api
+```
+
+Current roles:
+
+```txt
+CUSTOMER_READ
+CUSTOMER_WRITE
+ACCOUNT_READ
+ACCOUNT_WRITE
+```
+
+Current local test user:
+
+```txt
+api-tester
+```
+
 ## Current Limitations
 
-No realm, client, users, roles, or gateway security rules are defined yet.
+Gateway security rules are not defined yet.
 
-Those items belong to the next security features.
+The next feature should configure `api-gateway` as an OAuth2 Resource Server that validates tokens issued by this realm.
