@@ -16,7 +16,7 @@ Keycloak will provide:
 
 ## Current Status
 
-Keycloak is available as local infrastructure only.
+Keycloak is available as local infrastructure with a development realm.
 
 It is not yet connected to `api-gateway`, `customer-service`, or `account-service`.
 
@@ -42,6 +42,43 @@ Password: admin
 ```
 
 These defaults are for local development only.
+
+## Realm Model
+
+Current realm:
+
+```txt
+banking-ecosystem
+```
+
+The `master` realm is reserved for Keycloak administration. Application security belongs in the banking realm.
+
+Current client:
+
+```txt
+banking-api
+```
+
+This public client is used to request local access tokens for API testing.
+
+Current realm roles:
+
+```txt
+CUSTOMER_READ
+CUSTOMER_WRITE
+ACCOUNT_READ
+ACCOUNT_WRITE
+```
+
+These roles represent API capabilities. They are intentionally more specific than generic roles such as `USER` or `ADMIN`.
+
+## Local Test User
+
+```txt
+api-tester
+```
+
+The local test user has all current API roles and exists only for local token testing.
 
 ## Future Integration
 

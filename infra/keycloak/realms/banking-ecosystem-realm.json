@@ -1,0 +1,73 @@
+{
+  "realm": "banking-ecosystem",
+  "displayName": "Banking Ecosystem",
+  "enabled": true,
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "CUSTOMER_READ",
+        "description": "Allows reading customer information."
+      },
+      {
+        "name": "CUSTOMER_WRITE",
+        "description": "Allows creating and changing customer information."
+      },
+      {
+        "name": "ACCOUNT_READ",
+        "description": "Allows reading account information."
+      },
+      {
+        "name": "ACCOUNT_WRITE",
+        "description": "Allows creating and changing account information."
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "banking-api",
+      "name": "Banking API Local Client",
+      "description": "Local development client used to request tokens for API testing.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:*"
+      ],
+      "webOrigins": [
+        "http://localhost:*"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "api-tester",
+      "email": "api-tester@local.dev",
+      "firstName": "API",
+      "lastName": "Tester",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "api-tester-password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "CUSTOMER_READ",
+        "CUSTOMER_WRITE",
+        "ACCOUNT_READ",
+        "ACCOUNT_WRITE"
+      ]
+    }
+  ]
+}
