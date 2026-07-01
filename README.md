@@ -10,6 +10,7 @@ The repository is organized as a monorepo. Each service owns its code, configura
 - `account-service`: bank accounts, account identifiers, account lifecycle, balances, and customer validation.
 - `config-server`: centralized configuration server for the local ecosystem.
 - `eureka-server`: service discovery server for the local microservices ecosystem.
+- `api-gateway`: external HTTP entry point and route layer for the local ecosystem.
 - `config-repository`: local configuration source served by `config-server`.
 - `infra/mysql`: local MySQL containers, one database per business service.
 - `docs`: centralized business, technical, implementation, and database documentation.
@@ -52,6 +53,7 @@ Config Server examples:
 ```txt
 http://localhost:8888/customer-service/default
 http://localhost:8888/account-service/default
+http://localhost:8888/api-gateway/default
 ```
 
 Start `eureka-server`:
@@ -93,6 +95,19 @@ Account Swagger:
 http://localhost:8081/swagger-ui.html
 ```
 
+Start `api-gateway`:
+
+```powershell
+cd ..\api-gateway
+.\mvnw.cmd spring-boot:run
+```
+
+Gateway entry point:
+
+```txt
+http://localhost:8085
+```
+
 ## Tests
 
 ```powershell
@@ -112,6 +127,11 @@ cd ..\customer-service
 
 ```powershell
 cd ..\account-service
+.\mvnw.cmd test
+```
+
+```powershell
+cd ..\api-gateway
 .\mvnw.cmd test
 ```
 

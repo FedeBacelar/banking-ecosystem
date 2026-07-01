@@ -37,6 +37,7 @@ http://localhost:8888/application/default
 http://localhost:8888/eureka-server/default
 http://localhost:8888/customer-service/default
 http://localhost:8888/account-service/default
+http://localhost:8888/api-gateway/default
 ```
 
 ## Run Locally

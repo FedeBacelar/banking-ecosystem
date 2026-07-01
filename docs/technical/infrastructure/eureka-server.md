@@ -43,6 +43,7 @@ Example:
 ```txt
 customer-service -> localhost:8080
 account-service  -> localhost:8081
+api-gateway      -> localhost:8085
 ```
 
 ### Eureka Server
@@ -58,6 +59,7 @@ Current clients:
 ```txt
 customer-service
 account-service
+api-gateway
 ```
 
 ### API Gateway
@@ -69,8 +71,8 @@ Eureka helps services find each other. A gateway gives external clients a single
 Example gateway responsibility:
 
 ```txt
-/api/customers -> customer-service
-/api/accounts  -> account-service
+/customers/** -> customer-service
+/accounts/**  -> account-service
 ```
 
 ### Config Server
@@ -113,13 +115,17 @@ http://localhost:8761/eureka/
 @FeignClient(name = "customer-service")
 ```
 
+`api-gateway` registers itself in Eureka and routes external HTTP requests to business services by logical service name.
+
 ## Local Startup Order
 
 ```txt
 1. Start MySQL containers.
-2. Start eureka-server.
-3. Start customer-service.
-4. Start account-service.
+2. Start config-server.
+3. Start eureka-server.
+4. Start customer-service.
+5. Start account-service.
+6. Start api-gateway.
 ```
 
 ## Why It Belongs Here

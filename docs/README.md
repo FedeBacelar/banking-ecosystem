@@ -58,6 +58,7 @@ customer-service
 account-service
 config-server
 eureka-server
+api-gateway
 ```
 
 ## Current Infrastructure
@@ -66,4 +67,5 @@ eureka-server
 MySQL local with one database container per business service.
 Config Server for centralized configuration.
 Eureka Server for service discovery.
+API Gateway for external HTTP routing.
 ```

@@ -18,6 +18,7 @@ GET /application/default
 GET /eureka-server/default
 GET /customer-service/default
 GET /account-service/default
+GET /api-gateway/default
 ```
 
 ## Local Startup Order
@@ -28,6 +29,7 @@ GET /account-service/default
 3. eureka-server
 4. customer-service
 5. account-service
+6. api-gateway
 ```
 
 `config-server` starts before Eureka because the other services read their operational configuration from it.
@@ -38,4 +40,5 @@ GET /account-service/default
 eureka-server
 customer-service
 account-service
+api-gateway
 ```
