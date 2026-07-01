@@ -13,6 +13,7 @@ Current capabilities:
 - Runs a Netflix Eureka Server.
 - Exposes the Eureka dashboard.
 - Allows `customer-service` and `account-service` to register themselves.
+- Allows `api-gateway` to register itself.
 - Allows service-to-service resolution by logical service name.
 
 ## Local Runtime
@@ -53,6 +54,7 @@ Current Eureka clients:
 ```txt
 customer-service
 account-service
+api-gateway
 ```
 
 Both services use:
@@ -82,7 +84,9 @@ Current verified result:
 
 ```txt
 1. infra/mysql
-2. eureka-server
-3. customer-service
-4. account-service
+2. config-server
+3. eureka-server
+4. customer-service
+5. account-service
+6. api-gateway
 ```

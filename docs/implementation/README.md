@@ -24,6 +24,7 @@ account-service
 
 - [config-server](platform/config-server.md)
 - [eureka-server](platform/eureka-server.md)
+- [api-gateway](platform/api-gateway.md)
 
 ## Documentation Rule
 

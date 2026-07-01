@@ -13,6 +13,7 @@ Current registered services:
 ```txt
 customer-service
 account-service
+api-gateway
 ```
 
 ## Local Runtime
@@ -73,6 +74,7 @@ Recommended local order:
 3. eureka-server
 4. customer-service
 5. account-service
+6. api-gateway
 ```
 
 After startup, open:
@@ -81,4 +83,4 @@ After startup, open:
 http://localhost:8761
 ```
 
-You should see `CUSTOMER-SERVICE` and `ACCOUNT-SERVICE` registered.
+You should see `CUSTOMER-SERVICE`, `ACCOUNT-SERVICE`, and `API-GATEWAY` registered.
