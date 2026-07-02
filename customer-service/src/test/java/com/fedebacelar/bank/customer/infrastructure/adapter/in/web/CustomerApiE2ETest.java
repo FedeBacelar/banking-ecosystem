@@ -1,14 +1,21 @@
 package com.fedebacelar.bank.customer.infrastructure.adapter.in.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.client.RestClient;
@@ -33,12 +40,17 @@ class CustomerApiE2ETest {
     @LocalServerPort
     private int port;
 
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     void completesNaturalPersonLifecycle() throws Exception {
+        String token = tokenWithRoles("CUSTOMER_READ", "CUSTOMER_WRITE");
         RestClient client = RestClient.builder()
                 .baseUrl("http://localhost:" + port)
+                .defaultHeader("Authorization", "Bearer " + token)
                 .build();
 
         JsonNode created = post(client, "/customers/natural-persons", """
@@ -92,5 +104,20 @@ class CustomerApiE2ETest {
             request.contentType(MediaType.APPLICATION_JSON).body(body);
         }
         return objectMapper.readTree(request.retrieve().body(String.class));
+    }
+
+    private String tokenWithRoles(String... roles) {
+        String token = String.join("-", roles).toLowerCase() + "-token";
+        Jwt jwt = Jwt.withTokenValue(token)
+                .header("alg", "none")
+                .issuer("http://localhost:8090/realms/banking-ecosystem")
+                .subject("api-tester")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(300))
+                .claim("realm_access", Map.of("roles", List.of(roles)))
+                .build();
+
+        when(jwtDecoder.decode(token)).thenReturn(jwt);
+        return token;
     }
 }

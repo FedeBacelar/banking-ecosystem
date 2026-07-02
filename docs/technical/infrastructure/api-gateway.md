@@ -72,6 +72,8 @@ realm_access.roles
 
 Spring Security authorities are created with the `ROLE_` prefix so route rules can use `hasRole(...)`.
 
+Business services also validate JWT tokens directly. The gateway is the public entry point, but it is not the only security layer.
+
 ## Future Concerns
 
 The gateway is also the natural place for additional cross-cutting HTTP concerns:

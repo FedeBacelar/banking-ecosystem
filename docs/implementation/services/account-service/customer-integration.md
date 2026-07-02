@@ -16,6 +16,20 @@ Current endpoint consumed:
 GET /customers/{customerId}
 ```
 
+## Security
+
+The current implementation forwards the incoming `Authorization` header to the Feign call:
+
+```txt
+client -> api-gateway -> account-service -> customer-service
+```
+
+This keeps the customer lookup authenticated after business services started validating JWT access tokens directly.
+
+For the current local setup, account opening requires a token that can write accounts and read the referenced customer. The local `api-tester` user satisfies this because it has all current API roles.
+
+A production-grade evolution would use service-to-service credentials or token exchange for this internal customer lookup.
+
 ## Why It Exists
 
 An account should not be opened for a customer that does not exist or is not eligible.

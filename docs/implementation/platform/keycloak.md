@@ -17,7 +17,7 @@ Current capabilities:
 - Imports the `banking-ecosystem` realm on first startup.
 - Provides a local `banking-api` client for API token testing.
 - Provides initial API roles for customer and account access.
-- Acts as the JWT issuer used by `api-gateway`.
+- Issues JWT access tokens validated by `api-gateway`, `customer-service`, and `account-service`.
 
 ## Local Runtime
 
@@ -95,18 +95,23 @@ customer-writer
 account-reader
 ```
 
-## Gateway Integration
+## Service Integration
 
-Issuer URI:
+Current protected components:
 
 ```txt
-http://localhost:8090/realms/banking-ecosystem
+api-gateway
+customer-service
+account-service
 ```
 
-`api-gateway` validates tokens from this issuer and reads API roles from `realm_access.roles`.
+All three validate JWT access tokens issued by the `banking-ecosystem` realm.
 
-## Current Limitations
+Role usage:
 
-Business services are not protected directly yet.
-
-Current protection is enforced at the gateway boundary.
+```txt
+CUSTOMER_READ  -> read customer API
+CUSTOMER_WRITE -> write customer API
+ACCOUNT_READ   -> read account API
+ACCOUNT_WRITE  -> write account API
+```

@@ -18,6 +18,7 @@ Implemented:
 - Approve or reject KYC.
 - Suspend, reactivate, and close customers.
 - Validate request sizes against database limits.
+- Validate JWT access tokens issued by Keycloak.
 - Return consistent `ProblemDetail` errors.
 - Run unit, web adapter, persistence, and E2E tests.
 
@@ -37,6 +38,15 @@ Swagger:
 ```txt
 http://localhost:8080/swagger-ui.html
 ```
+
+Required API roles:
+
+```txt
+GET        /customers/** -> CUSTOMER_READ
+POST/PATCH /customers/** -> CUSTOMER_WRITE
+```
+
+Local documentation endpoints are public when `banking.security.public-docs-enabled=true`.
 
 Database:
 

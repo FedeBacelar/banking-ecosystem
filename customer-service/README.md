@@ -14,6 +14,7 @@ This service owns the customer's formal relationship with the bank, natural pers
 - Persist its own data in MySQL through Flyway migrations.
 - Register itself in Eureka for service discovery.
 - Read operational configuration from Config Server.
+- Validate JWT access tokens issued by Keycloak.
 
 This service does not own authentication, accounts, balances, transactions, cards, loans, exchange rates, or external integrations.
 
@@ -77,6 +78,23 @@ Health:       http://localhost:8080/actuator/health
 Info:         http://localhost:8080/actuator/info
 ```
 
+Protected API permissions:
+
+```txt
+GET        /customers/** -> CUSTOMER_READ
+POST/PATCH /customers/** -> CUSTOMER_WRITE
+```
+
+`/actuator/health` and `/actuator/info` are public for local operational checks.
+
+Swagger and OpenAPI docs are public only when:
+
+```txt
+banking.security.public-docs-enabled=true
+```
+
+The local config repository enables this through `PUBLIC_DOCS_ENABLED`, defaulting to `true`.
+
 ## API
 
 ```txt
@@ -102,7 +120,7 @@ Invalid lifecycle transitions return `409 Conflict` with `ProblemDetail`.
 .\mvnw.cmd test
 ```
 
-The test suite covers domain rules, use cases, web adapter behavior, persistence with MySQL Testcontainers, and an HTTP end-to-end flow.
+The test suite covers domain rules, use cases, web adapter behavior, service-level security, persistence with MySQL Testcontainers, and an HTTP end-to-end flow.
 
 ## Documentation
 

@@ -15,7 +15,7 @@ Current capabilities:
 - Registers as a Eureka client.
 - Routes customer requests to `customer-service`.
 - Routes account requests to `account-service`.
-- Validates Keycloak JWT access tokens.
+- Validates JWT access tokens issued by Keycloak.
 - Enforces route-level authorization rules for customer and account APIs.
 
 ## Local Runtime
