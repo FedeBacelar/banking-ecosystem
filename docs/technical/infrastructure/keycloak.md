@@ -2,11 +2,11 @@
 
 Keycloak is the local Identity Provider for the banking ecosystem.
 
-It is an infrastructure component, not a business service. It will be responsible for identity and access management when security is introduced.
+It is an infrastructure component, not a business service. It is responsible for local identity and access management.
 
 ## Purpose
 
-Keycloak will provide:
+Keycloak provides:
 
 - User authentication.
 - OAuth2/OpenID Connect token issuance.
@@ -18,7 +18,7 @@ Keycloak will provide:
 
 Keycloak is available as local infrastructure with a development realm.
 
-It is used by `api-gateway` as the token issuer. It is not directly integrated with `customer-service` or `account-service` yet.
+`api-gateway`, `customer-service`, and `account-service` validate JWT access tokens issued by this realm.
 
 ## Local Runtime
 
@@ -90,15 +90,18 @@ customer-writer -> CUSTOMER_READ, CUSTOMER_WRITE
 account-reader  -> ACCOUNT_READ
 ```
 
-## Gateway Integration
+## Current Integration
 
-Current integration path:
+Current request flow:
 
 ```txt
 client -> Keycloak -> access token
 client -> api-gateway with Bearer token
 api-gateway -> validates token
 api-gateway -> routes to business services
+business service -> validates token again
 ```
 
-In this model, `api-gateway` is an OAuth2 Resource Server and validates JWT access tokens issued by Keycloak.
+`api-gateway`, `customer-service`, and `account-service` are configured as OAuth2 Resource Servers.
+
+The gateway owns the external API access rules. Business services also validate tokens directly so direct service access is not trusted by default.

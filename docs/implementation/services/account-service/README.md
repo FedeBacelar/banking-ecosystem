@@ -18,8 +18,10 @@ Implemented:
 - Query account, balance, and status history.
 - Activate, freeze, unfreeze, and close accounts.
 - Validate customer existence and status through Feign.
+- Forward the incoming `Authorization` header to `customer-service` calls.
 - Configure bank and branch identifier values through properties.
 - Validate request sizes against database limits.
+- Validate JWT access tokens issued by Keycloak.
 - Return consistent `ProblemDetail` errors.
 - Run unit, web adapter, and persistence tests.
 
@@ -39,6 +41,15 @@ Swagger:
 ```txt
 http://localhost:8081/swagger-ui.html
 ```
+
+Required API roles:
+
+```txt
+GET        /accounts/** -> ACCOUNT_READ
+POST/PATCH /accounts/** -> ACCOUNT_WRITE
+```
+
+Local documentation endpoints are public when `banking.security.public-docs-enabled=true`.
 
 Database:
 

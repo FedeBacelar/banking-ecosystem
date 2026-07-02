@@ -10,6 +10,11 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/banking-ecosystem}
 
 server:
   port: ${ACCOUNT_SERVICE_PORT:8081}
@@ -18,6 +23,8 @@ banking:
   identifiers:
     bank-code: ${BANK_CODE:285}
     default-branch-code: ${DEFAULT_BRANCH_CODE:0001}
+  security:
+    public-docs-enabled: ${PUBLIC_DOCS_ENABLED:true}
 
 eureka:
   client:

@@ -15,8 +15,10 @@ This service owns bank accounts, account identifiers, account lifecycle, and ope
 - Expose account, balance, and status history queries.
 - Manage account lifecycle.
 - Consume `customer-service` through Feign using Eureka service discovery.
+- Forward the incoming `Authorization` header to internal Feign calls.
 - Persist its own data in MySQL through Flyway migrations.
 - Read operational configuration from Config Server.
+- Validate JWT access tokens issued by Keycloak.
 
 This service does not own customer personal data, KYC, transactions, cards, loans, or exchange rates.
 
@@ -88,6 +90,23 @@ Health:       http://localhost:8081/actuator/health
 Info:         http://localhost:8081/actuator/info
 ```
 
+Protected API permissions:
+
+```txt
+GET        /accounts/** -> ACCOUNT_READ
+POST/PATCH /accounts/** -> ACCOUNT_WRITE
+```
+
+`/actuator/health` and `/actuator/info` are public for local operational checks.
+
+Swagger and OpenAPI docs are public only when:
+
+```txt
+banking.security.public-docs-enabled=true
+```
+
+The local config repository enables this through `PUBLIC_DOCS_ENABLED`, defaulting to `true`.
+
 ## API
 
 ```txt
@@ -111,7 +130,7 @@ PATCH /accounts/{accountId}/close
 .\mvnw.cmd test
 ```
 
-The test suite covers domain rules, account opening use cases, web adapter behavior, and persistence with MySQL Testcontainers.
+The test suite covers domain rules, account opening use cases, web adapter behavior, service-level security, and persistence with MySQL Testcontainers.
 
 ## Documentation
 
