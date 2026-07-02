@@ -15,6 +15,11 @@ spring:
               uri: lb://account-service
               predicates:
                 - Path=/accounts/**
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/banking-ecosystem}
 
 eureka:
   client:

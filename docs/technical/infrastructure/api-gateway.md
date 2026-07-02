@@ -40,13 +40,42 @@ Only paths configured in the gateway are part of the public API surface.
 
 Direct local access to internal services can still exist during development, but clients should use the gateway as the ecosystem entry point.
 
+## Security
+
+The gateway is configured as an OAuth2 Resource Server.
+
+It validates JWT access tokens issued by Keycloak:
+
+```txt
+http://localhost:8090/realms/banking-ecosystem
+```
+
+Current route-level authorization:
+
+```txt
+GET   /customers/** -> CUSTOMER_READ
+POST  /customers/** -> CUSTOMER_WRITE
+PATCH /customers/** -> CUSTOMER_WRITE
+
+GET   /accounts/**  -> ACCOUNT_READ
+POST  /accounts/**  -> ACCOUNT_WRITE
+PATCH /accounts/**  -> ACCOUNT_WRITE
+```
+
+Other HTTP methods for `/customers/**` and `/accounts/**` are denied by default.
+
+Keycloak realm roles are read from:
+
+```txt
+realm_access.roles
+```
+
+Spring Security authorities are created with the `ROLE_` prefix so route rules can use `hasRole(...)`.
+
 ## Future Concerns
 
-The gateway is the natural place for cross-cutting HTTP concerns:
+The gateway is also the natural place for additional cross-cutting HTTP concerns:
 
-- Authentication and authorization integration.
-- Token validation.
-- Route-level access rules.
 - Rate limiting.
 - Request correlation and tracing.
 

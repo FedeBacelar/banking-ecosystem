@@ -18,7 +18,7 @@ Keycloak will provide:
 
 Keycloak is available as local infrastructure with a development realm.
 
-It is not yet connected to `api-gateway`, `customer-service`, or `account-service`.
+It is used by `api-gateway` as the token issuer. It is not directly integrated with `customer-service` or `account-service` yet.
 
 ## Local Runtime
 
@@ -72,17 +72,27 @@ ACCOUNT_WRITE
 
 These roles represent API capabilities. They are intentionally more specific than generic roles such as `USER` or `ADMIN`.
 
-## Local Test User
+## Local Test Users
 
 ```txt
 api-tester
+customer-reader
+customer-writer
+account-reader
 ```
 
-The local test user has all current API roles and exists only for local token testing.
+Local test users exist only for local token testing.
 
-## Future Integration
+```txt
+api-tester      -> all current API roles
+customer-reader -> CUSTOMER_READ
+customer-writer -> CUSTOMER_READ, CUSTOMER_WRITE
+account-reader  -> ACCOUNT_READ
+```
 
-The planned integration path is:
+## Gateway Integration
+
+Current integration path:
 
 ```txt
 client -> Keycloak -> access token
@@ -91,4 +101,4 @@ api-gateway -> validates token
 api-gateway -> routes to business services
 ```
 
-In that model, `api-gateway` becomes an OAuth2 Resource Server and validates JWT access tokens issued by Keycloak.
+In this model, `api-gateway` is an OAuth2 Resource Server and validates JWT access tokens issued by Keycloak.

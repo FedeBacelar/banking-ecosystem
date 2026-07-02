@@ -15,6 +15,8 @@ Current capabilities:
 - Registers as a Eureka client.
 - Routes customer requests to `customer-service`.
 - Routes account requests to `account-service`.
+- Validates Keycloak JWT access tokens.
+- Enforces route-level authorization rules for customer and account APIs.
 
 ## Local Runtime
 
@@ -51,6 +53,26 @@ Current routes:
 /accounts/**  -> lb://account-service
 ```
 
+Security issuer:
+
+```txt
+KEYCLOAK_ISSUER_URI=http://localhost:8090/realms/banking-ecosystem
+```
+
+Current authorization rules:
+
+```txt
+GET   /customers/** -> CUSTOMER_READ
+POST  /customers/** -> CUSTOMER_WRITE
+PATCH /customers/** -> CUSTOMER_WRITE
+
+GET   /accounts/**  -> ACCOUNT_READ
+POST  /accounts/**  -> ACCOUNT_WRITE
+PATCH /accounts/**  -> ACCOUNT_WRITE
+```
+
+Other HTTP methods for `/customers/**` and `/accounts/**` are denied by default.
+
 ## Tests
 
 Current test command:
@@ -60,13 +82,20 @@ cd api-gateway
 .\mvnw.cmd test
 ```
 
+Current verified result:
+
+```txt
+9 tests passing
+```
+
 ## Local Startup Order
 
 ```txt
 1. infra/mysql
-2. config-server
-3. eureka-server
-4. customer-service
-5. account-service
-6. api-gateway
+2. keycloak
+3. config-server
+4. eureka-server
+5. customer-service
+6. account-service
+7. api-gateway
 ```
