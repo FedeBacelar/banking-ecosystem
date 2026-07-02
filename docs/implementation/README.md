@@ -13,12 +13,14 @@ It is intentionally different from the business and technical documentation:
 ```txt
 customer-service
 account-service
+identity-service
 ```
 
 ## Service Documentation
 
 - [customer-service](services/customer-service/README.md)
 - [account-service](services/account-service/README.md)
+- [identity-service](services/identity-service/README.md)
 
 ## Platform Documentation
 

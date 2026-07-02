@@ -18,6 +18,7 @@ GET /application/default
 GET /eureka-server/default
 GET /customer-service/default
 GET /account-service/default
+GET /identity-service/default
 GET /api-gateway/default
 ```
 
@@ -29,7 +30,8 @@ GET /api-gateway/default
 3. eureka-server
 4. customer-service
 5. account-service
-6. api-gateway
+6. identity-service
+7. api-gateway
 ```
 
 `config-server` starts before Eureka because the other services read their operational configuration from it.
@@ -40,5 +42,6 @@ GET /api-gateway/default
 eureka-server
 customer-service
 account-service
+identity-service
 api-gateway
 ```

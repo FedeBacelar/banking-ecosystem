@@ -107,6 +107,8 @@ banking.security.public-docs-enabled=true
 
 The local config repository enables this through `PUBLIC_DOCS_ENABLED`, defaulting to `true`.
 
+Swagger UI supports OAuth2 login with Keycloak through the `banking-swagger` client and PKCE. Use `Authorize` in Swagger and log in with a user that has the required account roles.
+
 ## API
 
 ```txt

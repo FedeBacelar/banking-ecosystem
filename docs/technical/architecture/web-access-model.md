@@ -1,0 +1,104 @@
+# Web Access Model
+
+This document defines the accepted web access model for the banking ecosystem.
+
+## Public Entry Points
+
+The ecosystem can have more than one public entry point, but each one must have a clear responsibility.
+
+Recommended production-style model:
+
+```txt
+frontend public endpoint -> home banking UI
+api public endpoint      -> api-gateway
+auth public endpoint     -> Keycloak
+```
+
+Example:
+
+```txt
+https://home.bank.example -> frontend
+https://api.bank.example  -> api-gateway
+https://auth.bank.example -> Keycloak
+```
+
+`api-gateway` is the public edge for banking APIs.
+
+Keycloak is the public identity provider endpoint for OAuth2/OpenID Connect login, token, logout, and discovery flows.
+
+Keycloak should not be routed as a business API through `api-gateway`.
+
+## Principle
+
+Browser-facing applications should not call internal business services directly.
+
+When a Backend for Frontend is added, it should also stay behind the gateway:
+
+```txt
+Browser / frontend
+  -> api-gateway
+    -> banking-bff
+      -> internal services
+```
+
+## Responsibility Split
+
+`api-gateway` owns the public HTTP entry point.
+
+It is responsible for routing external requests into the ecosystem and for cross-cutting edge concerns such as authentication checks, CORS, request headers, rate limiting, and observability.
+
+`banking-bff` will own browser-specific backend behavior.
+
+It should translate frontend needs into backend calls, manage the browser session strategy, and compose customer-facing responses.
+
+Business services remain internal capability owners.
+
+They own business rules, persistence, and service-level authorization.
+
+## Target Flow
+
+```txt
+Browser
+  -> api-gateway
+    -> banking-bff
+      -> identity-service
+      -> customer-service
+      -> account-service
+```
+
+`identity-service` is not exposed as a direct public gateway route in the current model.
+
+It is consumed internally by `banking-bff` to resolve an authenticated identity to a banking customer.
+
+## Why The BFF Does Not Replace The Gateway
+
+The BFF is not the public edge.
+
+The BFF is a backend tailored to one frontend experience. The gateway remains the consistent entry point for public HTTP traffic.
+
+This avoids exposing multiple public backends and keeps edge concerns centralized.
+
+## Current State
+
+The current implemented gateway routes are:
+
+```txt
+/customers/** -> customer-service
+/accounts/**  -> account-service
+```
+
+When `banking-bff` is implemented, the gateway should route browser-oriented API paths to it, for example:
+
+```txt
+/bff/** -> banking-bff
+```
+
+Business services should continue validating tokens even when requests enter through the gateway.
+
+Local development currently uses:
+
+```txt
+Frontend:  not implemented yet
+Gateway:   http://localhost:8085
+Keycloak:  http://localhost:8090
+```

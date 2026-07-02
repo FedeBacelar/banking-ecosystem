@@ -43,6 +43,7 @@ Example:
 ```txt
 customer-service -> localhost:8080
 account-service  -> localhost:8081
+identity-service -> localhost:8082
 api-gateway      -> localhost:8085
 ```
 
@@ -59,6 +60,7 @@ Current clients:
 ```txt
 customer-service
 account-service
+identity-service
 api-gateway
 ```
 
@@ -117,6 +119,8 @@ http://localhost:8761/eureka/
 
 `api-gateway` registers itself in Eureka and routes external HTTP requests to business services by logical service name.
 
+`identity-service` registers itself in Eureka so internal components can resolve identity links by service name.
+
 ## Local Startup Order
 
 ```txt
@@ -125,7 +129,8 @@ http://localhost:8761/eureka/
 3. Start eureka-server.
 4. Start customer-service.
 5. Start account-service.
-6. Start api-gateway.
+6. Start identity-service.
+7. Start api-gateway.
 ```
 
 ## Why It Belongs Here

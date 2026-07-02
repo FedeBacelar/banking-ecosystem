@@ -10,7 +10,9 @@ The current setup uses Spring Cloud Config Server in native mode, which reads th
 application.yaml
 customer-service.yaml
 account-service.yaml
+identity-service.yaml
 eureka-server.yaml
+api-gateway.yaml
 ```
 
 `application.yaml` contains shared configuration. Service-specific files contain configuration for each application name.
@@ -24,7 +26,9 @@ Configuration files may reference environment variables such as:
 ```txt
 CUSTOMER_DB_PASSWORD
 ACCOUNT_DB_PASSWORD
+IDENTITY_DB_PASSWORD
 EUREKA_SERVER_URL
+SWAGGER_OAUTH_CLIENT_ID
 ```
 
 Local development may use safe defaults, but real credentials must come from outside the repository.
