@@ -57,35 +57,78 @@ ACCOUNT_READ
 ACCOUNT_WRITE
 ```
 
-Local test user:
+Local test users:
 
 ```txt
-Username: api-tester
-Password: api-tester-password
+api-tester / api-tester-password
+customer-reader / customer-reader-password
+customer-writer / customer-writer-password
+account-reader / account-reader-password
 ```
 
-The test user exists only to request local tokens while developing the gateway security integration.
+These test users exist only to request local tokens while developing the gateway security integration.
+
+Role summary:
+
+```txt
+api-tester      -> CUSTOMER_READ, CUSTOMER_WRITE, ACCOUNT_READ, ACCOUNT_WRITE
+customer-reader -> CUSTOMER_READ
+customer-writer -> CUSTOMER_READ, CUSTOMER_WRITE
+account-reader  -> ACCOUNT_READ
+```
 
 ## Token Request
 
 After Keycloak starts, a local access token can be requested with:
 
 ```powershell
-$response = Invoke-RestMethod `
-  -Method Post `
-  -Uri "http://localhost:8090/realms/banking-ecosystem/protocol/openid-connect/token" `
-  -ContentType "application/x-www-form-urlencoded" `
-  -Body @{
-    grant_type = "password"
-    client_id = "banking-api"
-    username = "api-tester"
-    password = "api-tester-password"
-  }
+function Get-BankingAccessToken {
+  param(
+    [string] $Username,
+    [string] $Password
+  )
 
-$response.access_token
+  $response = Invoke-RestMethod `
+    -Method Post `
+    -Uri "http://localhost:8090/realms/banking-ecosystem/protocol/openid-connect/token" `
+    -ContentType "application/x-www-form-urlencoded" `
+    -Body @{
+      grant_type = "password"
+      client_id = "banking-api"
+      username = $Username
+      password = $Password
+    }
+
+  $response.access_token
+}
+
+$customerToken = Get-BankingAccessToken "customer-reader" "customer-reader-password"
+$accountToken = Get-BankingAccessToken "account-reader" "account-reader-password"
 ```
 
 This password grant is enabled only for local API testing. Production user-facing applications should use Authorization Code Flow with PKCE.
+
+## Gateway Authorization Checks
+
+After the full local ecosystem is running, use the generated tokens to verify gateway authorization:
+
+```powershell
+Invoke-RestMethod `
+  -Method Get `
+  -Uri "http://localhost:8085/customers/{customerId}" `
+  -Headers @{ Authorization = "Bearer $customerToken" }
+```
+
+Expected: `200 OK` when the customer exists.
+
+```powershell
+Invoke-RestMethod `
+  -Method Get `
+  -Uri "http://localhost:8085/accounts/{accountId}" `
+  -Headers @{ Authorization = "Bearer $customerToken" }
+```
+
+Expected: `403 Forbidden` because `customer-reader` does not have `ACCOUNT_READ`.
 
 ## Realm Import Behavior
 

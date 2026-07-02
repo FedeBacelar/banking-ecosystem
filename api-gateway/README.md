@@ -13,7 +13,8 @@ Current responsibilities:
 - Route external HTTP requests to internal services.
 - Keep public API paths centralized.
 - Resolve service destinations through Eureka using logical service names.
-- Prepare the ecosystem for future cross-cutting concerns such as authentication, authorization, rate limiting, and request tracing.
+- Validate JWT access tokens issued by Keycloak.
+- Enforce route-level authorization rules for customer and account APIs.
 
 ## Local Runtime
 
@@ -38,6 +39,32 @@ http://localhost:8085
 
 The `lb://` prefix means the gateway resolves the target service through Eureka instead of using a fixed host and port.
 
+## Security
+
+`api-gateway` is configured as an OAuth2 Resource Server.
+
+Token issuer:
+
+```txt
+http://localhost:8090/realms/banking-ecosystem
+```
+
+Current authorization rules:
+
+```txt
+GET   /customers/** -> CUSTOMER_READ
+POST  /customers/** -> CUSTOMER_WRITE
+PATCH /customers/** -> CUSTOMER_WRITE
+
+GET   /accounts/**  -> ACCOUNT_READ
+POST  /accounts/**  -> ACCOUNT_WRITE
+PATCH /accounts/**  -> ACCOUNT_WRITE
+```
+
+Other HTTP methods for `/customers/**` and `/accounts/**` are denied by default.
+
+The gateway reads Keycloak realm roles from the JWT `realm_access.roles` claim.
+
 ## Configuration
 
 The service reads operational configuration from Config Server.
@@ -60,11 +87,12 @@ Recommended local startup order:
 
 ```txt
 1. MySQL containers
-2. config-server
-3. eureka-server
-4. customer-service
-5. account-service
-6. api-gateway
+2. keycloak
+3. config-server
+4. eureka-server
+5. customer-service
+6. account-service
+7. api-gateway
 ```
 
 From this directory:

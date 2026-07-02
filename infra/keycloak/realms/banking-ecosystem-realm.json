@@ -68,6 +68,61 @@
         "ACCOUNT_READ",
         "ACCOUNT_WRITE"
       ]
+    },
+    {
+      "username": "customer-reader",
+      "email": "customer-reader@local.dev",
+      "firstName": "Customer",
+      "lastName": "Reader",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "customer-reader-password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "CUSTOMER_READ"
+      ]
+    },
+    {
+      "username": "customer-writer",
+      "email": "customer-writer@local.dev",
+      "firstName": "Customer",
+      "lastName": "Writer",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "customer-writer-password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "CUSTOMER_READ",
+        "CUSTOMER_WRITE"
+      ]
+    },
+    {
+      "username": "account-reader",
+      "email": "account-reader@local.dev",
+      "firstName": "Account",
+      "lastName": "Reader",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "account-reader-password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "ACCOUNT_READ"
+      ]
     }
   ]
 }
