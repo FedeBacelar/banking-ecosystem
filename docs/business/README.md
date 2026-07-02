@@ -15,6 +15,7 @@ ecosystem/overview.md
 ```txt
 services/customer-service/
 services/account-service/
+services/identity-service/
 ```
 
 Read business documentation before changing service boundaries or domain rules.

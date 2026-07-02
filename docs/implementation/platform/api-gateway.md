@@ -53,6 +53,20 @@ Current routes:
 /accounts/**  -> lb://account-service
 ```
 
+Current non-routes:
+
+```txt
+identity-service is not exposed directly through api-gateway.
+```
+
+The accepted browser-facing model for a future BFF is:
+
+```txt
+Browser / frontend -> api-gateway -> banking-bff -> internal services
+```
+
+The BFF should not replace the gateway as the public edge.
+
 Security issuer:
 
 ```txt
@@ -97,5 +111,6 @@ Current verified result:
 4. eureka-server
 5. customer-service
 6. account-service
-7. api-gateway
+7. identity-service
+8. api-gateway
 ```

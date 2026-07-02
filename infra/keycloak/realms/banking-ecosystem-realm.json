@@ -25,6 +25,14 @@
       {
         "name": "ACCOUNT_WRITE",
         "description": "Allows creating and changing account information."
+      },
+      {
+        "name": "IDENTITY_READ",
+        "description": "Allows resolving identity links."
+      },
+      {
+        "name": "IDENTITY_WRITE",
+        "description": "Allows creating and changing identity links."
       }
     ]
   },
@@ -45,6 +53,30 @@
       "webOrigins": [
         "http://localhost:*"
       ]
+    },
+    {
+      "clientId": "banking-swagger",
+      "name": "Banking Swagger Local Client",
+      "description": "Local Swagger UI client used to authenticate with Authorization Code and PKCE.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:8080/swagger-ui/oauth2-redirect.html",
+        "http://localhost:8081/swagger-ui/oauth2-redirect.html",
+        "http://localhost:8082/swagger-ui/oauth2-redirect.html"
+      ],
+      "webOrigins": [
+        "http://localhost:8080",
+        "http://localhost:8081",
+        "http://localhost:8082"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
     }
   ],
   "users": [
@@ -66,7 +98,9 @@
         "CUSTOMER_READ",
         "CUSTOMER_WRITE",
         "ACCOUNT_READ",
-        "ACCOUNT_WRITE"
+        "ACCOUNT_WRITE",
+        "IDENTITY_READ",
+        "IDENTITY_WRITE"
       ]
     },
     {
@@ -122,6 +156,25 @@
       ],
       "realmRoles": [
         "ACCOUNT_READ"
+      ]
+    },
+    {
+      "username": "identity-admin",
+      "email": "identity-admin@local.dev",
+      "firstName": "Identity",
+      "lastName": "Admin",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "identity-admin-password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "IDENTITY_READ",
+        "IDENTITY_WRITE"
       ]
     }
   ]

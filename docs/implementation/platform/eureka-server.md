@@ -12,7 +12,7 @@ Current capabilities:
 
 - Runs a Netflix Eureka Server.
 - Exposes the Eureka dashboard.
-- Allows `customer-service` and `account-service` to register themselves.
+- Allows `customer-service`, `account-service`, and `identity-service` to register themselves.
 - Allows `api-gateway` to register itself.
 - Allows service-to-service resolution by logical service name.
 
@@ -54,6 +54,7 @@ Current Eureka clients:
 ```txt
 customer-service
 account-service
+identity-service
 api-gateway
 ```
 
@@ -88,5 +89,6 @@ Current verified result:
 3. eureka-server
 4. customer-service
 5. account-service
-6. api-gateway
+6. identity-service
+7. api-gateway
 ```

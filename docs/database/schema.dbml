@@ -1,6 +1,7 @@
 // Banking ecosystem database model
-// Source: current Flyway migrations in customer-service and account-service.
+// Source: current Flyway migrations in customer-service, account-service, and identity-service.
 // Important: account_db.account.customer_id is a logical reference to customer-service.
+// Important: identity_db.identity_link.customer_id is a logical reference to customer-service.
 // It is intentionally not declared as a DBML Ref because there is no physical FK across service databases.
 
 Project banking_ecosystem {
@@ -69,6 +70,17 @@ Enum account_status {
   ACTIVE
   FROZEN
   CLOSED
+}
+
+Enum identity_provider {
+  KEYCLOAK
+  GOOGLE
+}
+
+Enum identity_link_status {
+  PENDING_VERIFICATION
+  ACTIVE
+  DISABLED
 }
 
 Table customer_db.party {
@@ -245,6 +257,25 @@ Table account_db.account_number_sequence {
   updated_at timestamp(6) [not null]
 
   Note: 'Local sequence used to generate account numbers.'
+}
+
+Table identity_db.identity_link {
+  id char(36) [pk, not null]
+  customer_id char(36) [not null, note: 'Logical reference to customer_db.customer.id. No physical FK across service databases.']
+  provider identity_provider [not null]
+  provider_subject varchar(255) [not null]
+  status identity_link_status [not null]
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+  version bigint [not null, default: 0]
+
+  indexes {
+    (provider, provider_subject) [unique, name: 'uk_identity_link_provider_subject']
+    customer_id [name: 'idx_identity_link_customer_id']
+    status [name: 'idx_identity_link_status']
+  }
+
+  Note: 'External identity to banking customer link persisted by identity-service.'
 }
 
 Ref: customer_db.natural_person.party_id > customer_db.party.id

@@ -9,6 +9,7 @@ This avoids accidental coupling and keeps each service responsible for its own d
 ```txt
 customer-service -> customer_db
 account-service -> account_db
+identity-service -> identity_db
 ```
 
 Each database runs in its own MySQL container for local development.
@@ -17,11 +18,14 @@ Each database runs in its own MySQL container for local development.
 
 `account-service` stores `customerId`, but it does not create a foreign key to `customer_db`.
 
+`identity-service` also stores `customerId`, but it does not create a foreign key to `customer_db`.
+
 Reason:
 
 ```txt
 customer-service owns customer data.
 account-service owns account data.
+identity-service owns external identity links.
 ```
 
 The relationship is validated through service communication, not shared database constraints.
@@ -33,6 +37,7 @@ Each service owns its Flyway migrations:
 ```txt
 customer-service/src/main/resources/db/migration
 account-service/src/main/resources/db/migration
+identity-service/src/main/resources/db/migration
 ```
 
 ## Production Direction

@@ -48,6 +48,8 @@ POST/PATCH /customers/** -> CUSTOMER_WRITE
 
 Local documentation endpoints are public when `banking.security.public-docs-enabled=true`.
 
+Swagger UI can authenticate against Keycloak using the `banking-swagger` client with Authorization Code and PKCE.
+
 Database:
 
 ```txt

@@ -2,7 +2,7 @@
 
 Local Keycloak infrastructure for the banking ecosystem.
 
-Keycloak is the Identity Provider that will be used by future security features. It is available as local infrastructure and imports a development realm for API security work. It is not yet integrated with `api-gateway`.
+Keycloak is the local Identity Provider for API security work. It imports a development realm used by `api-gateway` and protected backend services.
 
 The included credentials are development defaults. To override them, create a local `.env` file from `.env.example`. Local `.env` files must not be committed.
 
@@ -55,6 +55,8 @@ CUSTOMER_READ
 CUSTOMER_WRITE
 ACCOUNT_READ
 ACCOUNT_WRITE
+IDENTITY_READ
+IDENTITY_WRITE
 ```
 
 Local test users:
@@ -64,6 +66,7 @@ api-tester / api-tester-password
 customer-reader / customer-reader-password
 customer-writer / customer-writer-password
 account-reader / account-reader-password
+identity-admin / identity-admin-password
 ```
 
 These test users exist only to request local tokens while developing the gateway security integration.
@@ -71,10 +74,11 @@ These test users exist only to request local tokens while developing the gateway
 Role summary:
 
 ```txt
-api-tester      -> CUSTOMER_READ, CUSTOMER_WRITE, ACCOUNT_READ, ACCOUNT_WRITE
+api-tester      -> all current API roles
 customer-reader -> CUSTOMER_READ
 customer-writer -> CUSTOMER_READ, CUSTOMER_WRITE
 account-reader  -> ACCOUNT_READ
+identity-admin  -> IDENTITY_READ, IDENTITY_WRITE
 ```
 
 ## Token Request
@@ -104,6 +108,7 @@ function Get-BankingAccessToken {
 
 $customerToken = Get-BankingAccessToken "customer-reader" "customer-reader-password"
 $accountToken = Get-BankingAccessToken "account-reader" "account-reader-password"
+$identityToken = Get-BankingAccessToken "identity-admin" "identity-admin-password"
 ```
 
 This password grant is enabled only for local API testing. Production user-facing applications should use Authorization Code Flow with PKCE.

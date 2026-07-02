@@ -35,6 +35,25 @@ services:
       timeout: 5s
       retries: 10
 
+  identity-mysql:
+    image: mysql:8.4
+    container_name: identity-mysql
+    environment:
+      MYSQL_DATABASE: ${IDENTITY_DB_NAME:-identity_db}
+      MYSQL_USER: ${IDENTITY_DB_USERNAME:-identity_user}
+      MYSQL_PASSWORD: ${IDENTITY_DB_PASSWORD:-identity_password}
+      MYSQL_ROOT_PASSWORD: ${IDENTITY_DB_ROOT_PASSWORD:-root_password}
+    ports:
+      - "${IDENTITY_DB_PORT:-3309}:3306"
+    volumes:
+      - identity_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
 volumes:
   customer_mysql_data:
   account_mysql_data:
+  identity_mysql_data:

@@ -32,6 +32,9 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+    oauth:
+      client-id: ${SWAGGER_OAUTH_CLIENT_ID:banking-swagger}
+      use-pkce-with-authorization-code-grant: true
 
 banking:
   security:

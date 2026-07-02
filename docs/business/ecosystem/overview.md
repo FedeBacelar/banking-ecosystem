@@ -9,6 +9,7 @@ The main idea is that each service owns one business capability and does not sha
 ```txt
 customer-service
 account-service
+identity-service
 ```
 
 ## Customer Service
@@ -40,11 +41,27 @@ It answers questions such as:
 - What is the operational balance?
 ```
 
+## Identity Service
+
+`identity-service` owns the link between authenticated external identities and internal banking customers.
+
+It answers questions such as:
+
+```txt
+- Which customer belongs to this authenticated identity?
+- Is the identity link active?
+- Which external identities are linked to a customer?
+```
+
 ## Current Relationship Between Services
 
 When an account is opened, `account-service` validates the customer through `customer-service`.
 
 `account-service` stores only the external `customerId`. It does not copy personal customer data.
+
+When a user logs in, future browser-facing components can resolve the authenticated identity through `identity-service`.
+
+`identity-service` stores only the external `customerId`. It does not copy personal customer data.
 
 ## Business Principle
 

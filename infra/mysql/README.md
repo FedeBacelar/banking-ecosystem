@@ -48,6 +48,17 @@ Password: account_password
 JDBC URL: jdbc:mysql://localhost:3308/account_db
 ```
 
+Identity database:
+
+```txt
+Host: localhost
+Port: 3309
+Database: identity_db
+Username: identity_user
+Password: identity_password
+JDBC URL: jdbc:mysql://localhost:3309/identity_db
+```
+
 Root user:
 
 ```txt
@@ -57,4 +68,4 @@ Password: root_password
 
 The containers use MySQL `8.4`.
 
-Each container exposes internal MySQL port `3306`. The published host ports are `3307` for `customer-service` and `3308` for `account-service`.
+Each container exposes internal MySQL port `3306`. The published host ports are `3307` for `customer-service`, `3308` for `account-service`, and `3309` for `identity-service`.

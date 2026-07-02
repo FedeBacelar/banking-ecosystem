@@ -11,6 +11,7 @@ infra/mysql/docker-compose.yml
 ```txt
 customer-mysql
 account-mysql
+identity-mysql
 ```
 
 Each container runs MySQL internally on port `3306`.
@@ -20,6 +21,7 @@ The host ports are different:
 ```txt
 localhost:3307 -> customer-mysql:3306
 localhost:3308 -> account-mysql:3306
+localhost:3309 -> identity-mysql:3306
 ```
 
 ## Databases
@@ -27,9 +29,10 @@ localhost:3308 -> account-mysql:3306
 ```txt
 customer_db
 account_db
+identity_db
 ```
 
-## Why Two Containers?
+## Why Separate Containers?
 
 Using separate containers makes the database-per-service principle visible in local development.
 

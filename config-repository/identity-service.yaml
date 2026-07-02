@@ -1,0 +1,46 @@
+server:
+  port: ${IDENTITY_SERVICE_PORT:8082}
+
+spring:
+  datasource:
+    url: ${IDENTITY_DB_URL:jdbc:mysql://localhost:3309/identity_db}
+    username: ${IDENTITY_DB_USERNAME:identity_user}
+    password: ${IDENTITY_DB_PASSWORD:identity_password}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/banking-ecosystem}
+
+banking:
+  security:
+    public-docs-enabled: ${PUBLIC_DOCS_ENABLED:true}
+
+eureka:
+  client:
+    enabled: ${EUREKA_CLIENT_ENABLED:true}
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+info:
+  app:
+    name: identity-service
+    description: Identity linking service for banking customers
+    version: 0.0.1-SNAPSHOT
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    oauth:
+      client-id: ${SWAGGER_OAUTH_CLIENT_ID:banking-swagger}
+      use-pkce-with-authorization-code-grant: true

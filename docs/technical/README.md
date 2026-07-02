@@ -8,9 +8,17 @@ This section explains engineering decisions and conventions for the current bank
 architecture/hexagonal-architecture.md
 architecture/service-boundaries.md
 architecture/database-per-service.md
+architecture/web-access-model.md
 architecture/error-handling.md
 architecture/validation.md
 architecture/testing-strategy.md
+```
+
+## Security
+
+```txt
+security/identity-linking.md
+security/swagger-oauth2.md
 ```
 
 ## Infrastructure

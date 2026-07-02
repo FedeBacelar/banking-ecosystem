@@ -16,8 +16,9 @@ Current capabilities:
 - Supports local override of port and admin credentials through environment variables.
 - Imports the `banking-ecosystem` realm on first startup.
 - Provides a local `banking-api` client for API token testing.
-- Provides initial API roles for customer and account access.
-- Issues JWT access tokens validated by `api-gateway`, `customer-service`, and `account-service`.
+- Provides a local `banking-swagger` client for service Swagger UI OAuth2 login with PKCE.
+- Provides initial API roles for customer, account, and identity access.
+- Issues JWT access tokens validated by `api-gateway`, `customer-service`, `account-service`, and `identity-service`.
 
 ## Local Runtime
 
@@ -31,6 +32,26 @@ Admin console:
 
 ```txt
 http://localhost:8090
+```
+
+## Public Access Model
+
+Keycloak uses a dedicated auth endpoint.
+
+It is not exposed through `api-gateway` as a business route.
+
+Local development:
+
+```txt
+Gateway:  http://localhost:8085
+Keycloak: http://localhost:8090
+```
+
+Production-style model:
+
+```txt
+API:  https://api.bank.example
+Auth: https://auth.bank.example
 ```
 
 ## Configuration
@@ -71,10 +92,11 @@ docker compose -f infra/keycloak/docker-compose.yml down
 banking-ecosystem
 ```
 
-Current client:
+Current clients:
 
 ```txt
 banking-api
+banking-swagger
 ```
 
 Current roles:
@@ -84,6 +106,8 @@ CUSTOMER_READ
 CUSTOMER_WRITE
 ACCOUNT_READ
 ACCOUNT_WRITE
+IDENTITY_READ
+IDENTITY_WRITE
 ```
 
 Current local test users:
@@ -93,6 +117,7 @@ api-tester
 customer-reader
 customer-writer
 account-reader
+identity-admin
 ```
 
 ## Service Integration
@@ -103,9 +128,10 @@ Current protected components:
 api-gateway
 customer-service
 account-service
+identity-service
 ```
 
-All three validate JWT access tokens issued by the `banking-ecosystem` realm.
+All protected components validate JWT access tokens issued by the `banking-ecosystem` realm.
 
 Role usage:
 
@@ -114,4 +140,22 @@ CUSTOMER_READ  -> read customer API
 CUSTOMER_WRITE -> write customer API
 ACCOUNT_READ   -> read account API
 ACCOUNT_WRITE  -> write account API
+IDENTITY_READ  -> read/resolve identity links
+IDENTITY_WRITE -> create/update identity links
 ```
+
+## Swagger Client
+
+`banking-swagger` is used by service Swagger UIs.
+
+It is a public client configured for Authorization Code with PKCE.
+
+Local redirect URLs:
+
+```txt
+http://localhost:8080/swagger-ui/oauth2-redirect.html
+http://localhost:8081/swagger-ui/oauth2-redirect.html
+http://localhost:8082/swagger-ui/oauth2-redirect.html
+```
+
+If a local Keycloak volume already existed before this client was added, add the client manually or recreate the local Keycloak volume.

@@ -56,6 +56,7 @@ docs/database/README.md
 ```txt
 customer-service
 account-service
+identity-service
 config-server
 eureka-server
 api-gateway

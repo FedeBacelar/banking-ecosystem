@@ -40,6 +40,19 @@ Only paths configured in the gateway are part of the public API surface.
 
 Direct local access to internal services can still exist during development, but clients should use the gateway as the ecosystem entry point.
 
+When a browser-facing BFF is added, the BFF should stay behind the gateway:
+
+```txt
+Browser / frontend
+  -> api-gateway
+    -> banking-bff
+      -> internal services
+```
+
+The BFF should not replace the gateway as the public edge.
+
+`identity-service` is currently treated as an internal service. It is expected to be consumed by backend components such as a future `banking-bff`, not exposed directly as a public gateway route.
+
 ## Security
 
 The gateway is configured as an OAuth2 Resource Server.
@@ -82,3 +95,9 @@ The gateway is also the natural place for additional cross-cutting HTTP concerns
 - Request correlation and tracing.
 
 Business rules must remain inside the owning business service.
+
+See also:
+
+```txt
+docs/technical/architecture/web-access-model.md
+```
