@@ -1,4 +1,4 @@
-﻿# account-service Customer Integration
+# account-service Customer Integration
 
 `account-service` validates customers through `customer-service` before opening an account.
 

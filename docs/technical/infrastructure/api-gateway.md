@@ -17,8 +17,9 @@ http://localhost:8085
 Current route model:
 
 ```txt
-/customers/** -> customer-service
-/accounts/**  -> account-service
+/api/customers/** -> customer-service
+/api/accounts/**  -> account-service
+/web/**           -> home-banking-bff
 ```
 
 ## Discovery Integration
@@ -30,9 +31,12 @@ Routes use logical service names:
 ```txt
 lb://customer-service
 lb://account-service
+lb://home-banking-bff
 ```
 
 This keeps routing independent from concrete service ports such as `8080` or `8081`.
+
+The BFF route preserves the original host header. This is required for browser OAuth2 redirects because the user must stay on the public gateway URL instead of being redirected to the internal BFF address.
 
 ## External Surface
 
@@ -45,13 +49,13 @@ When a browser-facing BFF is added, the BFF should stay behind the gateway:
 ```txt
 Browser / frontend
   -> api-gateway
-    -> banking-bff
+    -> home-banking-bff
       -> internal services
 ```
 
-The BFF should not replace the gateway as the public edge.
+The BFF does not replace the gateway as the public edge.
 
-`identity-service` is currently treated as an internal service. It is expected to be consumed by backend components such as a future `banking-bff`, not exposed directly as a public gateway route.
+`identity-service` is treated as an internal service. It is consumed by backend components such as `home-banking-bff`, not exposed directly as a public gateway route.
 
 ## Security
 
@@ -66,16 +70,20 @@ http://localhost:8090/realms/banking-ecosystem
 Current route-level authorization:
 
 ```txt
-GET   /customers/** -> CUSTOMER_READ
-POST  /customers/** -> CUSTOMER_WRITE
-PATCH /customers/** -> CUSTOMER_WRITE
+GET   /api/customers/** -> CUSTOMER_READ
+POST  /api/customers/** -> CUSTOMER_WRITE
+PATCH /api/customers/** -> CUSTOMER_WRITE
 
-GET   /accounts/**  -> ACCOUNT_READ
-POST  /accounts/**  -> ACCOUNT_WRITE
-PATCH /accounts/**  -> ACCOUNT_WRITE
+GET   /api/accounts/**  -> ACCOUNT_READ
+POST  /api/accounts/**  -> ACCOUNT_WRITE
+PATCH /api/accounts/**  -> ACCOUNT_WRITE
+
+/web/** -> allowed through to home-banking-bff
 ```
 
-Other HTTP methods for `/customers/**` and `/accounts/**` are denied by default.
+Other HTTP methods for `/api/customers/**` and `/api/accounts/**` are denied by default.
+
+The gateway allows `/web/**` without a Bearer token because the browser authentication flow is session-based and owned by `home-banking-bff`.
 
 Keycloak realm roles are read from:
 

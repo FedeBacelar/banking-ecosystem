@@ -77,87 +77,32 @@
       "attributes": {
         "pkce.code.challenge.method": "S256"
       }
+    },
+    {
+      "clientId": "home-banking-bff",
+      "name": "Banking BFF Local Client",
+      "description": "Local confidential client used by the browser-facing BFF.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "local-bff-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:8085/web/login/oauth2/code/keycloak",
+        "http://localhost:8086/web/login/oauth2/code/keycloak"
+      ],
+      "webOrigins": [
+        "http://localhost:8085",
+        "http://localhost:8086"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:8085/web/session##http://localhost:8086/web/session"
+      }
     }
   ],
   "users": [
-    {
-      "username": "api-tester",
-      "email": "api-tester@local.dev",
-      "firstName": "API",
-      "lastName": "Tester",
-      "enabled": true,
-      "emailVerified": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "api-tester-password",
-          "temporary": false
-        }
-      ],
-      "realmRoles": [
-        "CUSTOMER_READ",
-        "CUSTOMER_WRITE",
-        "ACCOUNT_READ",
-        "ACCOUNT_WRITE",
-        "IDENTITY_READ",
-        "IDENTITY_WRITE"
-      ]
-    },
-    {
-      "username": "customer-reader",
-      "email": "customer-reader@local.dev",
-      "firstName": "Customer",
-      "lastName": "Reader",
-      "enabled": true,
-      "emailVerified": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "customer-reader-password",
-          "temporary": false
-        }
-      ],
-      "realmRoles": [
-        "CUSTOMER_READ"
-      ]
-    },
-    {
-      "username": "customer-writer",
-      "email": "customer-writer@local.dev",
-      "firstName": "Customer",
-      "lastName": "Writer",
-      "enabled": true,
-      "emailVerified": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "customer-writer-password",
-          "temporary": false
-        }
-      ],
-      "realmRoles": [
-        "CUSTOMER_READ",
-        "CUSTOMER_WRITE"
-      ]
-    },
-    {
-      "username": "account-reader",
-      "email": "account-reader@local.dev",
-      "firstName": "Account",
-      "lastName": "Reader",
-      "enabled": true,
-      "emailVerified": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "account-reader-password",
-          "temporary": false
-        }
-      ],
-      "realmRoles": [
-        "ACCOUNT_READ"
-      ]
-    },
     {
       "username": "identity-admin",
       "email": "identity-admin@local.dev",
@@ -175,6 +120,26 @@
       "realmRoles": [
         "IDENTITY_READ",
         "IDENTITY_WRITE"
+      ]
+    },
+    {
+      "username": "home-banking-user",
+      "email": "home-banking-user@local.dev",
+      "firstName": "Home",
+      "lastName": "Banking",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "home-banking-user-password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "CUSTOMER_READ",
+        "ACCOUNT_READ",
+        "IDENTITY_READ"
       ]
     }
   ]

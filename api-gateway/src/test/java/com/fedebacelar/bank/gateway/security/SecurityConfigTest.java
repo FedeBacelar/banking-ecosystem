@@ -24,10 +24,13 @@ import reactor.core.publisher.Mono;
         properties = {
                 "spring.cloud.gateway.server.webflux.routes[0].id=test-customers",
                 "spring.cloud.gateway.server.webflux.routes[0].uri=forward:/test/customers",
-                "spring.cloud.gateway.server.webflux.routes[0].predicates[0]=Path=/customers/**",
+                "spring.cloud.gateway.server.webflux.routes[0].predicates[0]=Path=/api/customers/**",
                 "spring.cloud.gateway.server.webflux.routes[1].id=test-accounts",
                 "spring.cloud.gateway.server.webflux.routes[1].uri=forward:/test/accounts",
-                "spring.cloud.gateway.server.webflux.routes[1].predicates[0]=Path=/accounts/**"
+                "spring.cloud.gateway.server.webflux.routes[1].predicates[0]=Path=/api/accounts/**",
+                "spring.cloud.gateway.server.webflux.routes[2].id=test-bff",
+                "spring.cloud.gateway.server.webflux.routes[2].uri=forward:/test/web",
+                "spring.cloud.gateway.server.webflux.routes[2].predicates[0]=Path=/web/**"
         }
 )
 @Import(SecurityConfigTest.TestRouteController.class)
@@ -42,7 +45,7 @@ class SecurityConfigTest {
     @Test
     void shouldRejectRequestWithoutToken() {
         webTestClient().get()
-                .uri("/customers/123")
+                .uri("/api/customers/123")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
@@ -53,7 +56,7 @@ class SecurityConfigTest {
 
         webTestClient()
                 .get()
-                .uri("/customers/123")
+                .uri("/api/customers/123")
                 .headers(headers -> headers.setBearerAuth(token))
                 .exchange()
                 .expectStatus().isOk();
@@ -65,7 +68,7 @@ class SecurityConfigTest {
 
         webTestClient()
                 .get()
-                .uri("/customers/123")
+                .uri("/api/customers/123")
                 .headers(headers -> headers.setBearerAuth(token))
                 .exchange()
                 .expectStatus().isForbidden();
@@ -77,7 +80,7 @@ class SecurityConfigTest {
 
         webTestClient()
                 .post()
-                .uri("/customers/natural-persons")
+                .uri("/api/customers/natural-persons")
                 .headers(headers -> headers.setBearerAuth(token))
                 .exchange()
                 .expectStatus().isOk();
@@ -89,7 +92,7 @@ class SecurityConfigTest {
 
         webTestClient()
                 .get()
-                .uri("/accounts/123")
+                .uri("/api/accounts/123")
                 .headers(headers -> headers.setBearerAuth(token))
                 .exchange()
                 .expectStatus().isOk();
@@ -101,7 +104,7 @@ class SecurityConfigTest {
 
         webTestClient()
                 .patch()
-                .uri("/accounts/123/freeze")
+                .uri("/api/accounts/123/freeze")
                 .headers(headers -> headers.setBearerAuth(token))
                 .exchange()
                 .expectStatus().isOk();
@@ -113,7 +116,7 @@ class SecurityConfigTest {
 
         webTestClient()
                 .delete()
-                .uri("/customers/123")
+                .uri("/api/customers/123")
                 .headers(headers -> headers.setBearerAuth(token))
                 .exchange()
                 .expectStatus().isForbidden();
@@ -123,6 +126,14 @@ class SecurityConfigTest {
     void shouldExposeHealthWithoutToken() {
         webTestClient().get()
                 .uri("/actuator/health")
+                .exchange()
+                .expectStatus().isOk();
+    }
+
+    @Test
+    void shouldAllowBffRoutesWithoutBearerToken() {
+        webTestClient().get()
+                .uri("/web/session")
                 .exchange()
                 .expectStatus().isOk();
     }
@@ -165,6 +176,10 @@ class SecurityConfigTest {
 
         @PatchMapping("/test/accounts/**")
         void patchAccount() {
+        }
+
+        @GetMapping("/test/web/**")
+        void getBff() {
         }
     }
 }

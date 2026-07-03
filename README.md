@@ -9,6 +9,7 @@ The repository is organized as a monorepo. Each service owns its code, configura
 - `customer-service`: customer onboarding, customer lifecycle, and initial KYC API.
 - `account-service`: bank accounts, account identifiers, account lifecycle, balances, and customer validation.
 - `identity-service`: links authenticated external identities to internal banking customers.
+- `home-banking-bff`: browser-facing backend for future home banking sessions.
 - `config-server`: centralized configuration server for the local ecosystem.
 - `eureka-server`: service discovery server for the local microservices ecosystem.
 - `api-gateway`: external HTTP entry point and route layer for the local ecosystem.
@@ -70,6 +71,7 @@ Config Server examples:
 http://localhost:8888/customer-service/default
 http://localhost:8888/account-service/default
 http://localhost:8888/identity-service/default
+http://localhost:8888/home-banking-bff/default
 http://localhost:8888/api-gateway/default
 ```
 
@@ -125,6 +127,19 @@ Identity Swagger:
 http://localhost:8082/swagger-ui.html
 ```
 
+Start `home-banking-bff`:
+
+```powershell
+cd ..\home-banking-bff
+.\mvnw.cmd spring-boot:run
+```
+
+BFF local path through the gateway:
+
+```txt
+http://localhost:8085/web/session
+```
+
 Start `api-gateway`:
 
 ```powershell
@@ -162,6 +177,11 @@ cd ..\account-service
 
 ```powershell
 cd ..\identity-service
+.\mvnw.cmd test
+```
+
+```powershell
+cd ..\home-banking-bff
 .\mvnw.cmd test
 ```
 

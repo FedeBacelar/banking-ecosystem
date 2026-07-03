@@ -13,7 +13,7 @@ Current capabilities:
 - Runs a Netflix Eureka Server.
 - Exposes the Eureka dashboard.
 - Allows `customer-service`, `account-service`, and `identity-service` to register themselves.
-- Allows `api-gateway` to register itself.
+- Allows `home-banking-bff` and `api-gateway` to register themselves.
 - Allows service-to-service resolution by logical service name.
 
 ## Local Runtime
@@ -55,6 +55,7 @@ Current Eureka clients:
 customer-service
 account-service
 identity-service
+home-banking-bff
 api-gateway
 ```
 
@@ -90,5 +91,6 @@ Current verified result:
 4. customer-service
 5. account-service
 6. identity-service
-7. api-gateway
+7. home-banking-bff
+8. api-gateway
 ```
