@@ -18,7 +18,7 @@ Keycloak provides:
 
 Keycloak is available as local infrastructure with a development realm.
 
-`api-gateway`, `customer-service`, `account-service`, and `identity-service` validate JWT access tokens issued by this realm.
+`api-gateway`, `customer-service`, `account-service`, `identity-service`, and `home-banking-bff` integrate with this realm.
 
 ## Local Runtime
 
@@ -60,7 +60,7 @@ This separation keeps banking API routing and identity-provider routing independ
 
 Keycloak owns OAuth2/OpenID Connect endpoints such as authorization, token exchange, logout, discovery metadata, and public keys.
 
-`api-gateway` owns banking API routes such as customer, account, and future BFF routes.
+`api-gateway` owns banking API routes such as customer, account, and BFF routes.
 
 ## Realm Model
 
@@ -77,11 +77,14 @@ Current clients:
 ```txt
 banking-api
 banking-swagger
+home-banking-bff
 ```
 
 `banking-api` is used to request local access tokens for API testing.
 
 `banking-swagger` is used by service Swagger UIs with Authorization Code and PKCE.
+
+`home-banking-bff` is a confidential client used by the browser-facing backend with Authorization Code Flow.
 
 Current realm roles:
 
@@ -132,6 +135,8 @@ business service -> validates token again
 
 The gateway owns the external API access rules. Business services also validate tokens directly so direct service access is not trusted by default.
 
+`home-banking-bff` is configured as an OAuth2 Client. It creates a browser session and uses the user's access token when calling protected internal services.
+
 ## Swagger Client
 
 `banking-swagger` is a public local client for Swagger UI.
@@ -145,3 +150,16 @@ http://localhost:8082/swagger-ui/oauth2-redirect.html
 ```
 
 If Keycloak already has an existing Docker volume, the realm import file may not create this client automatically. Create it manually or recreate the local Keycloak volume.
+
+## BFF Client
+
+`home-banking-bff` is a confidential local client.
+
+Local redirect URLs:
+
+```txt
+http://localhost:8085/web/login/oauth2/code/keycloak
+http://localhost:8086/web/login/oauth2/code/keycloak
+```
+
+The local client secret is a development default only. Real secrets must come from outside the repository.

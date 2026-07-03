@@ -88,7 +88,7 @@ class CustomerWebAdapterTest {
     void registersNaturalPerson() throws Exception {
         when(registerNaturalPersonCustomerUseCase.register(any())).thenReturn(customerDetails());
 
-        mockMvc.perform(post("/customers/natural-persons")
+        mockMvc.perform(post("/api/customers/natural-persons")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -108,7 +108,7 @@ class CustomerWebAdapterTest {
 
     @Test
     void returnsBadRequestForInvalidBody() throws Exception {
-        mockMvc.perform(post("/customers/natural-persons")
+        mockMvc.perform(post("/api/customers/natural-persons")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -127,7 +127,7 @@ class CustomerWebAdapterTest {
 
     @Test
     void returnsBadRequestForNullContactValueWithoutServerError() throws Exception {
-        mockMvc.perform(post("/customers/natural-persons")
+        mockMvc.perform(post("/api/customers/natural-persons")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -152,7 +152,7 @@ class CustomerWebAdapterTest {
 
     @Test
     void returnsBadRequestForTooLongCustomerFields() throws Exception {
-        mockMvc.perform(post("/customers/natural-persons")
+        mockMvc.perform(post("/api/customers/natural-persons")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -171,7 +171,7 @@ class CustomerWebAdapterTest {
 
     @Test
     void returnsBadRequestForTooLongNestedCustomerFields() throws Exception {
-        mockMvc.perform(post("/customers/natural-persons")
+        mockMvc.perform(post("/api/customers/natural-persons")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -210,7 +210,7 @@ class CustomerWebAdapterTest {
         when(registerNaturalPersonCustomerUseCase.register(any()))
                 .thenThrow(new DuplicateDocumentException(DocumentType.DNI, "30111222", "AR"));
 
-        mockMvc.perform(post("/customers/natural-persons")
+        mockMvc.perform(post("/api/customers/natural-persons")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {

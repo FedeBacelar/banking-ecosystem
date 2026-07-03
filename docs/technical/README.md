@@ -18,6 +18,7 @@ architecture/testing-strategy.md
 
 ```txt
 security/identity-linking.md
+security/home-banking-bff-session.md
 security/swagger-oauth2.md
 ```
 

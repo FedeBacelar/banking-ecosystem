@@ -57,6 +57,7 @@ docs/database/README.md
 customer-service
 account-service
 identity-service
+home-banking-bff
 config-server
 eureka-server
 api-gateway
@@ -70,4 +71,5 @@ Config Server for centralized configuration.
 Eureka Server for service discovery.
 API Gateway for external HTTP routing.
 Keycloak for local identity provider infrastructure.
+Banking BFF for browser sessions through the gateway.
 ```

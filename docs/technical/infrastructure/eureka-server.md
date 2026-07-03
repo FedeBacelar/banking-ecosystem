@@ -1,4 +1,4 @@
-﻿# Eureka Server
+# Eureka Server
 
 Eureka Server is implemented as:
 
@@ -44,6 +44,7 @@ Example:
 customer-service -> localhost:8080
 account-service  -> localhost:8081
 identity-service -> localhost:8082
+home-banking-bff     -> localhost:8086
 api-gateway      -> localhost:8085
 ```
 
@@ -61,6 +62,7 @@ Current clients:
 customer-service
 account-service
 identity-service
+home-banking-bff
 api-gateway
 ```
 
@@ -73,8 +75,8 @@ Eureka helps services find each other. A gateway gives external clients a single
 Example gateway responsibility:
 
 ```txt
-/customers/** -> customer-service
-/accounts/**  -> account-service
+/api/customers/** -> customer-service
+/api/accounts/**  -> account-service
 ```
 
 ### Config Server
@@ -121,6 +123,8 @@ http://localhost:8761/eureka/
 
 `identity-service` registers itself in Eureka so internal components can resolve identity links by service name.
 
+`home-banking-bff` registers itself in Eureka so `api-gateway` can route `/web/**` traffic to it by service name.
+
 ## Local Startup Order
 
 ```txt
@@ -130,7 +134,8 @@ http://localhost:8761/eureka/
 4. Start customer-service.
 5. Start account-service.
 6. Start identity-service.
-7. Start api-gateway.
+7. Start home-banking-bff.
+8. Start api-gateway.
 ```
 
 ## Why It Belongs Here

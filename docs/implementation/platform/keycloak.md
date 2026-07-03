@@ -17,6 +17,7 @@ Current capabilities:
 - Imports the `banking-ecosystem` realm on first startup.
 - Provides a local `banking-api` client for API token testing.
 - Provides a local `banking-swagger` client for service Swagger UI OAuth2 login with PKCE.
+- Provides a local `home-banking-bff` confidential client for browser login through the BFF.
 - Provides initial API roles for customer, account, and identity access.
 - Issues JWT access tokens validated by `api-gateway`, `customer-service`, `account-service`, and `identity-service`.
 
@@ -97,6 +98,7 @@ Current clients:
 ```txt
 banking-api
 banking-swagger
+home-banking-bff
 ```
 
 Current roles:
@@ -113,12 +115,20 @@ IDENTITY_WRITE
 Current local test users:
 
 ```txt
-api-tester
-customer-reader
-customer-writer
-account-reader
 identity-admin
+home-banking-user
 ```
+
+Local user purpose:
+
+```txt
+identity-admin    -> identity link administration
+home-banking-user -> browser login through home-banking-bff
+```
+
+`identity-admin` is an operational user. It should not be used as the final customer in the BFF flow.
+
+`home-banking-user` represents the typical home banking customer. The customer does not choose which `customerId` to read; the BFF resolves it from the Keycloak subject through `identity-service`.
 
 ## Service Integration
 
@@ -144,6 +154,12 @@ IDENTITY_READ  -> read/resolve identity links
 IDENTITY_WRITE -> create/update identity links
 ```
 
+The current role model is coarse-grained. The BFF enforces the customer-facing "own data" flow by deriving the `customerId` from the authenticated identity link and not accepting a customer id from the browser.
+
+Future hardening should add ownership checks inside business services too, so direct API access cannot use a customer token to read another customer's data.
+
+The imported realm intentionally keeps only the two users required for the main local flow. Extra users for negative authorization tests should be created temporarily when needed.
+
 ## Swagger Client
 
 `banking-swagger` is used by service Swagger UIs.
@@ -159,3 +175,25 @@ http://localhost:8082/swagger-ui/oauth2-redirect.html
 ```
 
 If a local Keycloak volume already existed before this client was added, add the client manually or recreate the local Keycloak volume.
+
+## BFF Client
+
+`home-banking-bff` is used by the browser-facing backend.
+
+It is a confidential client configured for Authorization Code Flow.
+
+Local redirect URLs:
+
+```txt
+http://localhost:8085/web/login/oauth2/code/keycloak
+http://localhost:8086/web/login/oauth2/code/keycloak
+```
+
+Local post logout redirect URLs:
+
+```txt
+http://localhost:8085/web/session
+http://localhost:8086/web/session
+```
+
+The local secret in the realm import is only a development default. Real secrets must come from environment variables or a secrets manager.

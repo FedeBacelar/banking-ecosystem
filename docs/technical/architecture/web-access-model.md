@@ -37,7 +37,7 @@ When a Backend for Frontend is added, it should also stay behind the gateway:
 ```txt
 Browser / frontend
   -> api-gateway
-    -> banking-bff
+    -> home-banking-bff
       -> internal services
 ```
 
@@ -47,7 +47,7 @@ Browser / frontend
 
 It is responsible for routing external requests into the ecosystem and for cross-cutting edge concerns such as authentication checks, CORS, request headers, rate limiting, and observability.
 
-`banking-bff` will own browser-specific backend behavior.
+`home-banking-bff` owns browser-specific backend behavior.
 
 It should translate frontend needs into backend calls, manage the browser session strategy, and compose customer-facing responses.
 
@@ -60,7 +60,7 @@ They own business rules, persistence, and service-level authorization.
 ```txt
 Browser
   -> api-gateway
-    -> banking-bff
+    -> home-banking-bff
       -> identity-service
       -> customer-service
       -> account-service
@@ -68,7 +68,7 @@ Browser
 
 `identity-service` is not exposed as a direct public gateway route in the current model.
 
-It is consumed internally by `banking-bff` to resolve an authenticated identity to a banking customer.
+It is consumed internally by `home-banking-bff` to resolve an authenticated identity to a banking customer.
 
 ## Why The BFF Does Not Replace The Gateway
 
@@ -83,22 +83,26 @@ This avoids exposing multiple public backends and keeps edge concerns centralize
 The current implemented gateway routes are:
 
 ```txt
-/customers/** -> customer-service
-/accounts/**  -> account-service
+/api/customers/** -> customer-service
+/api/accounts/**  -> account-service
+/web/**           -> home-banking-bff
 ```
 
-When `banking-bff` is implemented, the gateway should route browser-oriented API paths to it, for example:
+The BFF route is intentionally allowed through the gateway without a Bearer token:
 
 ```txt
-/bff/** -> banking-bff
+Browser -> api-gateway -> home-banking-bff
 ```
+
+The browser authenticates with the BFF session cookie. The BFF then forwards the user's access token to protected internal services.
 
 Business services should continue validating tokens even when requests enter through the gateway.
 
 Local development currently uses:
 
 ```txt
-Frontend:  not implemented yet
-Gateway:   http://localhost:8085
-Keycloak:  http://localhost:8090
+Frontend: not implemented yet
+Gateway:  http://localhost:8085
+BFF:      http://localhost:8085/web/**
+Keycloak: http://localhost:8090
 ```

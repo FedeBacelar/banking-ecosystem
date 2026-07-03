@@ -11,6 +11,7 @@ application.yaml
 customer-service.yaml
 account-service.yaml
 identity-service.yaml
+home-banking-bff.yaml
 eureka-server.yaml
 api-gateway.yaml
 ```
@@ -29,6 +30,11 @@ ACCOUNT_DB_PASSWORD
 IDENTITY_DB_PASSWORD
 EUREKA_SERVER_URL
 SWAGGER_OAUTH_CLIENT_ID
+HOME_BANKING_BFF_PORT
+HOME_BANKING_BFF_OAUTH_CLIENT_ID
+HOME_BANKING_BFF_OAUTH_CLIENT_SECRET
+HOME_BANKING_BFF_OAUTH_REDIRECT_URI
+HOME_BANKING_BFF_COOKIE_SECURE
 ```
 
 Local development may use safe defaults, but real credentials must come from outside the repository.

@@ -53,7 +53,7 @@ class CustomerApiE2ETest {
                 .defaultHeader("Authorization", "Bearer " + token)
                 .build();
 
-        JsonNode created = post(client, "/customers/natural-persons", """
+        JsonNode created = post(client, "/api/customers/natural-persons", """
                 {
                   "firstName": "Federico",
                   "lastName": "Bacelar",

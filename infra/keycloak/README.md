@@ -42,10 +42,12 @@ Realm:
 banking-ecosystem
 ```
 
-Client:
+Clients:
 
 ```txt
 banking-api
+banking-swagger
+home-banking-bff
 ```
 
 Realm roles:
@@ -62,28 +64,26 @@ IDENTITY_WRITE
 Local test users:
 
 ```txt
-api-tester / api-tester-password
-customer-reader / customer-reader-password
-customer-writer / customer-writer-password
-account-reader / account-reader-password
 identity-admin / identity-admin-password
+home-banking-user / home-banking-user-password
 ```
 
-These test users exist only to request local tokens while developing the gateway security integration.
+These users have different purposes. They are not interchangeable.
 
 Role summary:
 
 ```txt
-api-tester      -> all current API roles
-customer-reader -> CUSTOMER_READ
-customer-writer -> CUSTOMER_READ, CUSTOMER_WRITE
-account-reader  -> ACCOUNT_READ
-identity-admin  -> IDENTITY_READ, IDENTITY_WRITE
+identity-admin    -> IDENTITY_READ, IDENTITY_WRITE, used to administer identity links
+home-banking-user -> CUSTOMER_READ, ACCOUNT_READ, IDENTITY_READ, used as the browser customer user
 ```
 
-## Token Request
+`identity-admin` is not a home banking customer. It can manage identity links, but it should not be used to test `/web/me`.
 
-After Keycloak starts, a local access token can be requested with:
+`home-banking-user` represents the typical browser user. It must access banking data through `home-banking-bff`, which resolves the linked `customerId` from the authenticated Keycloak subject.
+
+## Local Token Request
+
+After Keycloak starts, a local access token can be requested for manual API checks:
 
 ```powershell
 function Get-BankingAccessToken {
@@ -106,12 +106,33 @@ function Get-BankingAccessToken {
   $response.access_token
 }
 
-$customerToken = Get-BankingAccessToken "customer-reader" "customer-reader-password"
-$accountToken = Get-BankingAccessToken "account-reader" "account-reader-password"
 $identityToken = Get-BankingAccessToken "identity-admin" "identity-admin-password"
+$homeBankingToken = Get-BankingAccessToken "home-banking-user" "home-banking-user-password"
 ```
 
 This password grant is enabled only for local API testing. Production user-facing applications should use Authorization Code Flow with PKCE.
+
+Do not use password grant to simulate home banking browser login. Use `http://localhost:8085/web/me` and login with `home-banking-user`.
+
+## BFF Login Client
+
+`home-banking-bff` is the local confidential client used by the browser-facing backend.
+
+Local redirect URLs:
+
+```txt
+http://localhost:8085/web/login/oauth2/code/keycloak
+http://localhost:8086/web/login/oauth2/code/keycloak
+```
+
+Local post logout redirect URLs:
+
+```txt
+http://localhost:8085/web/session
+http://localhost:8086/web/session
+```
+
+The development client secret is intentionally local-only. Real environments must inject the secret from outside the repository.
 
 ## Gateway Authorization Checks
 
@@ -120,20 +141,13 @@ After the full local ecosystem is running, use the generated tokens to verify ga
 ```powershell
 Invoke-RestMethod `
   -Method Get `
-  -Uri "http://localhost:8085/customers/{customerId}" `
-  -Headers @{ Authorization = "Bearer $customerToken" }
+  -Uri "http://localhost:8085/api/customers/{customerId}" `
+  -Headers @{ Authorization = "Bearer $homeBankingToken" }
 ```
 
 Expected: `200 OK` when the customer exists.
 
-```powershell
-Invoke-RestMethod `
-  -Method Get `
-  -Uri "http://localhost:8085/accounts/{accountId}" `
-  -Headers @{ Authorization = "Bearer $customerToken" }
-```
-
-Expected: `403 Forbidden` because `customer-reader` does not have `ACCOUNT_READ`.
+For negative authorization checks, create temporary local users manually with narrower roles instead of keeping extra users in the imported realm.
 
 ## Realm Import Behavior
 

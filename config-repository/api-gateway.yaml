@@ -10,11 +10,21 @@ spring:
             - id: customer-service
               uri: lb://customer-service
               predicates:
-                - Path=/customers/**
+                - Path=/api/customers/**
+              filters:
+                - StripPrefix=1
             - id: account-service
               uri: lb://account-service
               predicates:
-                - Path=/accounts/**
+                - Path=/api/accounts/**
+              filters:
+                - StripPrefix=1
+            - id: home-banking-bff
+              uri: lb://home-banking-bff
+              predicates:
+                - Path=/web/**
+              filters:
+                - PreserveHostHeader
   security:
     oauth2:
       resourceserver:
