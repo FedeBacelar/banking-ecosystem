@@ -148,7 +148,7 @@ The development client secret is intentionally local-only. Real environments mus
 
 ## Banking Login Theme
 
-The first theme phase customizes the Keycloak login experience only.
+The banking theme customizes the Keycloak browser authentication experience.
 
 Theme path:
 
@@ -160,6 +160,11 @@ Current scope:
 
 ```txt
 template.ftl
+login.ftl
+error.ftl
+info.ftl
+login-page-expired.ftl
+logout-confirm.ftl
 theme.properties
 messages/messages_es.properties
 messages/messages_en.properties
@@ -168,7 +173,9 @@ resources/img/banking-logo.svg
 resources/js/banking-login.js
 ```
 
-The theme keeps Keycloak in control of authentication behavior: form submission, validation errors, redirects, remember-me, password visibility, social providers, and future reset/registration screens.
+The theme keeps Keycloak in control of authentication behavior: form submission, validation errors, redirects, password visibility, social providers, and session handling.
+
+Public self-registration, public password recovery, and Keycloak remember-me are disabled in the imported realm. Those flows should be implemented only after defining the corresponding banking business process.
 
 The Docker Compose file mounts themes into the container:
 

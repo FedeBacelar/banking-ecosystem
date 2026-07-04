@@ -33,9 +33,6 @@
         <div class="banking-field">
           <div class="banking-label-row">
             <label class="banking-label" for="password">${msg("password")}</label>
-            <#if realm.resetPasswordAllowed>
-              <a class="banking-forgot-link" href="${url.loginResetCredentialsUrl}">${msg("doForgotPassword")}</a>
-            </#if>
           </div>
           <div class="banking-password-control">
             <input
@@ -60,13 +57,6 @@
             </button>
           </div>
         </div>
-
-        <#if realm.rememberMe && !usernameHidden??>
-          <label class="banking-remember" for="rememberMe">
-            <input id="rememberMe" name="rememberMe" type="checkbox" <#if login.rememberMe??>checked</#if> />
-            <span>${msg("rememberMe")}</span>
-          </label>
-        </#if>
 
         <input type="hidden" id="id-hidden-input" name="credentialId" <#if auth.selectedCredential?has_content>value="${auth.selectedCredential}"</#if>/>
 

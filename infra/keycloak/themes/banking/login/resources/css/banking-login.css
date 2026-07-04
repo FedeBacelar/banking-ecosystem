@@ -69,6 +69,11 @@ body {
   mask-image: url("../img/icons/check.svg");
 }
 
+.banking-icon--circle-alert {
+  -webkit-mask-image: url("../img/icons/circle-alert.svg");
+  mask-image: url("../img/icons/circle-alert.svg");
+}
+
 .banking-icon--eye {
   -webkit-mask-image: url("../img/icons/eye.svg");
   mask-image: url("../img/icons/eye.svg");
@@ -82,6 +87,11 @@ body {
 .banking-icon--info {
   -webkit-mask-image: url("../img/icons/info.svg");
   mask-image: url("../img/icons/info.svg");
+}
+
+.banking-icon--key-round {
+  -webkit-mask-image: url("../img/icons/key-round.svg");
+  mask-image: url("../img/icons/key-round.svg");
 }
 
 .banking-icon--lock {
@@ -485,19 +495,6 @@ body {
   text-align: center;
 }
 
-.banking-access-note {
-  margin: 24px 0 0;
-  color: var(--banking-muted);
-  font-size: 14px;
-  line-height: 1.5;
-  text-align: center;
-}
-
-.banking-access-note span {
-  color: var(--banking-accent);
-  font-weight: 600;
-}
-
 .banking-social-providers:not(:empty) {
   margin-top: 22px;
 }
@@ -513,6 +510,82 @@ body {
 
 .banking-attempted-username {
   margin-bottom: 20px;
+}
+
+.banking-status {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  color: var(--banking-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.banking-status p {
+  margin: 0;
+}
+
+.banking-status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #eef6ff;
+  color: var(--banking-accent);
+  font-size: 22px;
+}
+
+.banking-status--error .banking-status-icon {
+  background: var(--banking-error-bg);
+  color: var(--banking-error-text);
+}
+
+.banking-status--success .banking-status-icon {
+  background: #ecfdf5;
+  color: var(--banking-success);
+}
+
+.banking-actions {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.banking-action-link,
+.banking-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: var(--banking-radius);
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.banking-action-button {
+  width: 100%;
+  border: 0;
+  background: var(--banking-primary);
+  color: #fff;
+  cursor: pointer;
+}
+
+.banking-action-button:hover {
+  background: var(--banking-primary-strong);
+}
+
+.banking-action-link {
+  color: var(--banking-accent);
+  font-weight: 600;
+}
+
+.banking-action-link:hover {
+  text-decoration: underline;
 }
 
 @media (min-width: 1024px) {

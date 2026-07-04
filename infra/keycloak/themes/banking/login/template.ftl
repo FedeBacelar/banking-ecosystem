@@ -194,11 +194,6 @@
             <p class="banking-demo-note">No ingreses datos personales o bancarios reales.</p>
           </section>
 
-          <p class="banking-access-note">
-            &iquest;No ten&eacute;s acceso todav&iacute;a?
-            <span>Solicitar alta</span>
-          </p>
-
           <p class="banking-page-note">
             <span class="banking-icon banking-icon--info" aria-hidden="true"></span>
             Proyecto demo de portfolio. Nerva Banking no representa una entidad financiera real ni gestiona dinero o datos reales.

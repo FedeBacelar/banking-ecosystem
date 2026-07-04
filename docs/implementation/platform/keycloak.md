@@ -219,6 +219,11 @@ Current implemented scope:
 
 ```txt
 login/template.ftl
+login/login.ftl
+login/error.ftl
+login/info.ftl
+login/login-page-expired.ftl
+login/logout-confirm.ftl
 login/theme.properties
 login/messages
 login/resources/css
@@ -226,7 +231,18 @@ login/resources/img
 login/resources/js
 ```
 
-The current phase focuses on the primary login layout and leaves the theme prepared for future authentication screens such as password reset, update password, error/info pages, and external identity providers.
+Current browser-facing theme coverage:
+
+```txt
+Login
+Invalid credentials
+Generic error
+Information/result page
+Expired login page
+Logout confirmation
+```
+
+Public self-registration, public password recovery, and Keycloak remember-me are disabled in the imported realm. In a banking product, those flows should be modeled as controlled customer operations before exposing them from the login screen.
 
 The browser-facing login should be tested through the BFF:
 

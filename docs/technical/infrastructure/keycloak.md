@@ -182,4 +182,16 @@ The Docker Compose file mounts the theme folder into Keycloak:
 
 Theme, template, and static caches are disabled in local Docker Compose to make theme iteration predictable.
 
+Current theme coverage:
+
+```txt
+login
+error
+info
+login-page-expired
+logout-confirm
+```
+
+The imported local realm disables public self-registration, public password recovery, and Keycloak remember-me. Those capabilities are intentionally not exposed as generic login-screen actions because banking recovery and onboarding flows need stronger business controls.
+
 If the realm already exists in the local Docker volume, set the login theme manually in the admin console or recreate the volume.

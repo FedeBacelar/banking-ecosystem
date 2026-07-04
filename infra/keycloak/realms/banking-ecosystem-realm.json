@@ -12,8 +12,8 @@
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
-  "resetPasswordAllowed": true,
-  "rememberMe": true,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
   "editUsernameAllowed": false,
   "bruteForceProtected": true,
   "roles": {
