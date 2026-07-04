@@ -6,6 +6,12 @@ Keycloak is the local Identity Provider for API security work. It imports a deve
 
 The included credentials are development defaults. To override them, create a local `.env` file from `.env.example`. Local `.env` files must not be committed.
 
+The local realm uses the `banking` login theme located in:
+
+```txt
+infra/keycloak/themes/banking/login
+```
+
 ## Start
 
 From the repository root:
@@ -40,6 +46,12 @@ Realm:
 
 ```txt
 banking-ecosystem
+```
+
+Login theme:
+
+```txt
+banking
 ```
 
 Clients:
@@ -133,6 +145,53 @@ http://localhost:8086/web/session
 ```
 
 The development client secret is intentionally local-only. Real environments must inject the secret from outside the repository.
+
+## Banking Login Theme
+
+The banking theme customizes the Keycloak browser authentication experience.
+
+Theme path:
+
+```txt
+infra/keycloak/themes/banking/login
+```
+
+Current scope:
+
+```txt
+template.ftl
+login.ftl
+error.ftl
+info.ftl
+login-page-expired.ftl
+logout-confirm.ftl
+theme.properties
+messages/messages_es.properties
+messages/messages_en.properties
+resources/css/banking-login.css
+resources/img/banking-logo.svg
+resources/js/banking-login.js
+```
+
+The theme keeps Keycloak in control of authentication behavior: form submission, validation errors, redirects, password visibility, social providers, and session handling.
+
+Public self-registration, public password recovery, and Keycloak remember-me are disabled in the imported realm. Those flows should be implemented only after defining the corresponding banking business process.
+
+The Docker Compose file mounts themes into the container:
+
+```txt
+./themes:/opt/keycloak/themes:ro
+```
+
+For local theme development, Docker Compose disables Keycloak theme/template/static caching. Restart the Keycloak container after changing mounted files if the browser still shows an older version.
+
+If the realm already exists in the Docker volume, changing `loginTheme` in the import JSON will not update the running realm automatically. Set the login theme manually in the Keycloak admin console or recreate the local volume.
+
+Manual admin path:
+
+```txt
+Realm settings -> Themes -> Login theme -> banking
+```
 
 ## Gateway Authorization Checks
 
