@@ -20,6 +20,7 @@ Current capabilities:
 - Provides a local `home-banking-bff` confidential client for browser login through the BFF.
 - Provides initial API roles for customer, account, and identity access.
 - Issues JWT access tokens validated by `api-gateway`, `customer-service`, `account-service`, and `identity-service`.
+- Provides a local `banking` login theme for the browser-facing authentication flow.
 
 ## Local Runtime
 
@@ -75,6 +76,12 @@ Realm import:
 infra/keycloak/realms/banking-ecosystem-realm.json
 ```
 
+Login theme:
+
+```txt
+infra/keycloak/themes/banking/login
+```
+
 ## Start
 
 ```powershell
@@ -91,6 +98,12 @@ docker compose -f infra/keycloak/docker-compose.yml down
 
 ```txt
 banking-ecosystem
+```
+
+Current login theme:
+
+```txt
+banking
 ```
 
 Current clients:
@@ -197,3 +210,28 @@ http://localhost:8086/web/session
 ```
 
 The local secret in the realm import is only a development default. Real secrets must come from environment variables or a secrets manager.
+
+## Login Theme
+
+The `banking` theme customizes the Keycloak login page while keeping Keycloak responsible for the authentication flow.
+
+Current implemented scope:
+
+```txt
+login/template.ftl
+login/theme.properties
+login/messages
+login/resources/css
+login/resources/img
+login/resources/js
+```
+
+The current phase focuses on the primary login layout and leaves the theme prepared for future authentication screens such as password reset, update password, error/info pages, and external identity providers.
+
+The browser-facing login should be tested through the BFF:
+
+```txt
+http://localhost:8085/web/me
+```
+
+If the realm already exists in the Docker volume, select the theme manually in Keycloak or recreate the local volume.

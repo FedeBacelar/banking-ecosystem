@@ -102,21 +102,15 @@ These roles represent API capabilities. They are intentionally more specific tha
 ## Local Test Users
 
 ```txt
-api-tester
-customer-reader
-customer-writer
-account-reader
 identity-admin
+home-banking-user
 ```
 
-Local test users exist only for local token testing.
+Local users have separate responsibilities.
 
 ```txt
-api-tester      -> all current API roles
-customer-reader -> CUSTOMER_READ
-customer-writer -> CUSTOMER_READ, CUSTOMER_WRITE
-account-reader  -> ACCOUNT_READ
-identity-admin  -> IDENTITY_READ, IDENTITY_WRITE
+identity-admin    -> identity link administration
+home-banking-user -> browser login through home-banking-bff
 ```
 
 ## Current Integration
@@ -163,3 +157,29 @@ http://localhost:8086/web/login/oauth2/code/keycloak
 ```
 
 The local client secret is a development default only. Real secrets must come from outside the repository.
+
+## Login Theme
+
+The local realm uses a custom login theme:
+
+```txt
+banking
+```
+
+Theme files live in:
+
+```txt
+infra/keycloak/themes/banking/login
+```
+
+The theme customizes the Keycloak authentication UI. It does not replace Keycloak authentication behavior and does not implement banking business screens.
+
+The Docker Compose file mounts the theme folder into Keycloak:
+
+```txt
+./themes:/opt/keycloak/themes:ro
+```
+
+Theme, template, and static caches are disabled in local Docker Compose to make theme iteration predictable.
+
+If the realm already exists in the local Docker volume, set the login theme manually in the admin console or recreate the volume.

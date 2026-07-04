@@ -2,10 +2,18 @@
   "realm": "banking-ecosystem",
   "displayName": "Banking Ecosystem",
   "enabled": true,
+  "loginTheme": "banking",
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "es",
+    "en"
+  ],
+  "defaultLocale": "es",
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
-  "resetPasswordAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
   "editUsernameAllowed": false,
   "bruteForceProtected": true,
   "roles": {
