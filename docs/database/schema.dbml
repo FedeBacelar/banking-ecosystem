@@ -1,5 +1,5 @@
 // Banking ecosystem database model
-// Source: current Flyway migrations in customer-service, account-service, identity-service, and notification-service.
+// Source: current Flyway migrations in customer-service, account-service, identity-service, notification-service, and document-service.
 // Important: account_db.account.customer_id is a logical reference to customer-service.
 // Important: identity_db.identity_link.customer_id is a logical reference to customer-service.
 // It is intentionally not declared as a DBML Ref because there is no physical FK across service databases.
@@ -98,6 +98,19 @@ Enum notification_status {
   PENDING
   SENT
   FAILED
+}
+
+Enum banking_document_category {
+  DNI_FRONT
+  DNI_BACK
+}
+
+Enum document_storage_provider {
+  MINIO
+}
+
+Enum banking_document_status {
+  STORED
 }
 
 Table customer_db.party {
@@ -321,6 +334,33 @@ Table notification_db.notification {
   }
 
   Note: 'Notification request and delivery state persisted by notification-service.'
+}
+
+Table document_db.document {
+  id char(36) [pk, not null]
+  business_context varchar(80) [not null]
+  business_reference_id varchar(120) [not null]
+  category banking_document_category [not null]
+  original_filename varchar(255) [not null]
+  content_type varchar(120) [not null]
+  size_bytes bigint [not null]
+  storage_provider document_storage_provider [not null]
+  bucket_name varchar(120) [not null]
+  object_key varchar(500) [not null]
+  status banking_document_status [not null]
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+  version bigint [not null, default: 0]
+
+  indexes {
+    object_key [unique, name: 'uk_document_object_key']
+    (business_context, business_reference_id) [name: 'idx_document_business_reference']
+    category [name: 'idx_document_category']
+    status [name: 'idx_document_status']
+    created_at [name: 'idx_document_created_at']
+  }
+
+  Note: 'Document metadata and object storage location persisted by document-service.'
 }
 
 Ref: customer_db.natural_person.party_id > customer_db.party.id

@@ -48,11 +48,11 @@ MINIO_BUCKET_NAME=banking-documents
 
 These are development defaults only. Real credentials must be injected from outside the repository.
 
-## Future Service Configuration
+## Service Configuration
 
-`document-service` should consume MinIO through a storage port/adapter.
+`document-service` consumes MinIO through a storage port/adapter.
 
-Expected local configuration:
+Local configuration:
 
 ```txt
 DOCUMENT_STORAGE_PROVIDER=minio

@@ -18,7 +18,7 @@ Keycloak provides:
 
 Keycloak is available as local infrastructure with a development realm.
 
-`api-gateway`, `customer-service`, `account-service`, `identity-service`, and `home-banking-bff` integrate with this realm.
+`api-gateway`, `customer-service`, `account-service`, `identity-service`, `notification-service`, `document-service`, and `home-banking-bff` integrate with this realm.
 
 ## Local Runtime
 
@@ -95,6 +95,9 @@ ACCOUNT_READ
 ACCOUNT_WRITE
 IDENTITY_READ
 IDENTITY_WRITE
+NOTIFICATION_WRITE
+DOCUMENT_READ
+DOCUMENT_WRITE
 ```
 
 These roles represent API capabilities. They are intentionally more specific than generic roles such as `USER` or `ADMIN`.
@@ -102,15 +105,15 @@ These roles represent API capabilities. They are intentionally more specific tha
 ## Local Test Users
 
 ```txt
-identity-admin
+banking-admin
 home-banking-user
 ```
 
-Local users have separate responsibilities.
+Local users have separate responsibilities. The realm intentionally avoids one operational user per service.
 
 ```txt
-identity-admin    -> identity link administration
-home-banking-user -> browser login through home-banking-bff
+banking-admin      -> local operational/API testing across current services
+home-banking-user  -> browser login through home-banking-bff
 ```
 
 ## Current Integration
@@ -125,7 +128,7 @@ api-gateway -> routes to business services
 business service -> validates token again
 ```
 
-`api-gateway`, `customer-service`, `account-service`, and `identity-service` are configured as OAuth2 Resource Servers.
+`api-gateway`, `customer-service`, `account-service`, `identity-service`, `notification-service`, and `document-service` are configured as OAuth2 Resource Servers.
 
 The gateway owns the external API access rules. Business services also validate tokens directly so direct service access is not trusted by default.
 
@@ -141,6 +144,8 @@ It is configured for Authorization Code with PKCE and local Swagger redirect URL
 http://localhost:8080/swagger-ui/oauth2-redirect.html
 http://localhost:8081/swagger-ui/oauth2-redirect.html
 http://localhost:8082/swagger-ui/oauth2-redirect.html
+http://localhost:8083/swagger-ui/oauth2-redirect.html
+http://localhost:8084/swagger-ui/oauth2-redirect.html
 ```
 
 If Keycloak already has an existing Docker volume, the realm import file may not create this client automatically. Create it manually or recreate the local Keycloak volume.

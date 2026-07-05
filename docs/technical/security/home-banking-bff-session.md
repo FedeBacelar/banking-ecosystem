@@ -79,7 +79,7 @@ Keycloak subject -> identity link -> customerId
 
 That is how the current `/web/me` endpoint returns "my" customer and "my" accounts.
 
-`identity-admin` is only for administering identity links. It is expected to fail the full home banking composition if it does not also have customer/account read permissions.
+`banking-admin` is only for local operational/API testing. It should not be used as the browser customer for the home banking composition.
 
 Use `home-banking-user` for the browser customer flow.
 

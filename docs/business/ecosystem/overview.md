@@ -11,6 +11,7 @@ customer-service
 account-service
 identity-service
 notification-service
+document-service
 ```
 
 ## Customer Service
@@ -81,6 +82,24 @@ It answers questions such as:
 The first implemented channel is email.
 
 `notification-service` does not decide why a notification should be sent. Business services decide that a notification is needed, and `notification-service` handles templating, delivery, and delivery state.
+
+## Document Service
+
+`document-service` owns banking document metadata and the integration with object storage.
+
+It answers questions such as:
+
+```txt
+- Which document was uploaded?
+- Which business process owns it?
+- What category is it?
+- Where is the file stored?
+- Was the file accepted by the storage boundary?
+```
+
+The first implemented use case is onboarding evidence, such as DNI front and back images.
+
+`document-service` does not approve onboarding, review documents, own customer data, or expose public document downloads.
 
 ## Business Principle
 

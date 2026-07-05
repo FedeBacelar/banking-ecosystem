@@ -65,7 +65,7 @@ Bucket:
 banking-documents
 ```
 
-## Future document-service Configuration
+## document-service Configuration
 
 ```txt
 DOCUMENT_STORAGE_PROVIDER=minio

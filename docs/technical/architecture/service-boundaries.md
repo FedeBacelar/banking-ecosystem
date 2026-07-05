@@ -90,3 +90,34 @@ onboarding or another service -> notification-service
 
 The caller decides that a notification should be sent. `notification-service` owns how that notification is rendered, delivered, and recorded.
 
+## document-service
+
+Owns:
+
+```txt
+- Document metadata.
+- Document categories.
+- Accepted file content type and size.
+- Object storage keys and provider metadata.
+- Storage status.
+```
+
+Does not own:
+
+```txt
+- Onboarding approval.
+- Manual document review decisions.
+- Customer data.
+- Account data.
+- Authentication users.
+- Public document downloads.
+```
+
+Current example:
+
+```txt
+future onboarding-service -> document-service
+```
+
+The caller decides that a document is required for a business process. `document-service` owns file acceptance, storage, and metadata.
+

@@ -71,12 +71,15 @@ ACCOUNT_READ
 ACCOUNT_WRITE
 IDENTITY_READ
 IDENTITY_WRITE
+NOTIFICATION_WRITE
+DOCUMENT_READ
+DOCUMENT_WRITE
 ```
 
 Local test users:
 
 ```txt
-identity-admin / identity-admin-password
+banking-admin / banking-admin-password
 home-banking-user / home-banking-user-password
 ```
 
@@ -85,11 +88,11 @@ These users have different purposes. They are not interchangeable.
 Role summary:
 
 ```txt
-identity-admin    -> IDENTITY_READ, IDENTITY_WRITE, used to administer identity links
+banking-admin     -> all current API capability roles, used for local operational/API testing
 home-banking-user -> CUSTOMER_READ, ACCOUNT_READ, IDENTITY_READ, used as the browser customer user
 ```
 
-`identity-admin` is not a home banking customer. It can manage identity links, but it should not be used to test `/web/me`.
+`banking-admin` is not a home banking customer. It can test internal APIs, but it should not be used as the browser user for `/web/me`.
 
 `home-banking-user` represents the typical browser user. It must access banking data through `home-banking-bff`, which resolves the linked `customerId` from the authenticated Keycloak subject.
 
@@ -118,7 +121,7 @@ function Get-BankingAccessToken {
   $response.access_token
 }
 
-$identityToken = Get-BankingAccessToken "identity-admin" "identity-admin-password"
+$adminToken = Get-BankingAccessToken "banking-admin" "banking-admin-password"
 $homeBankingToken = Get-BankingAccessToken "home-banking-user" "home-banking-user-password"
 ```
 

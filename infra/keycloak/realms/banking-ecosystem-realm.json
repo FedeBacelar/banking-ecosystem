@@ -45,6 +45,14 @@
       {
         "name": "NOTIFICATION_WRITE",
         "description": "Allows sending internal notifications."
+      },
+      {
+        "name": "DOCUMENT_READ",
+        "description": "Allows reading banking document metadata."
+      },
+      {
+        "name": "DOCUMENT_WRITE",
+        "description": "Allows uploading banking documents."
       }
     ]
   },
@@ -80,13 +88,15 @@
         "http://localhost:8080/swagger-ui/oauth2-redirect.html",
         "http://localhost:8081/swagger-ui/oauth2-redirect.html",
         "http://localhost:8082/swagger-ui/oauth2-redirect.html",
-        "http://localhost:8083/swagger-ui/oauth2-redirect.html"
+        "http://localhost:8083/swagger-ui/oauth2-redirect.html",
+        "http://localhost:8084/swagger-ui/oauth2-redirect.html"
       ],
       "webOrigins": [
         "http://localhost:8080",
         "http://localhost:8081",
         "http://localhost:8082",
-        "http://localhost:8083"
+        "http://localhost:8083",
+        "http://localhost:8084"
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256"
@@ -118,22 +128,29 @@
   ],
   "users": [
     {
-      "username": "identity-admin",
-      "email": "identity-admin@local.dev",
-      "firstName": "Identity",
+      "username": "banking-admin",
+      "email": "banking-admin@local.dev",
+      "firstName": "Banking",
       "lastName": "Admin",
       "enabled": true,
       "emailVerified": true,
       "credentials": [
         {
           "type": "password",
-          "value": "identity-admin-password",
+          "value": "banking-admin-password",
           "temporary": false
         }
       ],
       "realmRoles": [
+        "CUSTOMER_READ",
+        "CUSTOMER_WRITE",
+        "ACCOUNT_READ",
+        "ACCOUNT_WRITE",
         "IDENTITY_READ",
-        "IDENTITY_WRITE"
+        "IDENTITY_WRITE",
+        "NOTIFICATION_WRITE",
+        "DOCUMENT_READ",
+        "DOCUMENT_WRITE"
       ]
     },
     {
@@ -154,24 +171,6 @@
         "CUSTOMER_READ",
         "ACCOUNT_READ",
         "IDENTITY_READ"
-      ]
-    },
-    {
-      "username": "notification-admin",
-      "email": "notification-admin@local.dev",
-      "firstName": "Notification",
-      "lastName": "Admin",
-      "enabled": true,
-      "emailVerified": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "notification-admin-password",
-          "temporary": false
-        }
-      ],
-      "realmRoles": [
-        "NOTIFICATION_WRITE"
       ]
     }
   ]

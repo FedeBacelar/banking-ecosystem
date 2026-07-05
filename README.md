@@ -10,6 +10,7 @@ The repository is organized as a monorepo. Each service owns its code, configura
 - `account-service`: bank accounts, account identifiers, account lifecycle, balances, and customer validation.
 - `identity-service`: links authenticated external identities to internal banking customers.
 - `notification-service`: notification requests, templates, delivery attempts, and email delivery state.
+- `document-service`: document metadata and object storage integration for banking evidence.
 - `home-banking-bff`: browser-facing backend for future home banking sessions.
 - `config-server`: centralized configuration server for the local ecosystem.
 - `eureka-server`: service discovery server for the local microservices ecosystem.
@@ -39,6 +40,8 @@ Local defaults:
 - Identity DB: `identity_db`
 - Notification DB port: `3310`
 - Notification DB: `notification_db`
+- Document DB port: `3311`
+- Document DB: `document_db`
 
 To override local values, create `infra/mysql/.env` from `infra/mysql/.env.example` and run:
 
@@ -156,6 +159,19 @@ Notification Swagger:
 http://localhost:8083/swagger-ui.html
 ```
 
+Start `document-service`:
+
+```powershell
+cd ..\document-service
+.\mvnw.cmd spring-boot:run
+```
+
+Document Swagger:
+
+```txt
+http://localhost:8084/swagger-ui.html
+```
+
 Start `home-banking-bff`:
 
 ```powershell
@@ -211,6 +227,11 @@ cd ..\identity-service
 
 ```powershell
 cd ..\notification-service
+.\mvnw.cmd test
+```
+
+```powershell
+cd ..\document-service
 .\mvnw.cmd test
 ```
 

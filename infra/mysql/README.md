@@ -70,6 +70,17 @@ Password: notification_password
 JDBC URL: jdbc:mysql://localhost:3310/notification_db
 ```
 
+Document database:
+
+```txt
+Host: localhost
+Port: 3311
+Database: document_db
+Username: document_user
+Password: document_password
+JDBC URL: jdbc:mysql://localhost:3311/document_db
+```
+
 Root user:
 
 ```txt
@@ -79,4 +90,4 @@ Password: root_password
 
 The containers use MySQL `8.4`.
 
-Each container exposes internal MySQL port `3306`. The published host ports are `3307` for `customer-service`, `3308` for `account-service`, `3309` for `identity-service`, and `3310` for `notification-service`.
+Each container exposes internal MySQL port `3306`. The published host ports are `3307` for `customer-service`, `3308` for `account-service`, `3309` for `identity-service`, `3310` for `notification-service`, and `3311` for `document-service`.
