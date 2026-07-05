@@ -18,6 +18,7 @@ Current capabilities:
 - Provides a local `banking-api` client for API token testing.
 - Provides a local `banking-swagger` client for service Swagger UI OAuth2 login with PKCE.
 - Provides a local `home-banking-bff` confidential client for browser login through the BFF.
+- Allows `home-banking-bff` to use client credentials for internal onboarding calls.
 - Provides API roles for customer, account, identity, notification, document, and onboarding access.
 - Issues JWT access tokens validated by `api-gateway`, `customer-service`, `account-service`, `identity-service`, `notification-service`, `document-service`, and `onboarding-service`.
 - Provides a local `banking` login theme for the browser-facing authentication flow.
@@ -226,6 +227,20 @@ http://localhost:8086/web/session
 ```
 
 The local secret in the realm import is only a development default. Real secrets must come from environment variables or a secrets manager.
+
+The same confidential BFF client has service accounts enabled for backend-to-backend onboarding calls.
+
+Current service account roles:
+
+```txt
+NOTIFICATION_WRITE
+ONBOARDING_READ
+ONBOARDING_WRITE
+```
+
+`NOTIFICATION_WRITE` is needed because the current `onboarding-service` magic-link flow requests email delivery through `notification-service`.
+
+This is not a human test user and should not be used for browser login.
 
 ## Login Theme
 

@@ -122,7 +122,7 @@
       "secret": "local-bff-secret",
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
-      "serviceAccountsEnabled": false,
+      "serviceAccountsEnabled": true,
       "redirectUris": [
         "http://localhost:8085/web/login/oauth2/code/keycloak",
         "http://localhost:8086/web/login/oauth2/code/keycloak"
@@ -137,6 +137,16 @@
     }
   ],
   "users": [
+    {
+      "username": "service-account-home-banking-bff",
+      "enabled": true,
+      "serviceAccountClientId": "home-banking-bff",
+      "realmRoles": [
+        "NOTIFICATION_WRITE",
+        "ONBOARDING_READ",
+        "ONBOARDING_WRITE"
+      ]
+    },
     {
       "username": "banking-admin",
       "email": "banking-admin@local.dev",

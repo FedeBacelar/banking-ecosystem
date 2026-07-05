@@ -11,6 +11,8 @@ It stays behind `api-gateway` and owns browser session behavior.
 - Resolve the authenticated Keycloak subject through `identity-service`.
 - Compose customer-facing responses from internal services.
 - Forward the user's access token to protected internal services.
+- Bridge public onboarding requests to `onboarding-service`.
+- Keep the onboarding continuation token in an HttpOnly cookie.
 
 It does not own customer data, accounts, balances, identity links, or authentication credentials.
 
@@ -31,6 +33,8 @@ infrastructure/adapter/in/web
 infrastructure/adapter/out/account
 infrastructure/adapter/out/customer
 infrastructure/adapter/out/identity
+infrastructure/adapter/out/onboarding
+infrastructure/adapter/out/security
 infrastructure/config
 ```
 
@@ -75,6 +79,10 @@ http://localhost:8086/web/**
 GET /web/session
 GET /web/me
 GET /web/logout
+POST /web/onboarding/applications
+POST /web/onboarding/magic-links/consume
+GET /web/onboarding/session
+DELETE /web/onboarding/session
 ```
 
 `GET /web/session` is public and returns whether the current browser has an authenticated BFF session.
@@ -85,12 +93,28 @@ If no session exists, Spring Security redirects to Keycloak login.
 
 `GET /web/logout` clears the local BFF session and starts OIDC logout at Keycloak. After Keycloak logout, the browser is redirected back to `/web/session`.
 
+`POST /web/onboarding/applications` is public and starts an onboarding application for an applicant without a banking user.
+
+`POST /web/onboarding/magic-links/consume` is public, consumes the magic link token, and stores the returned continuation token in an HttpOnly cookie scoped to `/web/onboarding`.
+
+`GET /web/onboarding/session` validates the onboarding continuation cookie and returns the current onboarding session state.
+
+`DELETE /web/onboarding/session` clears the onboarding continuation cookie.
+
 ## Flow
 
 ```txt
 Browser -> api-gateway -> home-banking-bff -> Keycloak login
 Browser -> api-gateway -> home-banking-bff with HttpOnly cookie
 home-banking-bff -> identity-service/customer-service/account-service with Bearer token
+```
+
+Onboarding starts before the applicant has a Keycloak user:
+
+```txt
+Browser -> api-gateway -> home-banking-bff /web/onboarding/**
+home-banking-bff -> onboarding-service with client credentials token
+home-banking-bff -> browser with HttpOnly onboarding continuation cookie
 ```
 
 The browser does not send a `customerId` to decide which banking data to read.
@@ -129,5 +153,5 @@ http://localhost:8086/web/session
 Current verified result:
 
 ```txt
-5 tests passing
+14 tests passing
 ```

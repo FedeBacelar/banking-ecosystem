@@ -94,6 +94,16 @@ banking-admin     -> all current API capability roles, used for local operationa
 home-banking-user -> CUSTOMER_READ, ACCOUNT_READ, IDENTITY_READ, used as the browser customer user
 ```
 
+The `home-banking-bff` confidential client also has a service account for backend-to-backend onboarding calls with:
+
+```txt
+NOTIFICATION_WRITE
+ONBOARDING_READ
+ONBOARDING_WRITE
+```
+
+This service account is not a human login user.
+
 `banking-admin` is not a home banking customer. It can test internal APIs, but it should not be used as the browser user for `/web/me`.
 
 `home-banking-user` represents the typical browser user. It must access banking data through `home-banking-bff`, which resolves the linked `customerId` from the authenticated Keycloak subject.

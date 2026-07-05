@@ -43,6 +43,28 @@ The BFF invalidates its local session and asks Keycloak to close the identity pr
 
 This avoids a confusing local-development behavior: if only the BFF cookie is deleted, Keycloak can still silently authenticate the same user on the next request.
 
+## Onboarding Continuation Cookie
+
+Digital onboarding starts before the applicant has a Keycloak user.
+
+The BFF uses a separate cookie for onboarding continuation:
+
+```txt
+NB_ONBOARDING_CONTINUATION
+```
+
+The cookie is:
+
+```txt
+HttpOnly
+SameSite=Lax
+Path=/web/onboarding
+```
+
+It stores the opaque continuation token returned by `onboarding-service` after magic-link consumption. The browser cannot read the token from JavaScript.
+
+This cookie is not the authenticated home banking session. It only lets the applicant continue an incomplete onboarding application.
+
 ## Gateway Rule
 
 `api-gateway` allows `/web/**` through without requiring a Bearer token.

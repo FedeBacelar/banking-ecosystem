@@ -18,6 +18,13 @@ spring:
               - openid
               - profile
               - email
+          keycloak-service:
+            provider: keycloak
+            client-id: ${HOME_BANKING_BFF_INTERNAL_OAUTH_CLIENT_ID:home-banking-bff}
+            client-secret: ${HOME_BANKING_BFF_INTERNAL_OAUTH_CLIENT_SECRET:local-bff-secret}
+            authorization-grant-type: client_credentials
+            scope:
+              - openid
         provider:
           keycloak:
             issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/banking-ecosystem}
@@ -26,6 +33,11 @@ spring:
       http-only: true
       same-site: lax
       secure: ${HOME_BANKING_BFF_COOKIE_SECURE:false}
+
+home-banking-bff:
+  onboarding:
+    cookie:
+      secure: "${HOME_BANKING_BFF_ONBOARDING_COOKIE_SECURE:${HOME_BANKING_BFF_COOKIE_SECURE:false}}"
 
 eureka:
   client:

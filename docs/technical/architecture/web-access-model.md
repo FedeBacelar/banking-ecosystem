@@ -61,6 +61,7 @@ They own business rules, persistence, and service-level authorization.
 Browser
   -> api-gateway
     -> home-banking-bff
+      -> onboarding-service
       -> identity-service
       -> customer-service
       -> account-service
@@ -69,6 +70,8 @@ Browser
 `identity-service` is not exposed as a direct public gateway route in the current model.
 
 It is consumed internally by `home-banking-bff` to resolve an authenticated identity to a banking customer.
+
+`onboarding-service` is also consumed internally by `home-banking-bff` for applicant flows that start before authentication.
 
 ## Why The BFF Does Not Replace The Gateway
 
@@ -95,6 +98,8 @@ Browser -> api-gateway -> home-banking-bff
 ```
 
 The browser authenticates with the BFF session cookie. The BFF then forwards the user's access token to protected internal services.
+
+For onboarding, the browser does not have a user session yet. The BFF exposes `/web/onboarding/**`, stores the onboarding continuation token in an HttpOnly cookie, and calls `onboarding-service` with its confidential client credentials.
 
 Business services should continue validating tokens even when requests enter through the gateway.
 

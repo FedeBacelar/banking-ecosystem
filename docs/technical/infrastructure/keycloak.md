@@ -86,6 +86,8 @@ home-banking-bff
 
 `home-banking-bff` is a confidential client used by the browser-facing backend with Authorization Code Flow.
 
+The same confidential client is also allowed to use client credentials for internal onboarding calls from the BFF to `onboarding-service`.
+
 Current realm roles:
 
 ```txt
@@ -165,6 +167,16 @@ http://localhost:8086/web/login/oauth2/code/keycloak
 ```
 
 The local client secret is a development default only. Real secrets must come from outside the repository.
+
+The BFF service account has the minimum roles required by the current applicant flow:
+
+```txt
+NOTIFICATION_WRITE
+ONBOARDING_READ
+ONBOARDING_WRITE
+```
+
+`NOTIFICATION_WRITE` is required by the current magic-link path because `onboarding-service` requests email delivery through `notification-service`.
 
 ## Login Theme
 
