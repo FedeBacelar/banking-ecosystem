@@ -17,6 +17,7 @@ The repository is organized as a monorepo. Each service owns its code, configura
 - `config-repository`: local configuration source served by `config-server`.
 - `infra/mysql`: local MySQL containers, one database per business service.
 - `infra/keycloak`: local identity provider infrastructure for future OAuth2/OpenID Connect security.
+- `infra/minio`: local S3-compatible object storage for banking documents.
 - `docs`: centralized business, technical, implementation, and database documentation.
 
 ## Local Infrastructure
@@ -57,6 +58,18 @@ Keycloak admin console:
 
 ```txt
 http://localhost:8090
+```
+
+Start MinIO local object storage:
+
+```powershell
+docker compose -f infra/minio/docker-compose.yml up -d
+```
+
+MinIO console:
+
+```txt
+http://localhost:9001
 ```
 
 ## Run Locally

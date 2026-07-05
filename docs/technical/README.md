@@ -30,6 +30,7 @@ infrastructure/config-server.md
 infrastructure/eureka-server.md
 infrastructure/api-gateway.md
 infrastructure/keycloak.md
+infrastructure/minio.md
 ```
 
 The goal is to keep services consistent while still allowing each service to evolve according to its business responsibility.
