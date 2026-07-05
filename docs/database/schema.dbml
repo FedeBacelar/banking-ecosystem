@@ -1,5 +1,5 @@
 // Banking ecosystem database model
-// Source: current Flyway migrations in customer-service, account-service, and identity-service.
+// Source: current Flyway migrations in customer-service, account-service, identity-service, and notification-service.
 // Important: account_db.account.customer_id is a logical reference to customer-service.
 // Important: identity_db.identity_link.customer_id is a logical reference to customer-service.
 // It is intentionally not declared as a DBML Ref because there is no physical FK across service databases.
@@ -81,6 +81,23 @@ Enum identity_link_status {
   PENDING_VERIFICATION
   ACTIVE
   DISABLED
+}
+
+Enum notification_channel {
+  EMAIL
+}
+
+Enum notification_template_code {
+  ONBOARDING_EMAIL_MAGIC_LINK
+  ONBOARDING_APPROVED_CREDENTIAL_INVITATION
+  ONBOARDING_REJECTED
+  ONBOARDING_COMPLETED
+}
+
+Enum notification_status {
+  PENDING
+  SENT
+  FAILED
 }
 
 Table customer_db.party {
@@ -276,6 +293,34 @@ Table identity_db.identity_link {
   }
 
   Note: 'External identity to banking customer link persisted by identity-service.'
+}
+
+Table notification_db.notification {
+  id char(36) [pk, not null]
+  channel notification_channel [not null]
+  recipient varchar(255) [not null]
+  template_code notification_template_code [not null]
+  variables_json json [not null]
+  correlation_id varchar(120)
+  subject varchar(255) [not null]
+  body text [not null]
+  status notification_status [not null]
+  attempt_count int [not null, default: 0]
+  last_error text
+  sent_at timestamp(6)
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+  version bigint [not null, default: 0]
+
+  indexes {
+    recipient [name: 'idx_notification_recipient']
+    template_code [name: 'idx_notification_template_code']
+    status [name: 'idx_notification_status']
+    correlation_id [name: 'idx_notification_correlation_id']
+    created_at [name: 'idx_notification_created_at']
+  }
+
+  Note: 'Notification request and delivery state persisted by notification-service.'
 }
 
 Ref: customer_db.natural_person.party_id > customer_db.party.id

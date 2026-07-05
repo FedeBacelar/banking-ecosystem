@@ -1,0 +1,62 @@
+server:
+  port: ${NOTIFICATION_SERVICE_PORT:8083}
+
+spring:
+  datasource:
+    url: ${NOTIFICATION_DB_URL:jdbc:mysql://localhost:3310/notification_db}
+    username: ${NOTIFICATION_DB_USERNAME:notification_user}
+    password: ${NOTIFICATION_DB_PASSWORD:notification_password}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  mail:
+    host: ${NOTIFICATION_SMTP_HOST:smtp.gmail.com}
+    port: ${NOTIFICATION_SMTP_PORT:587}
+    username: ${NOTIFICATION_SMTP_USERNAME:}
+    password: ${NOTIFICATION_SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: ${NOTIFICATION_SMTP_STARTTLS:true}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/banking-ecosystem}
+
+notification:
+  email:
+    from: ${NOTIFICATION_SMTP_FROM:no-reply@nerva.local}
+
+banking:
+  security:
+    public-docs-enabled: ${PUBLIC_DOCS_ENABLED:true}
+
+eureka:
+  client:
+    enabled: ${EUREKA_CLIENT_ENABLED:true}
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+info:
+  app:
+    name: notification-service
+    description: Notification service for banking communications
+    version: 0.0.1-SNAPSHOT
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    oauth:
+      client-id: ${SWAGGER_OAUTH_CLIENT_ID:banking-swagger}
+      use-pkce-with-authorization-code-grant: true
+

@@ -14,6 +14,7 @@ It is intentionally different from the business and technical documentation:
 customer-service
 account-service
 identity-service
+notification-service
 home-banking-bff
 ```
 
@@ -22,6 +23,7 @@ home-banking-bff
 - [customer-service](services/customer-service/README.md)
 - [account-service](services/account-service/README.md)
 - [identity-service](services/identity-service/README.md)
+- [notification-service](services/notification-service/README.md)
 - [home-banking-bff](services/home-banking-bff/README.md)
 
 ## Platform Documentation

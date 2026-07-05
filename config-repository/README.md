@@ -11,6 +11,7 @@ application.yaml
 customer-service.yaml
 account-service.yaml
 identity-service.yaml
+notification-service.yaml
 home-banking-bff.yaml
 eureka-server.yaml
 api-gateway.yaml
@@ -28,6 +29,10 @@ Configuration files may reference environment variables such as:
 CUSTOMER_DB_PASSWORD
 ACCOUNT_DB_PASSWORD
 IDENTITY_DB_PASSWORD
+NOTIFICATION_DB_PASSWORD
+NOTIFICATION_SMTP_USERNAME
+NOTIFICATION_SMTP_PASSWORD
+NOTIFICATION_SMTP_FROM
 EUREKA_SERVER_URL
 SWAGGER_OAUTH_CLIENT_ID
 HOME_BANKING_BFF_PORT

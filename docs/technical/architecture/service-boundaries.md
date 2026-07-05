@@ -60,3 +60,33 @@ account-service -> customer-service
 
 This is used to validate that a customer exists and is eligible before opening an account.
 
+## notification-service
+
+Owns:
+
+```txt
+- Notification requests.
+- Notification templates.
+- Delivery channel state.
+- Email delivery attempts.
+- Provider delivery errors.
+```
+
+Does not own:
+
+```txt
+- Customer onboarding decisions.
+- Customer data.
+- Account data.
+- Identity links.
+- Authentication users.
+```
+
+Current example:
+
+```txt
+onboarding or another service -> notification-service
+```
+
+The caller decides that a notification should be sent. `notification-service` owns how that notification is rendered, delivered, and recorded.
+

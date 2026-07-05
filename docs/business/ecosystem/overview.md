@@ -10,6 +10,7 @@ The main idea is that each service owns one business capability and does not sha
 customer-service
 account-service
 identity-service
+notification-service
 ```
 
 ## Customer Service
@@ -62,6 +63,24 @@ When an account is opened, `account-service` validates the customer through `cus
 When a user logs in, future browser-facing components can resolve the authenticated identity through `identity-service`.
 
 `identity-service` stores only the external `customerId`. It does not copy personal customer data.
+
+## Notification Service
+
+`notification-service` owns notification requests and delivery state.
+
+It answers questions such as:
+
+```txt
+- Which notification was requested?
+- Which template was used?
+- Which recipient was targeted?
+- Was the delivery sent or did it fail?
+- What delivery error occurred?
+```
+
+The first implemented channel is email.
+
+`notification-service` does not decide why a notification should be sent. Business services decide that a notification is needed, and `notification-service` handles templating, delivery, and delivery state.
 
 ## Business Principle
 
