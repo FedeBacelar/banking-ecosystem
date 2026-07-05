@@ -116,8 +116,43 @@ Does not own:
 Current example:
 
 ```txt
-future onboarding-service -> document-service
+onboarding-service -> document-service
 ```
 
 The caller decides that a document is required for a business process. `document-service` owns file acceptance, storage, and metadata.
+
+## onboarding-service
+
+Owns:
+
+```txt
+- Onboarding application state.
+- Email verification and continuation tokens.
+- Applicant workflow state transitions.
+- Onboarding application expiration.
+- Orchestration of onboarding steps.
+```
+
+Does not own:
+
+```txt
+- Final customer master data.
+- Bank accounts.
+- Document file storage.
+- Notification delivery mechanics.
+- Keycloak users or authentication sessions.
+- Identity links.
+```
+
+Current examples:
+
+```txt
+onboarding-service -> notification-service
+future onboarding-service -> document-service
+future onboarding-service -> customer-service
+future onboarding-service -> account-service
+future onboarding-service -> identity-service
+```
+
+`onboarding-service` coordinates the applicant journey. Other services own the durable banking resources created after approval.
 

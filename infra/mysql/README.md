@@ -81,6 +81,17 @@ Password: document_password
 JDBC URL: jdbc:mysql://localhost:3311/document_db
 ```
 
+Onboarding database:
+
+```txt
+Host: localhost
+Port: 3312
+Database: onboarding_db
+Username: onboarding_user
+Password: onboarding_password
+JDBC URL: jdbc:mysql://localhost:3312/onboarding_db
+```
+
 Root user:
 
 ```txt
@@ -90,4 +101,4 @@ Password: root_password
 
 The containers use MySQL `8.4`.
 
-Each container exposes internal MySQL port `3306`. The published host ports are `3307` for `customer-service`, `3308` for `account-service`, `3309` for `identity-service`, `3310` for `notification-service`, and `3311` for `document-service`.
+Each container exposes internal MySQL port `3306`. The published host ports are `3307` for `customer-service`, `3308` for `account-service`, `3309` for `identity-service`, `3310` for `notification-service`, `3311` for `document-service`, and `3312` for `onboarding-service`.

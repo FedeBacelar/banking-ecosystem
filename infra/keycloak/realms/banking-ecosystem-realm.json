@@ -53,6 +53,14 @@
       {
         "name": "DOCUMENT_WRITE",
         "description": "Allows uploading banking documents."
+      },
+      {
+        "name": "ONBOARDING_READ",
+        "description": "Allows reading onboarding application metadata."
+      },
+      {
+        "name": "ONBOARDING_WRITE",
+        "description": "Allows starting and changing onboarding applications."
       }
     ]
   },
@@ -89,14 +97,16 @@
         "http://localhost:8081/swagger-ui/oauth2-redirect.html",
         "http://localhost:8082/swagger-ui/oauth2-redirect.html",
         "http://localhost:8083/swagger-ui/oauth2-redirect.html",
-        "http://localhost:8084/swagger-ui/oauth2-redirect.html"
+        "http://localhost:8084/swagger-ui/oauth2-redirect.html",
+        "http://localhost:8087/swagger-ui/oauth2-redirect.html"
       ],
       "webOrigins": [
         "http://localhost:8080",
         "http://localhost:8081",
         "http://localhost:8082",
         "http://localhost:8083",
-        "http://localhost:8084"
+        "http://localhost:8084",
+        "http://localhost:8087"
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256"
@@ -150,7 +160,9 @@
         "IDENTITY_WRITE",
         "NOTIFICATION_WRITE",
         "DOCUMENT_READ",
-        "DOCUMENT_WRITE"
+        "DOCUMENT_WRITE",
+        "ONBOARDING_READ",
+        "ONBOARDING_WRITE"
       ]
     },
     {

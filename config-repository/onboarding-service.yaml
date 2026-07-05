@@ -1,0 +1,56 @@
+server:
+  port: ${ONBOARDING_SERVICE_PORT:8087}
+
+spring:
+  datasource:
+    url: ${ONBOARDING_DB_URL:jdbc:mysql://localhost:3312/onboarding_db}
+    username: ${ONBOARDING_DB_USERNAME:onboarding_user}
+    password: ${ONBOARDING_DB_PASSWORD:onboarding_password}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/banking-ecosystem}
+
+onboarding:
+  magic-link:
+    ttl-minutes: ${ONBOARDING_MAGIC_LINK_TTL_MINUTES:30}
+  continuation:
+    ttl-minutes: ${ONBOARDING_CONTINUATION_TTL_MINUTES:120}
+  application:
+    ttl-days: ${ONBOARDING_APPLICATION_TTL_DAYS:15}
+  frontend:
+    magic-link-base-url: ${ONBOARDING_FRONTEND_MAGIC_LINK_BASE_URL:http://localhost:4200/onboarding/continue}
+
+banking:
+  security:
+    public-docs-enabled: ${PUBLIC_DOCS_ENABLED:true}
+
+eureka:
+  client:
+    enabled: ${EUREKA_CLIENT_ENABLED:true}
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+info:
+  app:
+    name: onboarding-service
+    description: Digital onboarding workflow service for banking applicants
+    version: 0.0.1-SNAPSHOT
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    oauth:
+      client-id: ${SWAGGER_OAUTH_CLIENT_ID:banking-swagger}
+      use-pkce-with-authorization-code-grant: true

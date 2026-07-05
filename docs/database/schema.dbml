@@ -1,5 +1,5 @@
 // Banking ecosystem database model
-// Source: current Flyway migrations in customer-service, account-service, identity-service, notification-service, and document-service.
+// Source: current Flyway migrations in customer-service, account-service, identity-service, notification-service, document-service, and onboarding-service.
 // Important: account_db.account.customer_id is a logical reference to customer-service.
 // Important: identity_db.identity_link.customer_id is a logical reference to customer-service.
 // It is intentionally not declared as a DBML Ref because there is no physical FK across service databases.
@@ -111,6 +111,21 @@ Enum document_storage_provider {
 
 Enum banking_document_status {
   STORED
+}
+
+Enum onboarding_application_status {
+  EMAIL_VERIFICATION_PENDING
+  IN_PROGRESS
+  SUBMITTED
+  UNDER_AUTOMATED_REVIEW
+  APPROVED
+  PROVISIONING
+  CREDENTIAL_SETUP_PENDING
+  COMPLETED
+  REJECTED
+  EXPIRED
+  CANCELLED
+  PROVISIONING_FAILED
 }
 
 Table customer_db.party {
@@ -361,6 +376,32 @@ Table document_db.document {
   }
 
   Note: 'Document metadata and object storage location persisted by document-service.'
+}
+
+Table onboarding_db.onboarding_application {
+  id char(36) [pk, not null]
+  email varchar(255) [not null]
+  status onboarding_application_status [not null]
+  magic_link_token_hash char(64) [not null]
+  magic_link_expires_at timestamp(6) [not null]
+  magic_link_consumed_at timestamp(6)
+  email_verified_at timestamp(6)
+  continuation_token_hash char(64)
+  continuation_expires_at timestamp(6)
+  expires_at timestamp(6) [not null]
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+  version bigint [not null, default: 0]
+
+  indexes {
+    magic_link_token_hash [unique, name: 'uk_onboarding_magic_link_token_hash']
+    continuation_token_hash [unique, name: 'uk_onboarding_continuation_token_hash']
+    (email, status) [name: 'idx_onboarding_email_status']
+    status [name: 'idx_onboarding_status']
+    expires_at [name: 'idx_onboarding_expires_at']
+  }
+
+  Note: 'Digital onboarding application state persisted by onboarding-service.'
 }
 
 Ref: customer_db.natural_person.party_id > customer_db.party.id

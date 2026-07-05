@@ -18,8 +18,8 @@ Current capabilities:
 - Provides a local `banking-api` client for API token testing.
 - Provides a local `banking-swagger` client for service Swagger UI OAuth2 login with PKCE.
 - Provides a local `home-banking-bff` confidential client for browser login through the BFF.
-- Provides API roles for customer, account, identity, notification, and document access.
-- Issues JWT access tokens validated by `api-gateway`, `customer-service`, `account-service`, `identity-service`, `notification-service`, and `document-service`.
+- Provides API roles for customer, account, identity, notification, document, and onboarding access.
+- Issues JWT access tokens validated by `api-gateway`, `customer-service`, `account-service`, `identity-service`, `notification-service`, `document-service`, and `onboarding-service`.
 - Provides a local `banking` login theme for the browser-facing authentication flow.
 
 ## Local Runtime
@@ -126,6 +126,8 @@ IDENTITY_WRITE
 NOTIFICATION_WRITE
 DOCUMENT_READ
 DOCUMENT_WRITE
+ONBOARDING_READ
+ONBOARDING_WRITE
 ```
 
 Current local test users:
@@ -157,6 +159,7 @@ account-service
 identity-service
 notification-service
 document-service
+onboarding-service
 ```
 
 All protected components validate JWT access tokens issued by the `banking-ecosystem` realm.
@@ -173,6 +176,8 @@ IDENTITY_WRITE -> create/update identity links
 NOTIFICATION_WRITE -> send internal notifications
 DOCUMENT_READ -> read document metadata
 DOCUMENT_WRITE -> upload documents
+ONBOARDING_READ -> read onboarding application metadata and validate continuations
+ONBOARDING_WRITE -> start onboarding applications and consume magic links
 ```
 
 The current role model is coarse-grained. The BFF enforces the customer-facing "own data" flow by deriving the `customerId` from the authenticated identity link and not accepting a customer id from the browser.
@@ -195,6 +200,7 @@ http://localhost:8081/swagger-ui/oauth2-redirect.html
 http://localhost:8082/swagger-ui/oauth2-redirect.html
 http://localhost:8083/swagger-ui/oauth2-redirect.html
 http://localhost:8084/swagger-ui/oauth2-redirect.html
+http://localhost:8087/swagger-ui/oauth2-redirect.html
 ```
 
 If a local Keycloak volume already existed before this client was added, add the client manually or recreate the local Keycloak volume.

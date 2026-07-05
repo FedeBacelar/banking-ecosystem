@@ -13,6 +13,7 @@ account-service.yaml
 identity-service.yaml
 notification-service.yaml
 document-service.yaml
+onboarding-service.yaml
 home-banking-bff.yaml
 eureka-server.yaml
 api-gateway.yaml
@@ -39,6 +40,8 @@ DOCUMENT_STORAGE_ENDPOINT
 DOCUMENT_STORAGE_ACCESS_KEY
 DOCUMENT_STORAGE_SECRET_KEY
 DOCUMENT_STORAGE_BUCKET
+ONBOARDING_DB_PASSWORD
+ONBOARDING_FRONTEND_MAGIC_LINK_BASE_URL
 EUREKA_SERVER_URL
 SWAGGER_OAUTH_CLIENT_ID
 HOME_BANKING_BFF_PORT

@@ -11,6 +11,7 @@ The repository is organized as a monorepo. Each service owns its code, configura
 - `identity-service`: links authenticated external identities to internal banking customers.
 - `notification-service`: notification requests, templates, delivery attempts, and email delivery state.
 - `document-service`: document metadata and object storage integration for banking evidence.
+- `onboarding-service`: digital onboarding applications, email magic links, and onboarding state.
 - `home-banking-bff`: browser-facing backend for future home banking sessions.
 - `config-server`: centralized configuration server for the local ecosystem.
 - `eureka-server`: service discovery server for the local microservices ecosystem.
@@ -42,6 +43,8 @@ Local defaults:
 - Notification DB: `notification_db`
 - Document DB port: `3311`
 - Document DB: `document_db`
+- Onboarding DB port: `3312`
+- Onboarding DB: `onboarding_db`
 
 To override local values, create `infra/mysql/.env` from `infra/mysql/.env.example` and run:
 
@@ -90,6 +93,9 @@ Config Server examples:
 http://localhost:8888/customer-service/default
 http://localhost:8888/account-service/default
 http://localhost:8888/identity-service/default
+http://localhost:8888/notification-service/default
+http://localhost:8888/document-service/default
+http://localhost:8888/onboarding-service/default
 http://localhost:8888/home-banking-bff/default
 http://localhost:8888/api-gateway/default
 ```
@@ -172,6 +178,19 @@ Document Swagger:
 http://localhost:8084/swagger-ui.html
 ```
 
+Start `onboarding-service`:
+
+```powershell
+cd ..\onboarding-service
+.\mvnw.cmd spring-boot:run
+```
+
+Onboarding Swagger:
+
+```txt
+http://localhost:8087/swagger-ui.html
+```
+
 Start `home-banking-bff`:
 
 ```powershell
@@ -232,6 +251,11 @@ cd ..\notification-service
 
 ```powershell
 cd ..\document-service
+.\mvnw.cmd test
+```
+
+```powershell
+cd ..\onboarding-service
 .\mvnw.cmd test
 ```
 

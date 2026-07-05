@@ -89,9 +89,28 @@ services:
       timeout: 5s
       retries: 10
 
+  onboarding-mysql:
+    image: mysql:8.4
+    container_name: onboarding-mysql
+    environment:
+      MYSQL_DATABASE: ${ONBOARDING_DB_NAME:-onboarding_db}
+      MYSQL_USER: ${ONBOARDING_DB_USERNAME:-onboarding_user}
+      MYSQL_PASSWORD: ${ONBOARDING_DB_PASSWORD:-onboarding_password}
+      MYSQL_ROOT_PASSWORD: ${ONBOARDING_DB_ROOT_PASSWORD:-root_password}
+    ports:
+      - "${ONBOARDING_DB_PORT:-3312}:3306"
+    volumes:
+      - onboarding_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
 volumes:
   customer_mysql_data:
   account_mysql_data:
   identity_mysql_data:
   notification_mysql_data:
   document_mysql_data:
+  onboarding_mysql_data:

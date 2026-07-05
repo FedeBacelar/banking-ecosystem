@@ -16,6 +16,7 @@ account-service
 identity-service
 notification-service
 document-service
+onboarding-service
 home-banking-bff
 ```
 
@@ -26,6 +27,7 @@ home-banking-bff
 - [identity-service](services/identity-service/README.md)
 - [notification-service](services/notification-service/README.md)
 - [document-service](services/document-service/README.md)
+- [onboarding-service](services/onboarding-service/README.md)
 - [home-banking-bff](services/home-banking-bff/README.md)
 
 ## Platform Documentation

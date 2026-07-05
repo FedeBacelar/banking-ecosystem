@@ -12,6 +12,7 @@ account-service
 identity-service
 notification-service
 document-service
+onboarding-service
 ```
 
 ## Customer Service
@@ -100,6 +101,24 @@ It answers questions such as:
 The first implemented use case is onboarding evidence, such as DNI front and back images.
 
 `document-service` does not approve onboarding, review documents, own customer data, or expose public document downloads.
+
+## Onboarding Service
+
+`onboarding-service` owns the applicant workflow before a person becomes a bank customer.
+
+It answers questions such as:
+
+```txt
+- Which onboarding application is active?
+- Has the applicant verified email ownership?
+- Which step is the application currently in?
+- Is the application still valid or expired?
+- Can the applicant continue the process?
+```
+
+The first implemented slice starts an application from an email address, sends a magic link through `notification-service`, and moves the application to `IN_PROGRESS` when the magic link is consumed.
+
+`onboarding-service` does not own final customer records, bank accounts, document file storage, identity links, Keycloak authentication, or email delivery infrastructure.
 
 ## Business Principle
 

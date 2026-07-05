@@ -14,6 +14,7 @@ account-mysql
 identity-mysql
 notification-mysql
 document-mysql
+onboarding-mysql
 ```
 
 Each container runs MySQL internally on port `3306`.
@@ -26,6 +27,7 @@ localhost:3308 -> account-mysql:3306
 localhost:3309 -> identity-mysql:3306
 localhost:3310 -> notification-mysql:3306
 localhost:3311 -> document-mysql:3306
+localhost:3312 -> onboarding-mysql:3306
 ```
 
 ## Databases
@@ -36,6 +38,7 @@ account_db
 identity_db
 notification_db
 document_db
+onboarding_db
 ```
 
 ## Why Separate Containers?
