@@ -25,7 +25,7 @@ class HomeBankingExceptionHandlerTest {
         ProblemDetail problem = handler.handleDownstreamForbidden(exception);
 
         assertThat(problem.getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
-        assertThat(problem.getTitle()).isEqualTo("Access denied by internal service");
+        assertThat(problem.getTitle()).isEqualTo("Access denied");
         assertThat(problem.getProperties())
                 .containsEntry("code", "DOWNSTREAM_ACCESS_DENIED")
                 .containsEntry("downstreamStatus", HttpStatus.FORBIDDEN.value());

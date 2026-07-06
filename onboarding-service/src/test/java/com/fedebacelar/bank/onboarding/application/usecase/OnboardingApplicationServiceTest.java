@@ -52,7 +52,8 @@ class OnboardingApplicationServiceTest {
 
     @Test
     void startsApplicationAndSendsMagicLink() {
-        when(repositoryPort.existsByEmailAndStatusIn(eq("person@example.com"), ArgumentMatchers.<Set<OnboardingApplicationStatus>>any())).thenReturn(false);
+        when(repositoryPort.findFirstByEmailAndStatusInOrderByCreatedAtDesc(eq("person@example.com"), ArgumentMatchers.<Set<OnboardingApplicationStatus>>any()))
+                .thenReturn(Optional.empty());
         when(tokenGeneratorPort.generate()).thenReturn("magic-token");
         when(tokenHashingPort.hash("magic-token")).thenReturn("magic-hash");
         when(repositoryPort.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -72,8 +73,35 @@ class OnboardingApplicationServiceTest {
     }
 
     @Test
-    void rejectsDuplicateActiveApplication() {
-        when(repositoryPort.existsByEmailAndStatusIn(eq("person@example.com"), ArgumentMatchers.<Set<OnboardingApplicationStatus>>any())).thenReturn(true);
+    void resendsMagicLinkForPendingApplication() {
+        OnboardingApplication application = pendingApplication("old-magic-hash", Instant.parse("2026-07-05T09:30:00Z"));
+        when(repositoryPort.findFirstByEmailAndStatusInOrderByCreatedAtDesc(eq("person@example.com"), ArgumentMatchers.<Set<OnboardingApplicationStatus>>any()))
+                .thenReturn(Optional.of(application));
+        when(tokenGeneratorPort.generate()).thenReturn("new-magic-token");
+        when(tokenHashingPort.hash("new-magic-token")).thenReturn("new-magic-hash");
+        when(repositoryPort.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var details = service.start(new StartOnboardingApplicationCommand("person@example.com"));
+
+        assertThat(details.id()).isEqualTo(application.id());
+        assertThat(details.email()).isEqualTo("person@example.com");
+        assertThat(details.status()).isEqualTo(OnboardingApplicationStatus.EMAIL_VERIFICATION_PENDING);
+        assertThat(details.magicLinkExpiresAt()).isEqualTo(Instant.parse("2026-07-05T10:30:00Z"));
+        assertThat(details.updatedAt()).isEqualTo(Instant.parse("2026-07-05T10:00:00Z"));
+        verify(notificationPort).sendMagicLink(
+                eq(application.id()),
+                eq("person@example.com"),
+                eq("http://localhost:4200/onboarding/continue?token=new-magic-token"),
+                eq(Duration.ofMinutes(30))
+        );
+    }
+
+    @Test
+    void rejectsDuplicateApplicationAfterEmailVerification() {
+        OnboardingApplication application = pendingApplication("magic-hash", Instant.parse("2026-07-05T10:30:00Z"))
+                .verifyEmail("continuation-hash", Instant.parse("2026-07-05T12:00:00Z"), Instant.parse("2026-07-05T10:00:00Z"));
+        when(repositoryPort.findFirstByEmailAndStatusInOrderByCreatedAtDesc(eq("person@example.com"), ArgumentMatchers.<Set<OnboardingApplicationStatus>>any()))
+                .thenReturn(Optional.of(application));
 
         assertThatThrownBy(() -> service.start(new StartOnboardingApplicationCommand("person@example.com")))
                 .isInstanceOf(DuplicateActiveOnboardingApplicationException.class);

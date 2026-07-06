@@ -12,5 +12,7 @@ public interface OnboardingApplicationJpaRepository extends JpaRepository<Onboar
 
     Optional<OnboardingApplicationEntity> findByContinuationTokenHash(String continuationTokenHash);
 
+    Optional<OnboardingApplicationEntity> findFirstByEmailAndStatusInOrderByCreatedAtDesc(String email, Set<OnboardingApplicationStatus> statuses);
+
     boolean existsByEmailAndStatusIn(String email, Set<OnboardingApplicationStatus> statuses);
 }

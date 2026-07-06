@@ -1,0 +1,30 @@
+<app-onboarding-shell
+  title="Solicitud en curso"
+  subtitle="Este es el punto de continuidad del trámite. El wizard completo se suma en la próxima etapa.">
+  @if (isLoading()) {
+    <div class="status-panel">
+      <strong>Consultando estado</strong>
+      <span>Estamos verificando si tenés una solicitud activa.</span>
+    </div>
+  } @else if (errorMessage()) {
+    <div class="alert alert--error" role="alert">{{ errorMessage() }}</div>
+    <a class="secondary-link" routerLink="/onboarding/start">Volver a iniciar</a>
+  } @else if (session()?.active) {
+    <div class="status-panel status-panel--success">
+      <strong>Continuación activa</strong>
+      <span>Estado actual: {{ session()?.status }}</span>
+      <small>Solicitud: {{ session()?.applicationId }}</small>
+    </div>
+
+    <button class="primary-button" type="button" disabled>Continuar carga de datos</button>
+    <button class="ghost-button" type="button" [disabled]="isClearing()" (click)="clearSession()">
+      Finalizar prueba local
+    </button>
+  } @else {
+    <div class="status-panel">
+      <strong>No hay solicitud activa</strong>
+      <span>Iniciá el trámite con tu email para recibir un enlace seguro.</span>
+    </div>
+    <a class="primary-link" routerLink="/onboarding/start">Iniciar solicitud</a>
+  }
+</app-onboarding-shell>

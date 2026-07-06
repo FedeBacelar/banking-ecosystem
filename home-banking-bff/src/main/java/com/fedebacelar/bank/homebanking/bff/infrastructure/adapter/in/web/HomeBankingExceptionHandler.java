@@ -23,8 +23,8 @@ public class HomeBankingExceptionHandler {
     @ExceptionHandler(WebClientResponseException.Forbidden.class)
     ProblemDetail handleDownstreamForbidden(WebClientResponseException exception) {
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.FORBIDDEN);
-        problem.setTitle("Access denied by internal service");
-        problem.setDetail("The authenticated user does not have enough permissions to compose the home banking context.");
+        problem.setTitle("Access denied");
+        problem.setDetail("You do not have enough permissions to complete this operation.");
         problem.setProperty("code", "DOWNSTREAM_ACCESS_DENIED");
         problem.setProperty("downstreamStatus", exception.getStatusCode().value());
         return problem;
@@ -33,8 +33,8 @@ public class HomeBankingExceptionHandler {
     @ExceptionHandler(WebClientResponseException.class)
     ProblemDetail handleDownstreamError(WebClientResponseException exception) {
         ProblemDetail problem = ProblemDetail.forStatus(exception.getStatusCode());
-        problem.setTitle("Internal service request failed");
-        problem.setDetail("An internal service rejected or failed a request needed to compose the home banking context.");
+        problem.setTitle("Request could not be completed");
+        problem.setDetail("We could not complete the operation right now. Try again later.");
         problem.setProperty("code", "DOWNSTREAM_SERVICE_ERROR");
         problem.setProperty("downstreamStatus", exception.getStatusCode().value());
         return problem;

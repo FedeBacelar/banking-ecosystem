@@ -45,6 +45,11 @@ public class OnboardingApplicationPersistenceAdapter implements OnboardingApplic
     }
 
     @Override
+    public Optional<OnboardingApplication> findFirstByEmailAndStatusInOrderByCreatedAtDesc(String email, Set<OnboardingApplicationStatus> statuses) {
+        return repository.findFirstByEmailAndStatusInOrderByCreatedAtDesc(email, statuses).map(mapper::toDomain);
+    }
+
+    @Override
     public boolean existsByEmailAndStatusIn(String email, Set<OnboardingApplicationStatus> statuses) {
         return repository.existsByEmailAndStatusIn(email, statuses);
     }

@@ -16,5 +16,7 @@ public interface OnboardingApplicationRepositoryPort {
 
     Optional<OnboardingApplication> findByContinuationTokenHash(String tokenHash);
 
+    Optional<OnboardingApplication> findFirstByEmailAndStatusInOrderByCreatedAtDesc(String email, Set<OnboardingApplicationStatus> statuses);
+
     boolean existsByEmailAndStatusIn(String email, Set<OnboardingApplicationStatus> statuses);
 }

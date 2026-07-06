@@ -8,6 +8,7 @@ Implemented:
 
 ```txt
 - Start an onboarding application from email.
+- Re-send a magic link for an existing EMAIL_VERIFICATION_PENDING application.
 - Generate one-time magic link tokens.
 - Hash magic link and continuation tokens before persistence.
 - Send the magic link through notification-service.
@@ -73,6 +74,12 @@ Current local manual tests use the shared `banking-admin` operational user. The 
 `onboarding-service` calls `notification-service` to request magic-link email delivery.
 
 The first slice forwards the current bearer token when calling downstream services. When the public BFF onboarding route is added, the BFF will own the browser-facing session/cookie boundary.
+
+## Idempotency
+
+Starting onboarding with an email that already has an active EMAIL_VERIFICATION_PENDING application does not create a duplicate application. The service rotates the magic-link token, extends the magic-link expiration, and sends a fresh email for the existing application.
+
+Starting onboarding with an email whose active application has already moved past email verification remains a conflict. The applicant must continue the existing journey instead of creating a second active application.
 
 See also:
 

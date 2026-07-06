@@ -20,6 +20,12 @@ onboarding-service
 home-banking-bff
 ```
 
+## Current Frontends
+
+```txt
+banking-web
+```
+
 ## Service Documentation
 
 - [customer-service](services/customer-service/README.md)
@@ -29,6 +35,10 @@ home-banking-bff
 - [document-service](services/document-service/README.md)
 - [onboarding-service](services/onboarding-service/README.md)
 - [home-banking-bff](services/home-banking-bff/README.md)
+
+## Frontend Documentation
+
+- [banking-web](frontends/banking-web.md)
 
 ## Platform Documentation
 

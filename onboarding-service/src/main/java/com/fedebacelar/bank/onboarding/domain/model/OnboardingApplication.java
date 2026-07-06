@@ -82,6 +82,31 @@ public record OnboardingApplication(
         );
     }
 
+    public OnboardingApplication refreshMagicLink(
+            String magicLinkTokenHash,
+            Instant magicLinkExpiresAt,
+            Instant now
+    ) {
+        if (status != OnboardingApplicationStatus.EMAIL_VERIFICATION_PENDING) {
+            throw new InvalidOnboardingStatusTransitionException(status, OnboardingApplicationStatus.EMAIL_VERIFICATION_PENDING);
+        }
+        return new OnboardingApplication(
+                id,
+                email,
+                status,
+                magicLinkTokenHash,
+                magicLinkExpiresAt,
+                null,
+                null,
+                null,
+                null,
+                expiresAt,
+                createdAt,
+                now,
+                version
+        );
+    }
+
     public OnboardingApplication expire(Instant now) {
         assertTransition(OnboardingApplicationStatus.EXPIRED);
         return withStatus(OnboardingApplicationStatus.EXPIRED, now);

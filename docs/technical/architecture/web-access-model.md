@@ -106,8 +106,12 @@ Business services should continue validating tokens even when requests enter thr
 Local development currently uses:
 
 ```txt
-Frontend: not implemented yet
+Frontend: http://localhost:4200
 Gateway:  http://localhost:8085
 BFF:      http://localhost:8085/web/**
 Keycloak: http://localhost:8090
 ```
+
+The Angular development server proxies `/web` so browser code keeps using the same BFF route shape that production will use.
+
+In local development the proxy target is `home-banking-bff` directly to avoid Vite proxy parsing issues with gateway responses. The intended runtime entrypoint remains `api-gateway /web/**`.

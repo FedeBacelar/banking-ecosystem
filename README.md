@@ -13,6 +13,7 @@ The repository is organized as a monorepo. Each service owns its code, configura
 - `document-service`: document metadata and object storage integration for banking evidence.
 - `onboarding-service`: digital onboarding applications, email magic links, and onboarding state.
 - `home-banking-bff`: browser-facing backend for future home banking sessions.
+- `banking-web`: Angular frontend for digital onboarding and future home banking screens.
 - `config-server`: centralized configuration server for the local ecosystem.
 - `eureka-server`: service discovery server for the local microservices ecosystem.
 - `api-gateway`: external HTTP entry point and route layer for the local ecosystem.
@@ -217,6 +218,19 @@ Gateway entry point:
 http://localhost:8085
 ```
 
+Start `banking-web`:
+
+```powershell
+cd ..\banking-web
+npm start
+```
+
+Angular frontend:
+
+```txt
+http://localhost:4200/onboarding/start
+```
+
 ## Tests
 
 ```powershell
@@ -267,6 +281,12 @@ cd ..\home-banking-bff
 ```powershell
 cd ..\api-gateway
 .\mvnw.cmd test
+```
+
+```powershell
+cd ..\banking-web
+npm test -- --watch=false
+npm run build
 ```
 
 Integration tests use Testcontainers with MySQL.

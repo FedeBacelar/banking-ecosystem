@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img" aria-label="Nerva Banking office">
+  <rect width="1200" height="900" fill="#edf2f7"/>
+  <rect x="0" y="0" width="1200" height="900" fill="#14243d"/>
+  <path d="M0 610h1200v290H0z" fill="#20324f"/>
+  <path d="M114 126h972v560H114z" fill="#f6f8fb"/>
+  <path d="M162 176h284v190H162zM494 176h284v190H494zM826 176h212v190H826zM162 414h284v202H162zM494 414h284v202H494zM826 414h212v202H826z" fill="#d9e3ef"/>
+  <path d="M180 196h248v150H180zM512 196h248v150H512zM844 196h176v150H844zM180 434h248v162H180zM512 434h248v162H512zM844 434h176v162H844z" fill="#ffffff"/>
+  <path d="M180 346h248v20H180zM512 346h248v20H512zM844 346h176v20H844zM180 596h248v20H180zM512 596h248v20H512zM844 596h176v20H844z" fill="#b9c8d8"/>
+  <path d="M104 686h992v42H104z" fill="#0f1d33"/>
+  <circle cx="230" cy="718" r="28" fill="#0b74d1"/>
+  <circle cx="970" cy="718" r="28" fill="#0b74d1"/>
+  <path d="M310 734c34-84 122-126 222-98 98 28 194 16 270-54 46-42 98-58 156-48v168H310z" fill="#233d62" opacity=".82"/>
+  <path d="M0 738h1200v162H0z" fill="#101a2b"/>
+  <path d="M286 792h628" stroke="#355276" stroke-width="12" stroke-linecap="round"/>
+  <path d="M350 820h500" stroke="#284363" stroke-width="8" stroke-linecap="round"/>
+</svg>

@@ -24,7 +24,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DuplicateActiveOnboardingApplicationException.class)
     ProblemDetail handleDuplicate(DuplicateActiveOnboardingApplicationException exception) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "An onboarding application is already active for this email.");
         problem.setType(URI.create("https://bank.fedebacelar.com/problems/duplicate-onboarding-application"));
         problem.setTitle("Duplicate onboarding application");
         return problem;

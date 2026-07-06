@@ -89,11 +89,29 @@ public class OnboardingApplicationService implements
     @Transactional
     public OnboardingApplicationDetails start(StartOnboardingApplicationCommand command) {
         String email = normalizeEmail(command.email());
-        if (repositoryPort.existsByEmailAndStatusIn(email, ACTIVE_STATUSES)) {
-            throw new DuplicateActiveOnboardingApplicationException(email);
+        Instant now = Instant.now(clock);
+        return repositoryPort.findFirstByEmailAndStatusInOrderByCreatedAtDesc(email, ACTIVE_STATUSES)
+                .map(application -> handleExistingActiveApplication(application, now))
+                .orElseGet(() -> createApplication(email, now));
+    }
+
+    private OnboardingApplicationDetails handleExistingActiveApplication(OnboardingApplication application, Instant now) {
+        if (application.status() != OnboardingApplicationStatus.EMAIL_VERIFICATION_PENDING) {
+            throw new DuplicateActiveOnboardingApplicationException(application.email());
         }
 
-        Instant now = Instant.now(clock);
+        String magicLinkToken = tokenGeneratorPort.generate();
+        OnboardingApplication refreshedApplication = application.refreshMagicLink(
+                tokenHashingPort.hash(magicLinkToken),
+                now.plus(magicLinkTtl),
+                now
+        );
+        OnboardingApplication savedApplication = repositoryPort.save(refreshedApplication);
+        sendMagicLink(savedApplication, magicLinkToken);
+        return OnboardingApplicationDetailsMapper.toDetails(savedApplication);
+    }
+
+    private OnboardingApplicationDetails createApplication(String email, Instant now) {
         String magicLinkToken = tokenGeneratorPort.generate();
         OnboardingApplication application = OnboardingApplication.start(
                 email,
@@ -104,13 +122,17 @@ public class OnboardingApplicationService implements
         );
 
         OnboardingApplication savedApplication = repositoryPort.save(application);
+        sendMagicLink(savedApplication, magicLinkToken);
+        return OnboardingApplicationDetailsMapper.toDetails(savedApplication);
+    }
+
+    private void sendMagicLink(OnboardingApplication savedApplication, String magicLinkToken) {
         notificationPort.sendMagicLink(
                 savedApplication.id(),
                 savedApplication.email(),
                 magicLink(magicLinkToken),
                 magicLinkTtl
         );
-        return OnboardingApplicationDetailsMapper.toDetails(savedApplication);
     }
 
     @Override

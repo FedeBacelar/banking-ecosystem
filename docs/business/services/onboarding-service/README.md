@@ -53,6 +53,8 @@ The service does not own:
 
 An applicant can have only one active onboarding application per email.
 
+If the active application is still waiting for email verification, asking for a new link reuses the same application, rotates the magic-link token, and sends a new email. This keeps the operation user-friendly without creating duplicate onboarding records.
+
 Magic links are one-time tokens. Raw tokens are never persisted; only hashes are stored.
 
 The current service is an internal foundation. The browser-facing public onboarding route will be exposed later through `home-banking-bff` under `/web`.
