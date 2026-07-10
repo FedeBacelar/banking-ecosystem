@@ -1,6 +1,7 @@
 package com.fedebacelar.bank.homebanking.bff.domain.model;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 public record OnboardingSession(
@@ -15,6 +16,11 @@ public record OnboardingSession(
     }
 
     public static OnboardingSession active(UUID applicationId, String status, Instant continuationExpiresAt) {
-        return new OnboardingSession(true, applicationId, status, continuationExpiresAt);
+        return new OnboardingSession(
+                true,
+                Objects.requireNonNull(applicationId, "applicationId is required for an active onboarding session"),
+                status,
+                continuationExpiresAt
+        );
     }
 }

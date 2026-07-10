@@ -73,6 +73,8 @@ Direct local service path:
 http://localhost:8086/web/**
 ```
 
+This direct path is for technical diagnostics only. Browser/frontend traffic must enter through `api-gateway` at `http://localhost:8085/web/**`. Do not use port `8086` as the normal browser origin.
+
 ## Endpoints
 
 ```txt
@@ -141,7 +143,6 @@ The local Keycloak client must allow these post logout redirects:
 
 ```txt
 http://localhost:8085/web/session
-http://localhost:8086/web/session
 ```
 
 ## Tests

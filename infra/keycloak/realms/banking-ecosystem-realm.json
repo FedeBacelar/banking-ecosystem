@@ -124,15 +124,13 @@
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": true,
       "redirectUris": [
-        "http://localhost:8085/web/login/oauth2/code/keycloak",
-        "http://localhost:8086/web/login/oauth2/code/keycloak"
+        "http://localhost:8085/web/login/oauth2/code/keycloak"
       ],
       "webOrigins": [
-        "http://localhost:8085",
-        "http://localhost:8086"
+        "http://localhost:8085"
       ],
       "attributes": {
-        "post.logout.redirect.uris": "http://localhost:8085/web/session##http://localhost:8086/web/session"
+        "post.logout.redirect.uris": "http://localhost:8085/web/session"
       }
     }
   ],
@@ -142,6 +140,8 @@
       "enabled": true,
       "serviceAccountClientId": "home-banking-bff",
       "realmRoles": [
+        "DOCUMENT_READ",
+        "DOCUMENT_WRITE",
         "NOTIFICATION_WRITE",
         "ONBOARDING_READ",
         "ONBOARDING_WRITE"

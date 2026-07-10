@@ -9,6 +9,7 @@ import com.fedebacelar.bank.onboarding.domain.exception.OnboardingApplicationNot
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingContinuationExpiredException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingMagicLinkAlreadyConsumedException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingMagicLinkExpiredException;
+import com.fedebacelar.bank.onboarding.domain.exception.TermsAcceptanceRequiredException;
 import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
 import org.springframework.http.HttpStatus;
@@ -27,6 +28,7 @@ public class GlobalExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "An onboarding application is already active for this email.");
         problem.setType(URI.create("https://bank.fedebacelar.com/problems/duplicate-onboarding-application"));
         problem.setTitle("Duplicate onboarding application");
+        problem.setProperty("code", "DUPLICATE_ACTIVE_ONBOARDING_APPLICATION");
         return problem;
     }
 
@@ -35,30 +37,62 @@ public class GlobalExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
         problem.setType(URI.create("https://bank.fedebacelar.com/problems/onboarding-application-not-found"));
         problem.setTitle("Onboarding application not found");
+        problem.setProperty("code", "ONBOARDING_APPLICATION_NOT_FOUND");
         return problem;
     }
 
-    @ExceptionHandler({InvalidMagicLinkTokenException.class, InvalidContinuationTokenException.class})
-    ProblemDetail handleInvalidToken(RuntimeException exception) {
+    @ExceptionHandler(InvalidMagicLinkTokenException.class)
+    ProblemDetail handleInvalidMagicLinkToken(InvalidMagicLinkTokenException exception) {
+        return tokenProblem(HttpStatus.BAD_REQUEST, exception.getMessage(), "invalid-onboarding-token", "Invalid onboarding token", "INVALID_MAGIC_LINK_TOKEN");
+    }
+
+    @ExceptionHandler(InvalidContinuationTokenException.class)
+    ProblemDetail handleInvalidContinuationToken(InvalidContinuationTokenException exception) {
+        return tokenProblem(HttpStatus.BAD_REQUEST, exception.getMessage(), "invalid-onboarding-token", "Invalid onboarding token", "INVALID_CONTINUATION_TOKEN");
+    }
+
+    @ExceptionHandler(OnboardingMagicLinkExpiredException.class)
+    ProblemDetail handleExpiredMagicLink(OnboardingMagicLinkExpiredException exception) {
+        return tokenProblem(HttpStatus.GONE, exception.getMessage(), "expired-onboarding-token", "Expired onboarding token", "ONBOARDING_MAGIC_LINK_EXPIRED");
+    }
+
+    @ExceptionHandler(OnboardingContinuationExpiredException.class)
+    ProblemDetail handleExpiredContinuation(OnboardingContinuationExpiredException exception) {
+        return tokenProblem(HttpStatus.GONE, exception.getMessage(), "expired-onboarding-token", "Expired onboarding token", "ONBOARDING_CONTINUATION_EXPIRED");
+    }
+
+    @ExceptionHandler(OnboardingMagicLinkAlreadyConsumedException.class)
+    ProblemDetail handleConsumedMagicLink(OnboardingMagicLinkAlreadyConsumedException exception) {
+        return conflictProblem(exception.getMessage(), "ONBOARDING_MAGIC_LINK_ALREADY_CONSUMED");
+    }
+
+    @ExceptionHandler(InvalidOnboardingStatusTransitionException.class)
+    ProblemDetail handleInvalidStatusTransition(InvalidOnboardingStatusTransitionException exception) {
+        return conflictProblem(exception.getMessage(), "INVALID_ONBOARDING_STATUS_TRANSITION");
+    }
+
+    @ExceptionHandler(TermsAcceptanceRequiredException.class)
+    ProblemDetail handleTermsAcceptanceRequired(TermsAcceptanceRequiredException exception) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
-        problem.setType(URI.create("https://bank.fedebacelar.com/problems/invalid-onboarding-token"));
-        problem.setTitle("Invalid onboarding token");
+        problem.setType(URI.create("https://bank.fedebacelar.com/problems/terms-acceptance-required"));
+        problem.setTitle("Terms acceptance required");
+        problem.setProperty("code", "TERMS_ACCEPTANCE_REQUIRED");
         return problem;
     }
 
-    @ExceptionHandler({OnboardingMagicLinkExpiredException.class, OnboardingContinuationExpiredException.class})
-    ProblemDetail handleExpiredToken(RuntimeException exception) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.GONE, exception.getMessage());
-        problem.setType(URI.create("https://bank.fedebacelar.com/problems/expired-onboarding-token"));
-        problem.setTitle("Expired onboarding token");
+    private ProblemDetail tokenProblem(HttpStatus status, String detail, String type, String title, String code) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
+        problem.setType(URI.create("https://bank.fedebacelar.com/problems/" + type));
+        problem.setTitle(title);
+        problem.setProperty("code", code);
         return problem;
     }
 
-    @ExceptionHandler({OnboardingMagicLinkAlreadyConsumedException.class, InvalidOnboardingStatusTransitionException.class})
-    ProblemDetail handleConflict(RuntimeException exception) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
+    private ProblemDetail conflictProblem(String detail, String code) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, detail);
         problem.setType(URI.create("https://bank.fedebacelar.com/problems/onboarding-conflict"));
         problem.setTitle("Onboarding conflict");
+        problem.setProperty("code", code);
         return problem;
     }
 
@@ -67,6 +101,7 @@ public class GlobalExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage());
         problem.setType(URI.create("https://bank.fedebacelar.com/problems/onboarding-notification-unavailable"));
         problem.setTitle("Onboarding notification unavailable");
+        problem.setProperty("code", "ONBOARDING_NOTIFICATION_UNAVAILABLE");
         return problem;
     }
 
@@ -75,6 +110,7 @@ public class GlobalExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "The onboarding application was modified by another request. Retry the operation with the latest application state.");
         problem.setType(URI.create("https://bank.fedebacelar.com/problems/concurrent-onboarding-update"));
         problem.setTitle("Concurrent onboarding update");
+        problem.setProperty("code", "CONCURRENT_ONBOARDING_UPDATE");
         return problem;
     }
 
@@ -84,6 +120,7 @@ public class GlobalExceptionHandler {
         problem.setType(URI.create("https://bank.fedebacelar.com/problems/invalid-request"));
         problem.setTitle("Invalid request");
         problem.setDetail("Request validation failed");
+        problem.setProperty("code", "VALIDATION_ERROR");
         problem.setProperty("errors", exception.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .toList());
@@ -96,6 +133,7 @@ public class GlobalExceptionHandler {
         problem.setType(URI.create("https://bank.fedebacelar.com/problems/invalid-request"));
         problem.setTitle("Invalid request");
         problem.setDetail("Request validation failed");
+        problem.setProperty("code", "VALIDATION_ERROR");
         problem.setProperty("errors", exception.getConstraintViolations().stream()
                 .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
                 .toList());
@@ -108,6 +146,7 @@ public class GlobalExceptionHandler {
         problem.setType(URI.create("https://bank.fedebacelar.com/problems/invalid-request"));
         problem.setTitle("Invalid request");
         problem.setDetail("Request body is malformed or contains invalid values");
+        problem.setProperty("code", "VALIDATION_ERROR");
         return problem;
     }
 }

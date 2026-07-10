@@ -97,6 +97,8 @@ home-banking-user -> CUSTOMER_READ, ACCOUNT_READ, IDENTITY_READ, used as the bro
 The `home-banking-bff` confidential client also has a service account for backend-to-backend onboarding calls with:
 
 ```txt
+DOCUMENT_READ
+DOCUMENT_WRITE
 NOTIFICATION_WRITE
 ONBOARDING_READ
 ONBOARDING_WRITE
@@ -149,15 +151,15 @@ Local redirect URLs:
 
 ```txt
 http://localhost:8085/web/login/oauth2/code/keycloak
-http://localhost:8086/web/login/oauth2/code/keycloak
 ```
 
 Local post logout redirect URLs:
 
 ```txt
 http://localhost:8085/web/session
-http://localhost:8086/web/session
 ```
+
+Use the gateway URL on port `8085` for browser login. Port `8086` is the BFF service port and is reserved for diagnostics, not the normal browser callback.
 
 The development client secret is intentionally local-only. Real environments must inject the secret from outside the repository.
 

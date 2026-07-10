@@ -114,4 +114,4 @@ Keycloak: http://localhost:8090
 
 The Angular development server proxies `/web` so browser code keeps using the same BFF route shape that production will use.
 
-In local development the proxy target is `home-banking-bff` directly to avoid Vite proxy parsing issues with gateway responses. The intended runtime entrypoint remains `api-gateway /web/**`.
+In local development the proxy target must be `api-gateway`. The browser must not call `home-banking-bff` directly. Direct BFF URLs are only acceptable for technical diagnostics, never as the frontend runtime path.

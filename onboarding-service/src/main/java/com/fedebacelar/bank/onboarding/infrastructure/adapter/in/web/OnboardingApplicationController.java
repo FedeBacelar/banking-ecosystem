@@ -1,13 +1,24 @@
 package com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web;
 
+import com.fedebacelar.bank.onboarding.application.port.in.AcceptTermsUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.ConsumeMagicLinkUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.GetOnboardingApplicationUseCase;
+import com.fedebacelar.bank.onboarding.application.port.in.SaveApplicantDataUseCase;
+import com.fedebacelar.bank.onboarding.application.port.in.SaveDocumentReferenceUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.StartOnboardingApplicationUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.ValidateContinuationUseCase;
+import com.fedebacelar.bank.onboarding.domain.enums.OnboardingDocumentCategory;
+import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.AcceptTermsRequest;
+import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.ApplicantDataResponse;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.ConsumeMagicLinkRequest;
+import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.DocumentReferenceResponse;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.OnboardingApplicationResponse;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.OnboardingContinuationResponse;
+import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.SaveApplicantDataRequest;
+import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.SaveDocumentReferenceRequest;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.StartOnboardingApplicationRequest;
+import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.TermsAcceptanceResponse;
+import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.ValidateContinuationResponse;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.ValidateContinuationRequest;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.mapper.OnboardingWebMapper;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,6 +28,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -29,6 +41,9 @@ public class OnboardingApplicationController {
     private final StartOnboardingApplicationUseCase startOnboardingApplicationUseCase;
     private final ConsumeMagicLinkUseCase consumeMagicLinkUseCase;
     private final ValidateContinuationUseCase validateContinuationUseCase;
+    private final SaveApplicantDataUseCase saveApplicantDataUseCase;
+    private final SaveDocumentReferenceUseCase saveDocumentReferenceUseCase;
+    private final AcceptTermsUseCase acceptTermsUseCase;
     private final GetOnboardingApplicationUseCase getOnboardingApplicationUseCase;
     private final OnboardingWebMapper mapper;
 
@@ -36,12 +51,18 @@ public class OnboardingApplicationController {
             StartOnboardingApplicationUseCase startOnboardingApplicationUseCase,
             ConsumeMagicLinkUseCase consumeMagicLinkUseCase,
             ValidateContinuationUseCase validateContinuationUseCase,
+            SaveApplicantDataUseCase saveApplicantDataUseCase,
+            SaveDocumentReferenceUseCase saveDocumentReferenceUseCase,
+            AcceptTermsUseCase acceptTermsUseCase,
             GetOnboardingApplicationUseCase getOnboardingApplicationUseCase,
             OnboardingWebMapper mapper
     ) {
         this.startOnboardingApplicationUseCase = startOnboardingApplicationUseCase;
         this.consumeMagicLinkUseCase = consumeMagicLinkUseCase;
         this.validateContinuationUseCase = validateContinuationUseCase;
+        this.saveApplicantDataUseCase = saveApplicantDataUseCase;
+        this.saveDocumentReferenceUseCase = saveDocumentReferenceUseCase;
+        this.acceptTermsUseCase = acceptTermsUseCase;
         this.getOnboardingApplicationUseCase = getOnboardingApplicationUseCase;
         this.mapper = mapper;
     }
@@ -67,7 +88,28 @@ public class OnboardingApplicationController {
 
     @Operation(summary = "Validate onboarding continuation token")
     @PostMapping("/continuations/validate")
-    public OnboardingApplicationResponse validateContinuation(@Valid @RequestBody ValidateContinuationRequest request) {
-        return mapper.toResponse(validateContinuationUseCase.validate(mapper.toCommand(request)));
+    public ValidateContinuationResponse validateContinuation(@Valid @RequestBody ValidateContinuationRequest request) {
+        return mapper.toValidateContinuationResponse(validateContinuationUseCase.validate(mapper.toCommand(request)));
+    }
+
+    @Operation(summary = "Save onboarding applicant data")
+    @PutMapping("/continuations/applicant-data")
+    public ApplicantDataResponse saveApplicantData(@Valid @RequestBody SaveApplicantDataRequest request) {
+        return mapper.toResponse(saveApplicantDataUseCase.save(mapper.toCommand(request)));
+    }
+
+    @Operation(summary = "Save onboarding document reference")
+    @PutMapping("/continuations/documents/{category}")
+    public DocumentReferenceResponse saveDocumentReference(
+            @PathVariable OnboardingDocumentCategory category,
+            @Valid @RequestBody SaveDocumentReferenceRequest request
+    ) {
+        return mapper.toResponse(saveDocumentReferenceUseCase.save(mapper.toCommand(category, request)));
+    }
+
+    @Operation(summary = "Accept onboarding terms")
+    @PutMapping("/continuations/terms")
+    public TermsAcceptanceResponse acceptTerms(@Valid @RequestBody AcceptTermsRequest request) {
+        return mapper.toResponse(acceptTermsUseCase.accept(mapper.toCommand(request)));
     }
 }

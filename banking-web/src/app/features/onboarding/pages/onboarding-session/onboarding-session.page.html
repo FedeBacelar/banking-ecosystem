@@ -16,7 +16,7 @@
       <small>Solicitud: {{ session()?.applicationId }}</small>
     </div>
 
-    <button class="primary-button" type="button" disabled>Continuar carga de datos</button>
+    <a class="primary-link" routerLink="/onboarding/applicant-data">Continuar carga de datos</a>
     <button class="ghost-button" type="button" [disabled]="isClearing()" (click)="clearSession()">
       Finalizar prueba local
     </button>

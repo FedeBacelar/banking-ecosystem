@@ -107,6 +107,56 @@ public record OnboardingApplication(
         );
     }
 
+    public OnboardingApplication refreshAccessLink(
+            String magicLinkTokenHash,
+            Instant magicLinkExpiresAt,
+            Instant now
+    ) {
+        if (status != OnboardingApplicationStatus.IN_PROGRESS) {
+            throw new InvalidOnboardingStatusTransitionException(status, OnboardingApplicationStatus.IN_PROGRESS);
+        }
+        return new OnboardingApplication(
+                id,
+                email,
+                status,
+                magicLinkTokenHash,
+                magicLinkExpiresAt,
+                null,
+                emailVerifiedAt,
+                continuationTokenHash,
+                continuationExpiresAt,
+                expiresAt,
+                createdAt,
+                now,
+                version
+        );
+    }
+
+    public OnboardingApplication renewContinuation(
+            String continuationTokenHash,
+            Instant continuationExpiresAt,
+            Instant now
+    ) {
+        if (status != OnboardingApplicationStatus.IN_PROGRESS) {
+            throw new InvalidOnboardingStatusTransitionException(status, OnboardingApplicationStatus.IN_PROGRESS);
+        }
+        return new OnboardingApplication(
+                id,
+                email,
+                status,
+                magicLinkTokenHash,
+                magicLinkExpiresAt,
+                now,
+                emailVerifiedAt,
+                continuationTokenHash,
+                continuationExpiresAt,
+                expiresAt,
+                createdAt,
+                now,
+                version
+        );
+    }
+
     public OnboardingApplication expire(Instant now) {
         assertTransition(OnboardingApplicationStatus.EXPIRED);
         return withStatus(OnboardingApplicationStatus.EXPIRED, now);

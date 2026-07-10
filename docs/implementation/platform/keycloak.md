@@ -216,15 +216,15 @@ Local redirect URLs:
 
 ```txt
 http://localhost:8085/web/login/oauth2/code/keycloak
-http://localhost:8086/web/login/oauth2/code/keycloak
 ```
 
 Local post logout redirect URLs:
 
 ```txt
 http://localhost:8085/web/session
-http://localhost:8086/web/session
 ```
+
+The browser-facing local flow must use the gateway URL on port `8085`. Direct BFF URLs on port `8086` are only for diagnostics and should not be registered as the normal browser callback.
 
 The local secret in the realm import is only a development default. Real secrets must come from environment variables or a secrets manager.
 
@@ -233,12 +233,15 @@ The same confidential BFF client has service accounts enabled for backend-to-bac
 Current service account roles:
 
 ```txt
+DOCUMENT_READ
+DOCUMENT_WRITE
 NOTIFICATION_WRITE
 ONBOARDING_READ
 ONBOARDING_WRITE
 ```
 
 `NOTIFICATION_WRITE` is needed because the current `onboarding-service` magic-link flow requests email delivery through `notification-service`.
+`DOCUMENT_WRITE` is needed because the current BFF applicant-data flow uploads DNI evidence through `document-service`.
 
 This is not a human test user and should not be used for browser login.
 

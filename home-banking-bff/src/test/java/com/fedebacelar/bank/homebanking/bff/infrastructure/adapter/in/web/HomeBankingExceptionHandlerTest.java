@@ -30,4 +30,27 @@ class HomeBankingExceptionHandlerTest {
                 .containsEntry("code", "DOWNSTREAM_ACCESS_DENIED")
                 .containsEntry("downstreamStatus", HttpStatus.FORBIDDEN.value());
     }
+
+    @Test
+    void shouldPreserveSafeDownstreamProblemCode() {
+        WebClientResponseException exception = WebClientResponseException.Conflict.create(
+                HttpStatus.CONFLICT.value(),
+                "Conflict",
+                HttpHeaders.EMPTY,
+                """
+                {
+                  "title": "Duplicate onboarding application",
+                  "code": "DUPLICATE_ACTIVE_ONBOARDING_APPLICATION"
+                }
+                """.getBytes(),
+                null
+        );
+
+        ProblemDetail problem = handler.handleDownstreamError(exception);
+
+        assertThat(problem.getStatus()).isEqualTo(HttpStatus.CONFLICT.value());
+        assertThat(problem.getProperties())
+                .containsEntry("code", "DUPLICATE_ACTIVE_ONBOARDING_APPLICATION")
+                .containsEntry("downstreamStatus", HttpStatus.CONFLICT.value());
+    }
 }

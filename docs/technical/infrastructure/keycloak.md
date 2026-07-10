@@ -163,20 +163,24 @@ Local redirect URLs:
 
 ```txt
 http://localhost:8085/web/login/oauth2/code/keycloak
-http://localhost:8086/web/login/oauth2/code/keycloak
 ```
+
+The browser-facing local flow must use the gateway URL on port `8085`. Direct BFF URLs on port `8086` are only for diagnostics and should not be used by the frontend.
 
 The local client secret is a development default only. Real secrets must come from outside the repository.
 
 The BFF service account has the minimum roles required by the current applicant flow:
 
 ```txt
+DOCUMENT_READ
+DOCUMENT_WRITE
 NOTIFICATION_WRITE
 ONBOARDING_READ
 ONBOARDING_WRITE
 ```
 
 `NOTIFICATION_WRITE` is required by the current magic-link path because `onboarding-service` requests email delivery through `notification-service`.
+`DOCUMENT_WRITE` is required by the current applicant-data path because `home-banking-bff` uploads onboarding evidence to `document-service`.
 
 ## Login Theme
 

@@ -7,4 +7,8 @@ public class NotificationDeliveryException extends RuntimeException {
     public NotificationDeliveryException(UUID applicationId, Throwable cause) {
         super("Could not send onboarding notification for application: " + applicationId, cause);
     }
+
+    public NotificationDeliveryException(UUID applicationId, String reason) {
+        super("Could not send onboarding notification for application: " + applicationId + ". Reason: " + reason);
+    }
 }

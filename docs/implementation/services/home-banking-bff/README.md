@@ -20,6 +20,9 @@ Current capabilities:
 - Starts onboarding applications through `onboarding-service`.
 - Consumes onboarding magic links and stores continuation tokens in an HttpOnly cookie.
 - Validates the onboarding continuation cookie.
+- Saves applicant data through `onboarding-service` using the onboarding continuation cookie.
+- Uploads onboarding documents to `document-service` and stores references through `onboarding-service`.
+- Captures onboarding terms acceptance through `onboarding-service`.
 
 ## Architecture
 
@@ -76,6 +79,8 @@ Direct local path:
 http://localhost:8086/web/**
 ```
 
+This direct path is for diagnostics only. Frontend/browser traffic must enter through `api-gateway` at `http://localhost:8085/web/**`. Do not use port `8086` as the normal browser origin because it bypasses the gateway and can break cookie and OAuth redirect behavior.
+
 ## Endpoints
 
 ```txt
@@ -85,6 +90,9 @@ GET /web/logout
 POST /web/onboarding/applications
 POST /web/onboarding/magic-links/consume
 GET /web/onboarding/session
+PUT /web/onboarding/applicant-data
+POST /web/onboarding/documents/{category}
+PUT /web/onboarding/terms
 DELETE /web/onboarding/session
 ```
 
@@ -99,6 +107,12 @@ DELETE /web/onboarding/session
 `POST /web/onboarding/magic-links/consume` consumes a magic link and writes the continuation token as an HttpOnly cookie.
 
 `GET /web/onboarding/session` reads and validates the onboarding continuation cookie.
+
+`PUT /web/onboarding/applicant-data` stores the first applicant data step. The browser does not send the continuation token in the request body; the BFF reads it from the HttpOnly onboarding cookie.
+
+`POST /web/onboarding/documents/{category}` uploads a DNI file using multipart form data. The BFF validates the continuation cookie through `onboarding-service`, uploads the file to `document-service`, and then stores the returned document reference in `onboarding-service`.
+
+`PUT /web/onboarding/terms` captures acceptance of the active onboarding terms version. The browser sends only the acceptance flag and version; the BFF reads the continuation token from the HttpOnly onboarding cookie.
 
 `DELETE /web/onboarding/session` clears the onboarding continuation cookie.
 
@@ -121,8 +135,4 @@ cd home-banking-bff
 .\mvnw.cmd test
 ```
 
-Current verified result:
-
-```txt
-14 tests passing
-```
+The suite should pass before closing changes to the BFF.

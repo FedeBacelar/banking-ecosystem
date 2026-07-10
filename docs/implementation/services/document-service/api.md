@@ -10,8 +10,8 @@ Content-Type: multipart/form-data
 Form fields:
 
 ```txt
-businessContext=ONBOARDING
-businessReferenceId=application-1
+businessContext=ONBOARDING_APPLICATION
+businessReferenceId=11111111-1111-1111-1111-111111111111
 category=DNI_FRONT
 file=@dni-front.jpg
 ```
@@ -42,15 +42,15 @@ Response:
 ```json
 {
   "id": "11111111-1111-1111-1111-111111111111",
-  "businessContext": "ONBOARDING",
-  "businessReferenceId": "application-1",
+  "businessContext": "ONBOARDING_APPLICATION",
+  "businessReferenceId": "11111111-1111-1111-1111-111111111111",
   "category": "DNI_FRONT",
   "originalFilename": "dni-front.jpg",
   "contentType": "image/jpeg",
   "sizeBytes": 123456,
   "storageProvider": "MINIO",
   "bucketName": "banking-documents",
-  "objectKey": "onboarding/application-1/DNI_FRONT/11111111-1111-1111-1111-111111111111",
+  "objectKey": "onboarding_application/11111111-1111-1111-1111-111111111111/DNI_FRONT/11111111-1111-1111-1111-111111111111",
   "status": "STORED",
   "createdAt": "2026-07-04T21:00:00Z",
   "updatedAt": "2026-07-04T21:00:00Z"
