@@ -1,10 +1,12 @@
 package com.fedebacelar.bank.customer.infrastructure.adapter.in.web.error;
 
 import com.fedebacelar.bank.customer.domain.exception.CustomerDocumentNotFoundException;
+import com.fedebacelar.bank.customer.domain.exception.CustomerEmailNotFoundException;
 import com.fedebacelar.bank.customer.domain.exception.CustomerNumberNotFoundException;
 import com.fedebacelar.bank.customer.domain.exception.CustomerNotFoundException;
 import com.fedebacelar.bank.customer.domain.exception.DuplicateDocumentException;
 import com.fedebacelar.bank.customer.domain.exception.InvalidCustomerStatusTransitionException;
+import com.fedebacelar.bank.customer.domain.exception.IdempotencyConflictException;
 import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
 import org.springframework.http.HttpStatus;
@@ -26,7 +28,7 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
-    @ExceptionHandler({CustomerNotFoundException.class, CustomerDocumentNotFoundException.class, CustomerNumberNotFoundException.class})
+    @ExceptionHandler({CustomerNotFoundException.class, CustomerDocumentNotFoundException.class, CustomerEmailNotFoundException.class, CustomerNumberNotFoundException.class})
     ProblemDetail handleCustomerNotFound(RuntimeException exception) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
         problem.setType(URI.create("https://bank.fedebacelar.com/problems/customer-not-found"));
@@ -39,6 +41,15 @@ public class GlobalExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
         problem.setType(URI.create("https://bank.fedebacelar.com/problems/invalid-customer-status-transition"));
         problem.setTitle("Invalid customer status transition");
+        return problem;
+    }
+
+    @ExceptionHandler(IdempotencyConflictException.class)
+    ProblemDetail handleIdempotencyConflict(IdempotencyConflictException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
+        problem.setType(URI.create("https://bank.fedebacelar.com/problems/idempotency-conflict"));
+        problem.setTitle("Idempotency conflict");
+        problem.setProperty("code", "IDEMPOTENCY_CONFLICT");
         return problem;
     }
 

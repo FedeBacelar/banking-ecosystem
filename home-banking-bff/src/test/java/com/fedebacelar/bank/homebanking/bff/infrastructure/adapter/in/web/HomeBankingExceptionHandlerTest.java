@@ -13,7 +13,7 @@ class HomeBankingExceptionHandlerTest {
     private final HomeBankingExceptionHandler handler = new HomeBankingExceptionHandler();
 
     @Test
-    void shouldMapDownstreamForbiddenToProblemDetail() {
+    void shouldHideDownstreamAuthorizationDetails() {
         WebClientResponseException exception = WebClientResponseException.Forbidden.create(
                 HttpStatus.FORBIDDEN.value(),
                 "Forbidden",
@@ -22,25 +22,24 @@ class HomeBankingExceptionHandlerTest {
                 null
         );
 
-        ProblemDetail problem = handler.handleDownstreamForbidden(exception);
+        ProblemDetail problem = handler.handleDownstreamError(exception);
 
-        assertThat(problem.getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
-        assertThat(problem.getTitle()).isEqualTo("Access denied");
+        assertThat(problem.getStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE.value());
         assertThat(problem.getProperties())
-                .containsEntry("code", "DOWNSTREAM_ACCESS_DENIED")
-                .containsEntry("downstreamStatus", HttpStatus.FORBIDDEN.value());
+                .containsEntry("code", "ONBOARDING_SERVICE_UNAVAILABLE")
+                .doesNotContainKey("downstreamStatus");
     }
 
     @Test
-    void shouldPreserveSafeDownstreamProblemCode() {
-        WebClientResponseException exception = WebClientResponseException.Conflict.create(
-                HttpStatus.CONFLICT.value(),
-                "Conflict",
+    void shouldPreserveOnlyAllowlistedPublicOnboardingCode() {
+        WebClientResponseException exception = WebClientResponseException.UnprocessableEntity.create(
+                HttpStatus.UNPROCESSABLE_ENTITY.value(),
+                "Unprocessable entity",
                 HttpHeaders.EMPTY,
                 """
                 {
-                  "title": "Duplicate onboarding application",
-                  "code": "DUPLICATE_ACTIVE_ONBOARDING_APPLICATION"
+                  "title": "Onboarding incomplete",
+                  "code": "ONBOARDING_INCOMPLETE"
                 }
                 """.getBytes(),
                 null
@@ -48,9 +47,9 @@ class HomeBankingExceptionHandlerTest {
 
         ProblemDetail problem = handler.handleDownstreamError(exception);
 
-        assertThat(problem.getStatus()).isEqualTo(HttpStatus.CONFLICT.value());
+        assertThat(problem.getStatus()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY.value());
         assertThat(problem.getProperties())
-                .containsEntry("code", "DUPLICATE_ACTIVE_ONBOARDING_APPLICATION")
-                .containsEntry("downstreamStatus", HttpStatus.CONFLICT.value());
+                .containsEntry("code", "ONBOARDING_INCOMPLETE")
+                .doesNotContainKey("downstreamStatus");
     }
 }

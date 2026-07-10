@@ -62,18 +62,9 @@ Copy-Item .env.example .env
 
 Then edit `.env` with your local SMTP credentials. The real `.env` file is ignored by Git.
 
-The service still reads its configuration through Config Server. The config file in `config-repository/notification-service.yaml` contains environment-variable placeholders, and those placeholders are resolved by the `notification-service` process at runtime. The SMTP secrets therefore belong in the local environment of `notification-service`, not in `config-repository` and not in the `config-server` process.
+The service still reads its shared configuration through Config Server. For local development it also imports the ignored `.env` file from its working directory using Spring Config Data. Operating-system environment variables keep their higher precedence, so deployed environments can inject secrets normally without a local file.
 
-Load the values in PowerShell before running the service:
-
-```powershell
-Get-Content .env | ForEach-Object {
-  if ($_ -and -not $_.StartsWith("#")) {
-    $name, $value = $_ -split "=", 2
-    [Environment]::SetEnvironmentVariable($name, $value, "Process")
-  }
-}
-```
+The config file in `config-repository/notification-service.yaml` contains environment-variable placeholders. SMTP secrets therefore belong in `notification-service/.env`, process environment variables, or a production secrets manager; never in `config-repository` or the Config Server process.
 
 ## Run
 

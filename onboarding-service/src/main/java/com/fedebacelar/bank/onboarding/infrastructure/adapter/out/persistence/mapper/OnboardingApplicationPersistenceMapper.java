@@ -13,6 +13,8 @@ public class OnboardingApplicationPersistenceMapper {
         entity.setId(application.id().toString());
         entity.setEmail(application.email());
         entity.setStatus(application.status());
+        entity.setReviewMode(application.reviewMode());
+        entity.setReviewPolicyVersion(application.reviewPolicyVersion());
         entity.setMagicLinkTokenHash(application.magicLinkTokenHash());
         entity.setMagicLinkExpiresAt(application.magicLinkExpiresAt());
         entity.setMagicLinkConsumedAt(application.magicLinkConsumedAt());
@@ -20,6 +22,8 @@ public class OnboardingApplicationPersistenceMapper {
         entity.setContinuationTokenHash(application.continuationTokenHash());
         entity.setContinuationExpiresAt(application.continuationExpiresAt());
         entity.setExpiresAt(application.expiresAt());
+        entity.setSubmittedAt(application.submittedAt());
+        entity.setDecidedAt(application.decidedAt());
         entity.setCreatedAt(application.createdAt());
         entity.setUpdatedAt(application.updatedAt());
         entity.setVersion(application.version());
@@ -31,6 +35,8 @@ public class OnboardingApplicationPersistenceMapper {
                 UUID.fromString(entity.getId()),
                 entity.getEmail(),
                 entity.getStatus(),
+                entity.getReviewMode(),
+                entity.getReviewPolicyVersion(),
                 entity.getMagicLinkTokenHash(),
                 entity.getMagicLinkExpiresAt(),
                 entity.getMagicLinkConsumedAt(),
@@ -38,6 +44,8 @@ public class OnboardingApplicationPersistenceMapper {
                 entity.getContinuationTokenHash(),
                 entity.getContinuationExpiresAt(),
                 entity.getExpiresAt(),
+                entity.getSubmittedAt(),
+                entity.getDecidedAt(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt(),
                 entity.getVersion()

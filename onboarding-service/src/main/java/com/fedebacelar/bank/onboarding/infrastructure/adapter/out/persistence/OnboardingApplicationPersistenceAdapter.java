@@ -8,6 +8,9 @@ import com.fedebacelar.bank.onboarding.infrastructure.adapter.out.persistence.re
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.List;
+import java.time.Instant;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -52,5 +55,19 @@ public class OnboardingApplicationPersistenceAdapter implements OnboardingApplic
     @Override
     public boolean existsByEmailAndStatusIn(String email, Set<OnboardingApplicationStatus> statuses) {
         return repository.existsByEmailAndStatusIn(email, statuses);
+    }
+
+    @Override
+    public boolean existsByEmailAndStatusInExcluding(UUID applicationId, String email, Set<OnboardingApplicationStatus> statuses) {
+        return repository.existsByEmailAndStatusInAndIdNot(email, statuses, applicationId.toString());
+    }
+
+    @Override
+    public List<OnboardingApplication> findExpiredActiveApplications(
+            Instant now, Set<OnboardingApplicationStatus> statuses, int limit
+    ) {
+        return repository.findByExpiresAtLessThanEqualAndStatusInOrderByExpiresAtAsc(
+                now, statuses, PageRequest.of(0, limit)
+        ).stream().map(mapper::toDomain).toList();
     }
 }

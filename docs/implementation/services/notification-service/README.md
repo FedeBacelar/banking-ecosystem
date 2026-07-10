@@ -14,6 +14,7 @@ Current capabilities:
 - Records delivery status, attempt count, sent timestamp, and last error.
 - Registers with Eureka.
 - Reads configuration from Config Server.
+- Imports ignored local SMTP values from `notification-service/.env` when present; process environment variables have higher precedence.
 - Validates Keycloak JWT access tokens as an OAuth2 Resource Server.
 
 ## Responsibility

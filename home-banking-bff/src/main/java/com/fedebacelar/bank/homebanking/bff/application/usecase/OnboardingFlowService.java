@@ -5,9 +5,12 @@ import com.fedebacelar.bank.homebanking.bff.application.exception.InvalidOnboard
 import com.fedebacelar.bank.homebanking.bff.application.port.in.AcceptOnboardingTermsUseCase;
 import com.fedebacelar.bank.homebanking.bff.application.port.in.ConsumeOnboardingMagicLinkUseCase;
 import com.fedebacelar.bank.homebanking.bff.application.port.in.GetOnboardingSessionUseCase;
+import com.fedebacelar.bank.homebanking.bff.application.port.in.GetOnboardingStatusUseCase;
 import com.fedebacelar.bank.homebanking.bff.application.port.in.SaveOnboardingApplicantDataUseCase;
 import com.fedebacelar.bank.homebanking.bff.application.port.in.StartOnboardingApplicationUseCase;
 import com.fedebacelar.bank.homebanking.bff.application.port.in.UploadOnboardingDocumentUseCase;
+import com.fedebacelar.bank.homebanking.bff.application.port.in.SubmitOnboardingUseCase;
+import com.fedebacelar.bank.homebanking.bff.application.port.in.ResendCredentialInvitationUseCase;
 import com.fedebacelar.bank.homebanking.bff.application.port.out.DocumentServicePort;
 import com.fedebacelar.bank.homebanking.bff.application.port.out.GetInternalAccessTokenPort;
 import com.fedebacelar.bank.homebanking.bff.application.port.out.OnboardingServicePort;
@@ -18,6 +21,8 @@ import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingDocument;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingDocumentReference;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingSession;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingTermsAcceptance;
+import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingSubmission;
+import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingPublicStatus;
 import java.util.Locale;
 import java.util.Set;
 import org.springframework.stereotype.Service;
@@ -31,7 +36,10 @@ public class OnboardingFlowService implements
         SaveOnboardingApplicantDataUseCase,
         UploadOnboardingDocumentUseCase,
         AcceptOnboardingTermsUseCase,
-        GetOnboardingSessionUseCase {
+        GetOnboardingSessionUseCase,
+        SubmitOnboardingUseCase,
+        GetOnboardingStatusUseCase,
+        ResendCredentialInvitationUseCase {
 
     private static final long MAX_DOCUMENT_SIZE_BYTES = 10L * 1024L * 1024L;
     private static final Set<String> ALLOWED_DOCUMENT_CATEGORIES = Set.of("DNI_FRONT", "DNI_BACK");
@@ -113,6 +121,43 @@ public class OnboardingFlowService implements
                 termsVersion,
                 getInternalAccessTokenPort.getAccessToken()
         );
+    }
+
+    @Override
+    public OnboardingSubmission submit(String continuationToken) {
+        requireSessionToken(continuationToken);
+        return onboardingServicePort.submit(continuationToken, getInternalAccessTokenPort.getAccessToken());
+    }
+
+    @Override
+    public OnboardingPublicStatus getStatus(String continuationToken) {
+        requireSessionToken(continuationToken);
+        OnboardingSession session = onboardingServicePort.validateContinuation(continuationToken, getInternalAccessTokenPort.getAccessToken());
+        return new OnboardingPublicStatus(session.applicationId(), session.status(), nextAction(session.status()), session.updatedAt());
+    }
+
+    @Override
+    public OnboardingSubmission resendCredentialInvitation(String continuationToken) {
+        requireSessionToken(continuationToken);
+        return onboardingServicePort.resendCredentialInvitation(continuationToken, getInternalAccessTokenPort.getAccessToken());
+    }
+
+    private void requireSessionToken(String continuationToken) {
+        if (!StringUtils.hasText(continuationToken)) {
+            throw new OnboardingSessionRequiredException();
+        }
+    }
+
+    private String nextAction(String status) {
+        return switch (status) {
+            case "IN_PROGRESS" -> "CONTINUE_APPLICATION";
+            case "SUBMITTED", "UNDER_AUTOMATED_REVIEW", "APPROVED", "PROVISIONING" -> "WAIT";
+            case "CREDENTIAL_SETUP_PENDING" -> "CHECK_EMAIL";
+            case "COMPLETED" -> "LOGIN";
+            case "REVIEW_FAILED", "PROVISIONING_FAILED" -> "CONTACT_SUPPORT";
+            case "EXPIRED", "CANCELLED" -> "START_NEW_APPLICATION";
+            default -> "NONE";
+        };
     }
 
     private void validateDocument(String category, MultipartFile file) {

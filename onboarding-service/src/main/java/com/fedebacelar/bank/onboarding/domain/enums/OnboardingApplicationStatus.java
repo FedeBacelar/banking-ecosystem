@@ -5,6 +5,7 @@ public enum OnboardingApplicationStatus {
     IN_PROGRESS,
     SUBMITTED,
     UNDER_AUTOMATED_REVIEW,
+    REVIEW_FAILED,
     APPROVED,
     PROVISIONING,
     CREDENTIAL_SETUP_PENDING,

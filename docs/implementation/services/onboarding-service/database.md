@@ -1,10 +1,6 @@
 # onboarding-service Database
 
-Database:
-
-```txt
-onboarding_db
-```
+Database: `onboarding_db`.
 
 ## Tables
 
@@ -13,112 +9,25 @@ onboarding_application
 onboarding_applicant_data
 onboarding_document_reference
 onboarding_terms_acceptance
+onboarding_status_history
+onboarding_review_check
+onboarding_work_item
+onboarding_provisioning_step
+onboarding_uniqueness_reservation
 ```
 
-## onboarding_application
+`onboarding_application` stores current state, `review_mode`, policy version, submit/decision timestamps, token hashes, expirations, and optimistic-lock version.
 
-Stores the current onboarding application and token lifecycle metadata.
+`onboarding_status_history` is the append-only audit of every state transition, including actor type and reason code.
 
-Important columns:
+`onboarding_review_check` keeps one result per application/control with separate execution mode, execution status, business outcome, provider, policy, and attempts. Simulations are persisted as simulations rather than indistinguishable approvals.
 
-```txt
-id
-email
-status
-magic_link_token_hash
-magic_link_expires_at
-magic_link_consumed_at
-email_verified_at
-continuation_token_hash
-continuation_expires_at
-expires_at
-created_at
-updated_at
-version
-```
+`onboarding_work_item` is the durable queue for `AUTO_REVIEW`, `PROVISIONING`, and `CREDENTIAL_RECONCILIATION`. Its unique application/job constraint prevents duplicate work. Due work uses `next_attempt_at`, lease timestamps, and optimistic locking.
 
-Indexes:
+`onboarding_provisioning_step` records each downstream step, request hash, external reference, attempts, next retry, sanitized error, and timestamps. Successful steps are skipped on retry.
 
-```txt
-uk_onboarding_magic_link_token_hash
-uk_onboarding_continuation_token_hash
-idx_onboarding_email_status
-idx_onboarding_status
-idx_onboarding_expires_at
-```
+`onboarding_uniqueness_reservation` has a unique `(reservation_type, normalized_value)` key. It serializes email/document ownership across concurrent application workers. Reservations become `RELEASED` on rejection/expiration and `CONVERTED` on completion.
 
-Raw magic link and continuation tokens are never stored.
+The document table stores only document-service UUIDs. File bytes remain in MinIO under document-service ownership. Raw magic-link and continuation tokens are never stored.
 
-## onboarding_applicant_data
-
-Stores the first structured applicant data step captured after email verification.
-
-Important columns:
-
-```txt
-application_id
-first_name
-middle_name
-last_name
-birth_date
-nationality
-document_type
-document_number
-document_issuing_country
-document_expiration_date
-phone_number
-street
-street_number
-city
-province
-postal_code
-country
-created_at
-updated_at
-version
-```
-
-The row is keyed by `application_id`, so saving applicant data is idempotent for the current onboarding application.
-
-## onboarding_document_reference
-
-Stores references to documents owned by `document-service`.
-
-Important columns:
-
-```txt
-id
-application_id
-category
-document_id
-created_at
-updated_at
-version
-```
-
-Constraints and indexes:
-
-```txt
-uk_onboarding_document_reference_application_category
-idx_onboarding_document_reference_application
-idx_onboarding_document_reference_document
-```
-
-The unique key on `application_id` and `category` keeps one active reference per required document type, such as `DNI_FRONT` and `DNI_BACK`.
-
-## onboarding_terms_acceptance
-
-Stores the accepted terms version for the application.
-
-Important columns:
-
-```txt
-application_id
-terms_version
-accepted_at
-created_at
-updated_at
-version
-```
-
-The row is keyed by `application_id`, so accepting terms again updates the accepted version and timestamp.
+Flyway migrations `V1` through `V6` create the current schema. The editable ecosystem model is [schema.dbml](../../../database/schema.dbml).

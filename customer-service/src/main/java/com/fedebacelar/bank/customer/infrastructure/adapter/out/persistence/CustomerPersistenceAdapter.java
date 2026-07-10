@@ -3,6 +3,7 @@ package com.fedebacelar.bank.customer.infrastructure.adapter.out.persistence;
 import com.fedebacelar.bank.customer.application.port.out.CustomerRepositoryPort;
 import com.fedebacelar.bank.customer.application.port.out.IdentificationDocumentLookupPort;
 import com.fedebacelar.bank.customer.domain.enums.DocumentType;
+import com.fedebacelar.bank.customer.domain.enums.ContactType;
 import com.fedebacelar.bank.customer.domain.model.CustomerStatusHistory;
 import com.fedebacelar.bank.customer.domain.model.NaturalPersonCustomer;
 import com.fedebacelar.bank.customer.infrastructure.adapter.out.persistence.entity.CustomerEntity;
@@ -82,6 +83,14 @@ public class CustomerPersistenceAdapter implements CustomerRepositoryPort, Ident
     public Optional<NaturalPersonCustomer> findByDocument(DocumentType type, String number, String country) {
         return identificationDocumentJpaRepository.findByDocumentTypeAndDocumentNumberAndIssuingCountry(type, number, country)
                 .flatMap(document -> customerJpaRepository.findByPartyId(document.getPartyId()))
+                .flatMap(this::assemble);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<NaturalPersonCustomer> findByEmail(String email) {
+        return contactPointJpaRepository.findFirstByContactTypeAndContactValueIgnoreCase(ContactType.EMAIL, email)
+                .flatMap(contact -> customerJpaRepository.findByPartyId(contact.getPartyId()))
                 .flatMap(this::assemble);
     }
 

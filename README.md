@@ -61,6 +61,8 @@ Start Keycloak local infrastructure:
 docker compose -f infra/keycloak/docker-compose.yml up -d
 ```
 
+Create ignored `infra/keycloak/.env` from `.env.example` to enable Keycloak credential emails. The `keycloak-realm-init` container applies the restricted banking user profile and is expected to stop with exit code `0` after startup.
+
 Keycloak admin console:
 
 ```txt
@@ -160,6 +162,8 @@ cd ..\notification-service
 .\mvnw.cmd spring-boot:run
 ```
 
+For local SMTP delivery, create the ignored `notification-service/.env` from `.env.example`. The service loads it automatically when started from its directory; operating-system environment variables still take precedence.
+
 Notification Swagger:
 
 ```txt
@@ -204,6 +208,8 @@ BFF local path through the gateway:
 ```txt
 http://localhost:8085/web/session
 ```
+
+Public onboarding contracts, including CSRF, submit, status, and credential invitation resend, are also available only through `http://localhost:8085/web/onboarding/**`.
 
 Start `api-gateway`:
 

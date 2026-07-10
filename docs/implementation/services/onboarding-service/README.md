@@ -1,91 +1,48 @@
-# onboarding-service
+# onboarding-service Implementation
 
-`onboarding-service` stores onboarding applications and controls the first email verification step of the digital onboarding flow.
+`onboarding-service` is the process owner for digital account opening. It uses ports and adapters, MySQL persistence, scheduled workers with leases, optimistic locking, service discovery, and OAuth2 client credentials.
 
-## Current Scope
+## Implemented Scope
 
-Implemented:
+- one-time magic links and recoverable read-only continuation sessions;
+- applicant data, DNI front/back references, and versioned terms;
+- idempotent submit with `422 ONBOARDING_INCOMPLETE`;
+- AUTO review with local and explicitly simulated controls;
+- unique email/document reservations across concurrent workers;
+- status history, review evidence, work items, and provisioning steps;
+- customer KYC approval and `SAVINGS/ARS` account provisioning;
+- provisional Keycloak user, realm roles, identity link, and account activation;
+- Keycloak `execute-actions-email` invitation for username/password setup;
+- credential completion reconciliation and invitation resend cooldown;
+- operational retry for technical review/provisioning failures;
+- expiration of pre-provisioning applications and reservation release.
 
-```txt
-- Start an onboarding application from email.
-- Re-send a magic link for an existing EMAIL_VERIFICATION_PENDING application.
-- Generate one-time magic link tokens.
-- Hash magic link and continuation tokens before persistence.
-- Send the magic link through notification-service.
-- Consume a magic link once.
-- Move an application from EMAIL_VERIFICATION_PENDING to IN_PROGRESS.
-- Generate a continuation token for the BFF cookie flow.
-- Validate continuation tokens.
-```
+## Runtime
 
-Not implemented yet:
-
-```txt
-- Public BFF onboarding endpoints.
-- Applicant data capture.
-- Document requirements.
-- Automated review checks.
-- Customer/account provisioning.
-- Credential setup invitation.
-```
-
-## Local Runtime
-
-Configuration is served by `config-server` from:
-
-```txt
-config-repository/onboarding-service.yaml
-```
-
-Default port:
-
-```txt
-8087
-```
-
-Run:
+Configuration is served by `config-server` from `config-repository/onboarding-service.yaml`.
 
 ```powershell
 cd onboarding-service
 .\mvnw.cmd spring-boot:run
 ```
 
-Swagger:
+Default port and Swagger:
 
 ```txt
+8087
 http://localhost:8087/swagger-ui.html
 ```
 
 ## Security
 
-The service validates JWT access tokens issued by Keycloak.
+Inbound internal APIs require `ONBOARDING_READ` or `ONBOARDING_WRITE`. The BFF calls them with its confidential service account.
 
-Roles:
+Outbound orchestration uses the dedicated confidential client `onboarding-orchestrator`. It obtains client-credentials tokens itself and never forwards the BFF or browser token.
 
-```txt
-ONBOARDING_READ
-ONBOARDING_WRITE
-```
+## Durable Processing
 
-Current local manual tests use the shared `banking-admin` operational user. The project intentionally avoids one Keycloak user per service.
+Submit stores `SUBMITTED` and `AUTO_REVIEW` work in one transaction. Approval stores the provisioning work in the review completion transaction. Workers claim due work with a database lock and lease, then release the transaction before remote calls.
 
-## Integration
+Retryable failures are timeouts, `429`, and `5xx`. Business validation and identity conflicts fail without destructive compensation. External errors are stored as sanitized codes.
 
-`onboarding-service` calls `notification-service` to request magic-link email delivery.
-
-The first slice forwards the current bearer token when calling downstream services. When the public BFF onboarding route is added, the BFF will own the browser-facing session/cookie boundary.
-
-## Idempotency
-
-Starting onboarding with an email that already has an active EMAIL_VERIFICATION_PENDING application does not create a duplicate application. The service rotates the magic-link token, extends the magic-link expiration, and sends a fresh email for the existing application.
-
-Starting onboarding with an email whose active application has already moved past email verification remains a conflict. The applicant must continue the existing journey instead of creating a second active application.
-
-See also:
-
-```txt
-docs/implementation/services/onboarding-service/api.md
-docs/implementation/services/onboarding-service/database.md
-docs/implementation/services/onboarding-service/tests.md
-docs/database/schema.dbml
-```
+See [API](api.md), [database](database.md), and [tests](tests.md).

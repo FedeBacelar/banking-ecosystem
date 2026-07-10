@@ -3,10 +3,12 @@ package com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web;
 import com.fedebacelar.bank.homebanking.bff.application.port.in.AcceptOnboardingTermsUseCase;
 import com.fedebacelar.bank.homebanking.bff.application.port.in.ConsumeOnboardingMagicLinkUseCase;
 import com.fedebacelar.bank.homebanking.bff.application.port.in.GetOnboardingSessionUseCase;
+import com.fedebacelar.bank.homebanking.bff.application.port.in.GetOnboardingStatusUseCase;
 import com.fedebacelar.bank.homebanking.bff.application.port.in.SaveOnboardingApplicantDataUseCase;
 import com.fedebacelar.bank.homebanking.bff.application.port.in.StartOnboardingApplicationUseCase;
 import com.fedebacelar.bank.homebanking.bff.application.port.in.UploadOnboardingDocumentUseCase;
-import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingApplication;
+import com.fedebacelar.bank.homebanking.bff.application.port.in.SubmitOnboardingUseCase;
+import com.fedebacelar.bank.homebanking.bff.application.port.in.ResendCredentialInvitationUseCase;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingApplicantData;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingContinuation;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingDocumentReference;
@@ -15,10 +17,11 @@ import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingTermsAcceptan
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web.dto.AcceptOnboardingTermsRequest;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web.dto.ConsumeOnboardingMagicLinkRequest;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web.dto.OnboardingApplicantDataResponse;
-import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web.dto.OnboardingApplicationResponse;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web.dto.OnboardingDocumentReferenceResponse;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web.dto.OnboardingSessionResponse;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web.dto.OnboardingTermsAcceptanceResponse;
+import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web.dto.OnboardingSubmissionResponse;
+import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web.dto.OnboardingStatusResponse;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web.dto.SaveOnboardingApplicantDataRequest;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web.dto.StartOnboardingRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -53,6 +56,9 @@ public class OnboardingController {
     private final SaveOnboardingApplicantDataUseCase saveOnboardingApplicantDataUseCase;
     private final UploadOnboardingDocumentUseCase uploadOnboardingDocumentUseCase;
     private final AcceptOnboardingTermsUseCase acceptOnboardingTermsUseCase;
+    private final SubmitOnboardingUseCase submitOnboardingUseCase;
+    private final GetOnboardingStatusUseCase getOnboardingStatusUseCase;
+    private final ResendCredentialInvitationUseCase resendCredentialInvitationUseCase;
     private final boolean cookieSecure;
 
     public OnboardingController(
@@ -62,6 +68,9 @@ public class OnboardingController {
             SaveOnboardingApplicantDataUseCase saveOnboardingApplicantDataUseCase,
             UploadOnboardingDocumentUseCase uploadOnboardingDocumentUseCase,
             AcceptOnboardingTermsUseCase acceptOnboardingTermsUseCase,
+            SubmitOnboardingUseCase submitOnboardingUseCase,
+            GetOnboardingStatusUseCase getOnboardingStatusUseCase,
+            ResendCredentialInvitationUseCase resendCredentialInvitationUseCase,
             @Value("${home-banking-bff.onboarding.cookie.secure:false}") boolean cookieSecure
     ) {
         this.startOnboardingApplicationUseCase = startOnboardingApplicationUseCase;
@@ -70,17 +79,18 @@ public class OnboardingController {
         this.saveOnboardingApplicantDataUseCase = saveOnboardingApplicantDataUseCase;
         this.uploadOnboardingDocumentUseCase = uploadOnboardingDocumentUseCase;
         this.acceptOnboardingTermsUseCase = acceptOnboardingTermsUseCase;
+        this.submitOnboardingUseCase = submitOnboardingUseCase;
+        this.getOnboardingStatusUseCase = getOnboardingStatusUseCase;
+        this.resendCredentialInvitationUseCase = resendCredentialInvitationUseCase;
         this.cookieSecure = cookieSecure;
     }
 
     @PostMapping("/applications")
-    public ResponseEntity<OnboardingApplicationResponse> startApplication(
+    public ResponseEntity<Void> startApplication(
             @Valid @RequestBody StartOnboardingRequest request
     ) {
-        OnboardingApplication application = startOnboardingApplicationUseCase.startApplication(request.email());
-        return ResponseEntity
-                .status(201)
-                .body(OnboardingApplicationResponse.from(application));
+        startOnboardingApplicationUseCase.startApplication(request.email());
+        return ResponseEntity.accepted().build();
     }
 
     @PostMapping("/magic-links/consume")
@@ -162,6 +172,29 @@ public class OnboardingController {
                 request.termsVersion()
         );
         return OnboardingTermsAcceptanceResponse.from(acceptance);
+    }
+
+    @PostMapping("/submissions")
+    public ResponseEntity<OnboardingSubmissionResponse> submit(
+            @CookieValue(name = CONTINUATION_COOKIE_NAME, required = false) String continuationToken
+    ) {
+        return ResponseEntity.accepted().body(OnboardingSubmissionResponse.from(submitOnboardingUseCase.submit(continuationToken)));
+    }
+
+    @GetMapping("/status")
+    public OnboardingStatusResponse status(
+            @CookieValue(name = CONTINUATION_COOKIE_NAME, required = false) String continuationToken
+    ) {
+        return OnboardingStatusResponse.from(getOnboardingStatusUseCase.getStatus(continuationToken));
+    }
+
+    @PostMapping("/credential-invitations/resend")
+    public ResponseEntity<OnboardingSubmissionResponse> resendCredentialInvitation(
+            @CookieValue(name = CONTINUATION_COOKIE_NAME, required = false) String continuationToken
+    ) {
+        return ResponseEntity.accepted().body(OnboardingSubmissionResponse.from(
+                resendCredentialInvitationUseCase.resendCredentialInvitation(continuationToken)
+        ));
     }
 
     @DeleteMapping("/session")

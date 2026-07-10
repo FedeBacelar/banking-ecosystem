@@ -6,6 +6,7 @@ import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingContinuation;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingDocumentReference;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingSession;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingTermsAcceptance;
+import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingSubmission;
 import java.util.UUID;
 
 public interface OnboardingServicePort {
@@ -21,4 +22,8 @@ public interface OnboardingServicePort {
     OnboardingDocumentReference saveDocumentReference(String continuationToken, String category, UUID documentId, String accessToken);
 
     OnboardingTermsAcceptance acceptTerms(String continuationToken, boolean accepted, String termsVersion, String accessToken);
+
+    OnboardingSubmission submit(String continuationToken, String accessToken);
+
+    OnboardingSubmission resendCredentialInvitation(String continuationToken, String accessToken);
 }

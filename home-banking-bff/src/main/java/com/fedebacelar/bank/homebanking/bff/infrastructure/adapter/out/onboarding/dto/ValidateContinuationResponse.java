@@ -8,10 +8,11 @@ public record ValidateContinuationResponse(
         UUID applicationId,
         String email,
         String status,
-        Instant continuationExpiresAt
+        Instant continuationExpiresAt,
+        Instant updatedAt
 ) {
 
     public OnboardingSession toSession() {
-        return OnboardingSession.active(applicationId, status, continuationExpiresAt);
+        return OnboardingSession.active(applicationId, status, continuationExpiresAt, updatedAt);
     }
 }

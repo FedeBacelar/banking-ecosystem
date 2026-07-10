@@ -22,10 +22,12 @@ public class ApproveCustomerKycService implements ApproveCustomerKycUseCase {
     }
 
     @Override
-    public CustomerDetails approveKyc(UUID customerId) {
+    public CustomerDetails approveKyc(UUID customerId, String reasonCode, String changedBy) {
         var customer = customerRepositoryPort.findByCustomerId(customerId)
                 .orElseThrow(() -> new CustomerNotFoundException(customerId));
 
-        return CustomerDetailsMapper.toDetails(customerRepositoryPort.save(customer.approveKyc(Instant.now(clock))));
+        return CustomerDetailsMapper.toDetails(customerRepositoryPort.save(
+                customer.approveKyc(reasonCode, changedBy, Instant.now(clock))
+        ));
     }
 }

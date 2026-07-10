@@ -8,19 +8,25 @@ public record OnboardingSession(
         boolean active,
         UUID applicationId,
         String status,
-        Instant continuationExpiresAt
+        Instant continuationExpiresAt,
+        Instant updatedAt
 ) {
 
     public static OnboardingSession anonymous() {
-        return new OnboardingSession(false, null, null, null);
+        return new OnboardingSession(false, null, null, null, null);
     }
 
     public static OnboardingSession active(UUID applicationId, String status, Instant continuationExpiresAt) {
+        return active(applicationId, status, continuationExpiresAt, null);
+    }
+
+    public static OnboardingSession active(UUID applicationId, String status, Instant continuationExpiresAt, Instant updatedAt) {
         return new OnboardingSession(
                 true,
                 Objects.requireNonNull(applicationId, "applicationId is required for an active onboarding session"),
                 status,
-                continuationExpiresAt
+                continuationExpiresAt,
+                updatedAt
         );
     }
 }

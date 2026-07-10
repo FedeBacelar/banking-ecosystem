@@ -26,6 +26,10 @@ With custom local variables:
 docker compose --env-file infra/keycloak/.env -f infra/keycloak/docker-compose.yml up -d
 ```
 
+Create the ignored `.env` from `.env.example` to configure Keycloak SMTP and the local onboarding-orchestrator secret. Realm JSON keeps placeholders only; real SMTP credentials are never versioned.
+
+The one-shot `banking-keycloak-realm-init` container applies the restricted banking User Profile after the realm becomes healthy. Its expected steady state is `Exited (0)`.
+
 ## Stop
 
 ```powershell
@@ -60,6 +64,7 @@ Clients:
 banking-api
 banking-swagger
 home-banking-bff
+onboarding-orchestrator
 ```
 
 Realm roles:
@@ -105,6 +110,8 @@ ONBOARDING_WRITE
 ```
 
 This service account is not a human login user.
+
+The dedicated `onboarding-orchestrator` confidential client is used by `onboarding-service` for customer, account, identity, document, notification and Keycloak user-administration calls. It does not reuse the browser token or a human test user.
 
 `banking-admin` is not a home banking customer. It can test internal APIs, but it should not be used as the browser user for `/web/me`.
 
@@ -234,6 +241,8 @@ infra/keycloak/realms/banking-ecosystem-realm.json
 ```
 
 Keycloak imports realm files only when the realm does not already exist in its data volume.
+
+Only `banking-ecosystem-realm.json` is mounted in Keycloak's import directory. `banking-user-profile.json` is intentionally applied afterward through the Admin API and must not be treated as a realm import file.
 
 To recreate the local realm from the JSON file, remove the volume:
 

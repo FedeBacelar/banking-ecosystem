@@ -16,7 +16,11 @@
       <small>Solicitud: {{ session()?.applicationId }}</small>
     </div>
 
-    <a class="primary-link" routerLink="/onboarding/applicant-data">Continuar carga de datos</a>
+    @if (session()?.status === 'IN_PROGRESS') {
+      <a class="primary-link" routerLink="/onboarding/applicant-data">Continuar carga de datos</a>
+    } @else {
+      <a class="primary-link" routerLink="/onboarding/status">Ver estado</a>
+    }
     <button class="ghost-button" type="button" [disabled]="isClearing()" (click)="clearSession()">
       Finalizar prueba local
     </button>

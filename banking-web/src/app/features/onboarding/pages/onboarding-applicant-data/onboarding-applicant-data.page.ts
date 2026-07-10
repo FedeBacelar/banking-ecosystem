@@ -92,10 +92,11 @@ export class OnboardingApplicantDataPage {
         concatMap(() => this.onboardingApi.uploadDocument('DNI_FRONT', this.dniFrontFile() as File)),
         concatMap(() => this.onboardingApi.uploadDocument('DNI_BACK', this.dniBackFile() as File)),
         concatMap(() => this.onboardingApi.acceptTerms(OnboardingApplicantDataPage.TERMS_VERSION)),
+        concatMap(() => this.onboardingApi.submitApplication()),
         finalize(() => this.isSubmitting.set(false))
       )
       .subscribe({
-        next: () => this.successMessage.set('Datos y documentacion guardados correctamente.'),
+        next: () => void this.router.navigate(['/onboarding/status']),
         error: (error: unknown) => this.errorMessage.set(httpErrorMessage(error))
       });
   }

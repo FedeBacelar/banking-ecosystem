@@ -1,60 +1,49 @@
 # onboarding-service
 
-`onboarding-service` owns the digital onboarding journey for an applicant who starts from zero.
+`onboarding-service` owns the digital onboarding process for a person who does not yet have a banking user, customer, account, or identity link.
 
-The applicant does not yet have:
+## Capability
 
-```txt
-- Banking user.
-- Customer id.
-- Account.
-- Identity link.
-```
+The service controls:
 
-## Business Capability
+- email ownership verification and continuation sessions;
+- applicant data, required document references, and terms acceptance;
+- submit integrity and the onboarding state machine;
+- automated review decisions and their evidence;
+- durable provisioning of customer, account, Keycloak user, and identity link;
+- credential setup invitation, reconciliation, retry, and expiration.
 
-The service provides a controlled workflow to receive an application, verify email ownership, continue the applicant journey, and later coordinate review and provisioning.
+It does not own customer master data, accounts, file content, email delivery mechanics, Keycloak credentials, or identity links. Those resources remain owned by their respective services.
 
-The first implemented slice covers:
-
-```txt
-- Start onboarding from an email address.
-- Send a one-time magic link.
-- Verify the magic link.
-- Create a continuation token for the BFF.
-- Keep application state and expiration.
-```
-
-## Ownership
-
-The service owns:
+## Journey
 
 ```txt
-- Onboarding application state.
-- Applicant email verification state.
-- Magic link token lifecycle.
-- Continuation token lifecycle.
-- Onboarding state transitions.
-- Application expiration.
+EMAIL_VERIFICATION_PENDING -> IN_PROGRESS -> SUBMITTED
+SUBMITTED -> UNDER_AUTOMATED_REVIEW
+UNDER_AUTOMATED_REVIEW -> APPROVED | REJECTED | REVIEW_FAILED
+APPROVED -> PROVISIONING
+PROVISIONING -> CREDENTIAL_SETUP_PENDING | PROVISIONING_FAILED
+CREDENTIAL_SETUP_PENDING -> COMPLETED
 ```
 
-The service does not own:
+`REVIEW_FAILED` and `PROVISIONING_FAILED` represent technical failures, not commercial rejection. They can be retried through protected operational endpoints after correcting the cause.
+
+## Review Model
+
+Review mode is modeled as `AUTO | MANUAL`; the application refuses to start with `MANUAL` until a real backoffice exists.
+
+Every control stores execution mode, execution state, outcome, policy version, provider, reason code, attempts, and timestamps. Local controls can reject. Document proofing, sanctions/PEP, and fraud are currently explicit `SIMULATED` approvals with provider `SIMULATOR` and code `SIMULATED_APPROVAL`.
+
+## Provisioning Principle
+
+Provisioning is a durable process manager in MySQL. It retries from the first incomplete step and never deletes a customer, account, identity, or Keycloak user as automatic compensation. Downstream creates use idempotency keys derived from the application and step.
+
+## Public Boundary
+
+The browser never calls this service directly. Browser traffic follows:
 
 ```txt
-- Final customer master data.
-- Bank accounts.
-- Uploaded file content.
-- Email delivery mechanics.
-- Keycloak users.
-- Identity links.
+banking-web -> api-gateway /web -> home-banking-bff -> onboarding-service
 ```
 
-## Current Business Rule
-
-An applicant can have only one active onboarding application per email.
-
-If the active application is still waiting for email verification, asking for a new link reuses the same application, rotates the magic-link token, and sends a new email. This keeps the operation user-friendly without creating duplicate onboarding records.
-
-Magic links are one-time tokens. Raw tokens are never persisted; only hashes are stored.
-
-The current service is an internal foundation. The browser-facing public onboarding route will be exposed later through `home-banking-bff` under `/web`.
+The BFF owns HttpOnly continuation cookies, CSRF, safe public contracts, and error sanitization.

@@ -5,6 +5,10 @@ import java.util.UUID;
 
 public interface ApproveCustomerKycUseCase {
 
-    CustomerDetails approveKyc(UUID customerId);
+    CustomerDetails approveKyc(UUID customerId, String reasonCode, String changedBy);
+
+    default CustomerDetails approveKyc(UUID customerId) {
+        return approveKyc(customerId, "KYC_APPROVED", "system");
+    }
 
 }

@@ -8,7 +8,8 @@ public record OnboardingSessionResponse(
         boolean active,
         UUID applicationId,
         String status,
-        Instant continuationExpiresAt
+        Instant continuationExpiresAt,
+        Instant updatedAt
 ) {
 
     public static OnboardingSessionResponse from(OnboardingSession session) {
@@ -16,7 +17,8 @@ public record OnboardingSessionResponse(
                 session.active(),
                 session.applicationId(),
                 session.status(),
-                session.continuationExpiresAt()
+                session.continuationExpiresAt(),
+                session.updatedAt()
         );
     }
 }

@@ -8,6 +8,7 @@ public record ValidateContinuationResponse(
         UUID applicationId,
         String email,
         OnboardingApplicationStatus status,
-        Instant continuationExpiresAt
+        Instant continuationExpiresAt,
+        Instant updatedAt
 ) {
 }

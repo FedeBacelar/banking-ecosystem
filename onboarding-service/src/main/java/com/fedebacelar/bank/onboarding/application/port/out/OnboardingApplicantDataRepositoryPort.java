@@ -9,4 +9,11 @@ public interface OnboardingApplicantDataRepositoryPort {
     ApplicantData save(ApplicantData applicantData);
 
     Optional<ApplicantData> findByApplicationId(UUID applicationId);
+
+    boolean existsActiveApplicationByDocumentExcluding(
+            UUID applicationId,
+            String documentType,
+            String documentNumber,
+            String issuingCountry
+    );
 }

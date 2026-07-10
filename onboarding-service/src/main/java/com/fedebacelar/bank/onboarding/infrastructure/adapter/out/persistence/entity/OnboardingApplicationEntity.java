@@ -1,6 +1,7 @@
 package com.fedebacelar.bank.onboarding.infrastructure.adapter.out.persistence.entity;
 
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingApplicationStatus;
+import com.fedebacelar.bank.onboarding.domain.enums.OnboardingReviewMode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -25,6 +26,13 @@ public class OnboardingApplicationEntity {
     @Column(nullable = false, length = 40)
     private OnboardingApplicationStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private OnboardingReviewMode reviewMode;
+
+    @Column(nullable = false, length = 80)
+    private String reviewPolicyVersion;
+
     @Column(nullable = false, length = 64)
     private String magicLinkTokenHash;
 
@@ -42,6 +50,10 @@ public class OnboardingApplicationEntity {
 
     @Column(nullable = false)
     private Instant expiresAt;
+
+    private Instant submittedAt;
+
+    private Instant decidedAt;
 
     @Column(nullable = false)
     private Instant createdAt;
@@ -78,6 +90,22 @@ public class OnboardingApplicationEntity {
 
     public void setStatus(OnboardingApplicationStatus status) {
         this.status = status;
+    }
+
+    public OnboardingReviewMode getReviewMode() {
+        return reviewMode;
+    }
+
+    public void setReviewMode(OnboardingReviewMode reviewMode) {
+        this.reviewMode = reviewMode;
+    }
+
+    public String getReviewPolicyVersion() {
+        return reviewPolicyVersion;
+    }
+
+    public void setReviewPolicyVersion(String reviewPolicyVersion) {
+        this.reviewPolicyVersion = reviewPolicyVersion;
     }
 
     public String getMagicLinkTokenHash() {
@@ -134,6 +162,22 @@ public class OnboardingApplicationEntity {
 
     public void setExpiresAt(Instant expiresAt) {
         this.expiresAt = expiresAt;
+    }
+
+    public Instant getSubmittedAt() {
+        return submittedAt;
+    }
+
+    public void setSubmittedAt(Instant submittedAt) {
+        this.submittedAt = submittedAt;
+    }
+
+    public Instant getDecidedAt() {
+        return decidedAt;
+    }
+
+    public void setDecidedAt(Instant decidedAt) {
+        this.decidedAt = decidedAt;
     }
 
     public Instant getCreatedAt() {

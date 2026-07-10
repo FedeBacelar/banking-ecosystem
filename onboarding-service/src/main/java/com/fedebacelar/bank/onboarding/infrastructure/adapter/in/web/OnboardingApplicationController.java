@@ -6,6 +6,10 @@ import com.fedebacelar.bank.onboarding.application.port.in.GetOnboardingApplicat
 import com.fedebacelar.bank.onboarding.application.port.in.SaveApplicantDataUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.SaveDocumentReferenceUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.StartOnboardingApplicationUseCase;
+import com.fedebacelar.bank.onboarding.application.port.in.SubmitOnboardingUseCase;
+import com.fedebacelar.bank.onboarding.application.port.in.ResendCredentialInvitationUseCase;
+import com.fedebacelar.bank.onboarding.application.port.in.RetryOnboardingWorkflowUseCase;
+import com.fedebacelar.bank.onboarding.application.command.SubmitOnboardingCommand;
 import com.fedebacelar.bank.onboarding.application.port.in.ValidateContinuationUseCase;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingDocumentCategory;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.AcceptTermsRequest;
@@ -14,9 +18,11 @@ import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.Consume
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.DocumentReferenceResponse;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.OnboardingApplicationResponse;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.OnboardingContinuationResponse;
+import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.OnboardingSubmissionResponse;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.SaveApplicantDataRequest;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.SaveDocumentReferenceRequest;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.StartOnboardingApplicationRequest;
+import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.SubmitOnboardingRequest;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.TermsAcceptanceResponse;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.ValidateContinuationResponse;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.ValidateContinuationRequest;
@@ -45,6 +51,9 @@ public class OnboardingApplicationController {
     private final SaveDocumentReferenceUseCase saveDocumentReferenceUseCase;
     private final AcceptTermsUseCase acceptTermsUseCase;
     private final GetOnboardingApplicationUseCase getOnboardingApplicationUseCase;
+    private final SubmitOnboardingUseCase submitOnboardingUseCase;
+    private final ResendCredentialInvitationUseCase resendCredentialInvitationUseCase;
+    private final RetryOnboardingWorkflowUseCase retryWorkflowUseCase;
     private final OnboardingWebMapper mapper;
 
     public OnboardingApplicationController(
@@ -55,6 +64,9 @@ public class OnboardingApplicationController {
             SaveDocumentReferenceUseCase saveDocumentReferenceUseCase,
             AcceptTermsUseCase acceptTermsUseCase,
             GetOnboardingApplicationUseCase getOnboardingApplicationUseCase,
+            SubmitOnboardingUseCase submitOnboardingUseCase,
+            ResendCredentialInvitationUseCase resendCredentialInvitationUseCase,
+            RetryOnboardingWorkflowUseCase retryWorkflowUseCase,
             OnboardingWebMapper mapper
     ) {
         this.startOnboardingApplicationUseCase = startOnboardingApplicationUseCase;
@@ -64,6 +76,9 @@ public class OnboardingApplicationController {
         this.saveDocumentReferenceUseCase = saveDocumentReferenceUseCase;
         this.acceptTermsUseCase = acceptTermsUseCase;
         this.getOnboardingApplicationUseCase = getOnboardingApplicationUseCase;
+        this.submitOnboardingUseCase = submitOnboardingUseCase;
+        this.resendCredentialInvitationUseCase = resendCredentialInvitationUseCase;
+        this.retryWorkflowUseCase = retryWorkflowUseCase;
         this.mapper = mapper;
     }
 
@@ -111,5 +126,31 @@ public class OnboardingApplicationController {
     @PutMapping("/continuations/terms")
     public TermsAcceptanceResponse acceptTerms(@Valid @RequestBody AcceptTermsRequest request) {
         return mapper.toResponse(acceptTermsUseCase.accept(mapper.toCommand(request)));
+    }
+
+    @Operation(summary = "Submit onboarding application")
+    @PostMapping("/continuations/submissions")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public OnboardingSubmissionResponse submit(@Valid @RequestBody SubmitOnboardingRequest request) {
+        return OnboardingSubmissionResponse.from(submitOnboardingUseCase.submit(new SubmitOnboardingCommand(request.continuationToken())));
+    }
+
+    @Operation(summary = "Resend credential setup invitation")
+    @PostMapping("/continuations/credential-invitations/resend")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public OnboardingSubmissionResponse resendCredentialInvitation(@Valid @RequestBody SubmitOnboardingRequest request) {
+        return OnboardingSubmissionResponse.from(resendCredentialInvitationUseCase.resend(request.continuationToken()));
+    }
+
+    @Operation(summary = "Retry failed AUTO review")
+    @PostMapping("/applications/{applicationId}/review/retry")
+    public OnboardingApplicationResponse retryReview(@PathVariable UUID applicationId) {
+        return mapper.toResponse(retryWorkflowUseCase.retryReview(applicationId));
+    }
+
+    @Operation(summary = "Retry failed provisioning")
+    @PostMapping("/applications/{applicationId}/provisioning/retry")
+    public OnboardingApplicationResponse retryProvisioning(@PathVariable UUID applicationId) {
+        return mapper.toResponse(retryWorkflowUseCase.retryProvisioning(applicationId));
     }
 }

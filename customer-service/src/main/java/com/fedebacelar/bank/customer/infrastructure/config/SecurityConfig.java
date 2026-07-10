@@ -30,10 +30,10 @@ public class SecurityConfig {
                     if (publicDocsEnabled) {
                         authorize.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll();
                     }
-                    authorize.requestMatchers(HttpMethod.GET, "/api/customers/**").hasRole("CUSTOMER_READ");
-                    authorize.requestMatchers(HttpMethod.POST, "/api/customers/**").hasRole("CUSTOMER_WRITE");
-                    authorize.requestMatchers(HttpMethod.PATCH, "/api/customers/**").hasRole("CUSTOMER_WRITE");
-                    authorize.requestMatchers("/api/customers/**").denyAll();
+                    authorize.requestMatchers(HttpMethod.GET, "/customers/**").hasRole("CUSTOMER_READ");
+                    authorize.requestMatchers(HttpMethod.POST, "/customers/**").hasRole("CUSTOMER_WRITE");
+                    authorize.requestMatchers(HttpMethod.PATCH, "/customers/**").hasRole("CUSTOMER_WRITE");
+                    authorize.requestMatchers("/customers/**").denyAll();
                     authorize.anyRequest().authenticated();
                 })
                 .oauth2ResourceServer(oauth2 -> oauth2

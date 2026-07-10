@@ -9,6 +9,8 @@ import com.fedebacelar.bank.onboarding.domain.exception.OnboardingApplicationNot
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingContinuationExpiredException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingMagicLinkAlreadyConsumedException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingMagicLinkExpiredException;
+import com.fedebacelar.bank.onboarding.domain.exception.OnboardingIncompleteException;
+import com.fedebacelar.bank.onboarding.domain.exception.CredentialInvitationCooldownException;
 import com.fedebacelar.bank.onboarding.domain.exception.TermsAcceptanceRequiredException;
 import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
@@ -77,6 +79,24 @@ public class GlobalExceptionHandler {
         problem.setType(URI.create("https://bank.fedebacelar.com/problems/terms-acceptance-required"));
         problem.setTitle("Terms acceptance required");
         problem.setProperty("code", "TERMS_ACCEPTANCE_REQUIRED");
+        return problem;
+    }
+
+    @ExceptionHandler(OnboardingIncompleteException.class)
+    ProblemDetail handleIncompleteApplication(OnboardingIncompleteException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, "The onboarding application is incomplete.");
+        problem.setType(URI.create("https://bank.fedebacelar.com/problems/onboarding-incomplete"));
+        problem.setTitle("Onboarding application incomplete");
+        problem.setProperty("code", "ONBOARDING_INCOMPLETE");
+        problem.setProperty("missingSections", exception.missingSections());
+        return problem;
+    }
+
+    @ExceptionHandler(CredentialInvitationCooldownException.class)
+    ProblemDetail handleCredentialInvitationCooldown(CredentialInvitationCooldownException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, "Please wait before requesting another invitation.");
+        problem.setTitle("Credential invitation cooldown");
+        problem.setProperty("code", "CREDENTIAL_INVITATION_COOLDOWN");
         return problem;
     }
 

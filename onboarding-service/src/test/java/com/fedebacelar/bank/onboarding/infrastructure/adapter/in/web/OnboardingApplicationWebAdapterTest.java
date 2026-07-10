@@ -14,6 +14,9 @@ import com.fedebacelar.bank.onboarding.application.port.in.GetOnboardingApplicat
 import com.fedebacelar.bank.onboarding.application.port.in.SaveApplicantDataUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.SaveDocumentReferenceUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.StartOnboardingApplicationUseCase;
+import com.fedebacelar.bank.onboarding.application.port.in.SubmitOnboardingUseCase;
+import com.fedebacelar.bank.onboarding.application.port.in.ResendCredentialInvitationUseCase;
+import com.fedebacelar.bank.onboarding.application.port.in.RetryOnboardingWorkflowUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.ValidateContinuationUseCase;
 import com.fedebacelar.bank.onboarding.application.view.ApplicantDataDetails;
 import com.fedebacelar.bank.onboarding.application.view.DocumentReferenceDetails;
@@ -32,6 +35,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration;
+import org.springframework.boot.security.oauth2.client.autoconfigure.OAuth2ClientAutoConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -39,7 +43,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(value = OnboardingApplicationController.class, excludeAutoConfiguration = OAuth2ResourceServerAutoConfiguration.class)
+@WebMvcTest(
+        value = OnboardingApplicationController.class,
+        excludeAutoConfiguration = {OAuth2ResourceServerAutoConfiguration.class, OAuth2ClientAutoConfiguration.class}
+)
 @AutoConfigureMockMvc(addFilters = false)
 @Import({OnboardingWebMapper.class, GlobalExceptionHandler.class})
 class OnboardingApplicationWebAdapterTest {
@@ -67,6 +74,15 @@ class OnboardingApplicationWebAdapterTest {
 
     @MockitoBean
     private GetOnboardingApplicationUseCase getOnboardingApplicationUseCase;
+
+    @MockitoBean
+    private SubmitOnboardingUseCase submitOnboardingUseCase;
+
+    @MockitoBean
+    private ResendCredentialInvitationUseCase resendCredentialInvitationUseCase;
+
+    @MockitoBean
+    private RetryOnboardingWorkflowUseCase retryOnboardingWorkflowUseCase;
 
     @Test
     void startsApplication() throws Exception {

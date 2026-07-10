@@ -16,6 +16,8 @@ POST /customers/natural-persons
 
 Creates a natural person customer.
 
+The optional `Idempotency-Key` header is validated (maximum 160 characters). Repeating the same key and payload returns the original customer. Reusing the key with a different payload returns `409 IDEMPOTENCY_CONFLICT`.
+
 Current responsibilities:
 
 - Create the party and natural person records.
@@ -47,6 +49,12 @@ GET /customers/by-number/{customerNumber}
 Returns a customer by generated bank customer number.
 
 ```http
+GET /customers/by-email?email=applicant@example.com
+```
+
+Uses normalized email contact data for onboarding duplicate checks.
+
+```http
 GET /customers/{customerId}/status-history
 ```
 
@@ -60,6 +68,15 @@ PATCH /customers/{customerId}/kyc/reject
 ```
 
 Updates the KYC result and adjusts the customer lifecycle according to the domain rules.
+
+KYC approval requires an auditable body:
+
+```json
+{
+  "reasonCode": "AUTO_ONBOARDING_APPROVED",
+  "changedBy": "onboarding-service"
+}
+```
 
 ## Lifecycle
 

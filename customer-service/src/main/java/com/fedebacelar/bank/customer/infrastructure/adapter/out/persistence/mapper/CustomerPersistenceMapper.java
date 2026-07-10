@@ -182,6 +182,7 @@ public class CustomerPersistenceMapper {
         entity.setPreviousStatus(history.previousStatus());
         entity.setNewStatus(history.newStatus());
         entity.setReason(history.reason());
+        entity.setChangedBy(history.changedBy());
         entity.setChangedAt(history.changedAt());
         return entity;
     }
@@ -193,6 +194,7 @@ public class CustomerPersistenceMapper {
                 entity.getPreviousStatus(),
                 entity.getNewStatus(),
                 entity.getReason(),
+                entity.getChangedBy(),
                 entity.getChangedAt()
         );
     }

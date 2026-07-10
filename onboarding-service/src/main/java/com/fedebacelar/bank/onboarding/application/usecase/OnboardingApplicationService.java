@@ -22,6 +22,7 @@ import com.fedebacelar.bank.onboarding.application.port.out.OnboardingApplicantD
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingApplicationRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingDocumentReferenceRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTermsAcceptanceRepositoryPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingStatusHistoryRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.TokenGeneratorPort;
 import com.fedebacelar.bank.onboarding.application.port.out.TokenHashingPort;
 import com.fedebacelar.bank.onboarding.application.view.ApplicantDataDetails;
@@ -30,6 +31,7 @@ import com.fedebacelar.bank.onboarding.application.view.OnboardingApplicationDet
 import com.fedebacelar.bank.onboarding.application.view.OnboardingContinuationDetails;
 import com.fedebacelar.bank.onboarding.application.view.TermsAcceptanceDetails;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingApplicationStatus;
+import com.fedebacelar.bank.onboarding.domain.enums.OnboardingActorType;
 import com.fedebacelar.bank.onboarding.domain.exception.DuplicateActiveOnboardingApplicationException;
 import com.fedebacelar.bank.onboarding.domain.exception.InvalidContinuationTokenException;
 import com.fedebacelar.bank.onboarding.domain.exception.InvalidMagicLinkTokenException;
@@ -43,6 +45,8 @@ import com.fedebacelar.bank.onboarding.domain.model.ApplicantData;
 import com.fedebacelar.bank.onboarding.domain.model.OnboardingApplication;
 import com.fedebacelar.bank.onboarding.domain.model.OnboardingDocumentReference;
 import com.fedebacelar.bank.onboarding.domain.model.OnboardingTermsAcceptance;
+import com.fedebacelar.bank.onboarding.domain.model.OnboardingStatusHistory;
+import com.fedebacelar.bank.onboarding.infrastructure.config.OnboardingReviewProperties;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -70,6 +74,7 @@ public class OnboardingApplicationService implements
             OnboardingApplicationStatus.IN_PROGRESS,
             OnboardingApplicationStatus.SUBMITTED,
             OnboardingApplicationStatus.UNDER_AUTOMATED_REVIEW,
+            OnboardingApplicationStatus.REVIEW_FAILED,
             OnboardingApplicationStatus.APPROVED,
             OnboardingApplicationStatus.PROVISIONING,
             OnboardingApplicationStatus.CREDENTIAL_SETUP_PENDING,
@@ -80,6 +85,7 @@ public class OnboardingApplicationService implements
     private final OnboardingApplicantDataRepositoryPort applicantDataRepositoryPort;
     private final OnboardingDocumentReferenceRepositoryPort documentReferenceRepositoryPort;
     private final OnboardingTermsAcceptanceRepositoryPort termsAcceptanceRepositoryPort;
+    private final OnboardingStatusHistoryRepositoryPort statusHistoryRepositoryPort;
     private final TokenGeneratorPort tokenGeneratorPort;
     private final TokenHashingPort tokenHashingPort;
     private final NotificationPort notificationPort;
@@ -88,16 +94,19 @@ public class OnboardingApplicationService implements
     private final Duration continuationTtl;
     private final Duration applicationTtl;
     private final String frontendMagicLinkBaseUrl;
+    private final OnboardingReviewProperties reviewProperties;
 
     public OnboardingApplicationService(
             OnboardingApplicationRepositoryPort repositoryPort,
             OnboardingApplicantDataRepositoryPort applicantDataRepositoryPort,
             OnboardingDocumentReferenceRepositoryPort documentReferenceRepositoryPort,
             OnboardingTermsAcceptanceRepositoryPort termsAcceptanceRepositoryPort,
+            OnboardingStatusHistoryRepositoryPort statusHistoryRepositoryPort,
             TokenGeneratorPort tokenGeneratorPort,
             TokenHashingPort tokenHashingPort,
             NotificationPort notificationPort,
             Clock clock,
+            OnboardingReviewProperties reviewProperties,
             @Value("${onboarding.magic-link.ttl-minutes:30}") long magicLinkTtlMinutes,
             @Value("${onboarding.continuation.ttl-minutes:120}") long continuationTtlMinutes,
             @Value("${onboarding.application.ttl-days:15}") long applicationTtlDays,
@@ -107,10 +116,12 @@ public class OnboardingApplicationService implements
         this.applicantDataRepositoryPort = applicantDataRepositoryPort;
         this.documentReferenceRepositoryPort = documentReferenceRepositoryPort;
         this.termsAcceptanceRepositoryPort = termsAcceptanceRepositoryPort;
+        this.statusHistoryRepositoryPort = statusHistoryRepositoryPort;
         this.tokenGeneratorPort = tokenGeneratorPort;
         this.tokenHashingPort = tokenHashingPort;
         this.notificationPort = notificationPort;
         this.clock = clock;
+        this.reviewProperties = reviewProperties;
         this.magicLinkTtl = Duration.ofMinutes(magicLinkTtlMinutes);
         this.continuationTtl = Duration.ofMinutes(continuationTtlMinutes);
         this.applicationTtl = Duration.ofDays(applicationTtlDays);
@@ -128,11 +139,6 @@ public class OnboardingApplicationService implements
     }
 
     private OnboardingApplicationDetails handleExistingActiveApplication(OnboardingApplication application, Instant now) {
-        if (application.status() != OnboardingApplicationStatus.EMAIL_VERIFICATION_PENDING
-                && application.status() != OnboardingApplicationStatus.IN_PROGRESS) {
-            throw new DuplicateActiveOnboardingApplicationException(application.email());
-        }
-
         String magicLinkToken = tokenGeneratorPort.generate();
         OnboardingApplication refreshedApplication = refreshAccessLink(application, magicLinkToken, now);
         OnboardingApplication savedApplication = repositoryPort.save(refreshedApplication);
@@ -158,10 +164,13 @@ public class OnboardingApplicationService implements
                 tokenHashingPort.hash(magicLinkToken),
                 now.plus(magicLinkTtl),
                 now.plus(applicationTtl),
+                reviewProperties.getMode(),
+                reviewProperties.getPolicyVersion(),
                 now
         );
 
         OnboardingApplication savedApplication = repositoryPort.save(application);
+        saveHistory(savedApplication, null, savedApplication.status(), "APPLICATION_STARTED", now);
         sendMagicLink(savedApplication, magicLinkToken);
         return OnboardingApplicationDetailsMapper.toDetails(savedApplication);
     }
@@ -184,7 +193,8 @@ public class OnboardingApplicationService implements
 
         if (application.magicLinkExpired(now)) {
             if (application.status() == OnboardingApplicationStatus.EMAIL_VERIFICATION_PENDING) {
-                repositoryPort.save(application.expire(now));
+                OnboardingApplication expired = repositoryPort.save(application.expire(now));
+                saveHistory(expired, application.status(), expired.status(), "MAGIC_LINK_EXPIRED", now);
             }
             throw new OnboardingMagicLinkExpiredException();
         }
@@ -192,6 +202,9 @@ public class OnboardingApplicationService implements
         String continuationToken = tokenGeneratorPort.generate();
         OnboardingApplication verifiedApplication = continueApplication(application, continuationToken, now);
         OnboardingApplication savedApplication = repositoryPort.save(verifiedApplication);
+        if (application.status() != savedApplication.status()) {
+            saveHistory(savedApplication, application.status(), savedApplication.status(), "EMAIL_VERIFIED", now);
+        }
         return new OnboardingContinuationDetails(
                 savedApplication.id(),
                 savedApplication.email(),
@@ -212,7 +225,7 @@ public class OnboardingApplicationService implements
             return application.verifyEmail(continuationTokenHash, continuationExpiresAt, now);
         }
 
-        if (application.status() == OnboardingApplicationStatus.IN_PROGRESS) {
+        if (application.activeForDuplicateCheck()) {
             if (application.magicLinkConsumed()) {
                 throw new OnboardingMagicLinkAlreadyConsumedException();
             }
@@ -220,6 +233,18 @@ public class OnboardingApplicationService implements
         }
 
         throw new OnboardingMagicLinkAlreadyConsumedException();
+    }
+
+    private void saveHistory(
+            OnboardingApplication application,
+            OnboardingApplicationStatus previousStatus,
+            OnboardingApplicationStatus newStatus,
+            String reasonCode,
+            Instant now
+    ) {
+        statusHistoryRepositoryPort.save(OnboardingStatusHistory.transition(
+                application.id(), previousStatus, newStatus, reasonCode, OnboardingActorType.APPLICANT_SESSION, now
+        ));
     }
 
     @Override

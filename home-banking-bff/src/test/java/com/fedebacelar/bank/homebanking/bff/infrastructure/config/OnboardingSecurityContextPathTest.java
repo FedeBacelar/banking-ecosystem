@@ -9,6 +9,8 @@ import com.fedebacelar.bank.homebanking.bff.application.exception.OnboardingSess
 import com.fedebacelar.bank.homebanking.bff.application.port.in.GetAuthenticatedHomeContextUseCase;
 import com.fedebacelar.bank.homebanking.bff.application.usecase.OnboardingFlowService;
 import java.net.URI;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -51,16 +53,15 @@ class OnboardingSecurityContextPathTest {
 
     @Test
     void shouldNotRedirectInvalidOnboardingMutationToKeycloakWhenBffRunsWithWebContextPath() throws Exception {
+        CsrfSession csrf = csrfSession();
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:%d/web/onboarding/applicant-data".formatted(port)))
                 .header("Content-Type", "application/json")
+                .header("X-XSRF-TOKEN", csrf.token())
                 .PUT(HttpRequest.BodyPublishers.ofString("{}"))
                 .build();
 
-        HttpResponse<String> response = HttpClient.newBuilder()
-                .followRedirects(HttpClient.Redirect.NEVER)
-                .build()
-                .send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = csrf.client().send(request, HttpResponse.BodyHandlers.ofString());
 
         assertThat(response.statusCode()).isEqualTo(HttpStatus.BAD_REQUEST.value());
         assertThat(response.headers().firstValue("Location")).isEmpty();
@@ -69,16 +70,15 @@ class OnboardingSecurityContextPathTest {
 
     @Test
     void shouldNotRedirectMalformedOnboardingMutationToKeycloakWhenBffRunsWithWebContextPath() throws Exception {
+        CsrfSession csrf = csrfSession();
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:%d/web/onboarding/applicant-data".formatted(port)))
                 .header("Content-Type", "application/json")
+                .header("X-XSRF-TOKEN", csrf.token())
                 .PUT(HttpRequest.BodyPublishers.ofString("{"))
                 .build();
 
-        HttpResponse<String> response = HttpClient.newBuilder()
-                .followRedirects(HttpClient.Redirect.NEVER)
-                .build()
-                .send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = csrf.client().send(request, HttpResponse.BodyHandlers.ofString());
 
         assertThat(response.statusCode()).isEqualTo(HttpStatus.BAD_REQUEST.value());
         assertThat(response.headers().firstValue("Location")).isEmpty();
@@ -88,12 +88,14 @@ class OnboardingSecurityContextPathTest {
     @Test
     void shouldNotRedirectOnboardingMutationWithoutContinuationCookieToKeycloakWhenBffRunsWithWebContextPath()
             throws Exception {
+        CsrfSession csrf = csrfSession();
         when(onboardingFlowService.saveApplicantData(eq(null), any()))
                 .thenThrow(new OnboardingSessionRequiredException());
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:%d/web/onboarding/applicant-data".formatted(port)))
                 .header("Content-Type", "application/json")
+                .header("X-XSRF-TOKEN", csrf.token())
                 .PUT(HttpRequest.BodyPublishers.ofString("""
                         {
                           "firstName": "Federico",
@@ -114,13 +116,34 @@ class OnboardingSecurityContextPathTest {
                         """))
                 .build();
 
-        HttpResponse<String> response = HttpClient.newBuilder()
-                .followRedirects(HttpClient.Redirect.NEVER)
-                .build()
-                .send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = csrf.client().send(request, HttpResponse.BodyHandlers.ofString());
 
         assertThat(response.statusCode()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
         assertThat(response.headers().firstValue("Location")).isEmpty();
         assertThat(response.body()).contains("ONBOARDING_SESSION_REQUIRED");
+    }
+
+    private CsrfSession csrfSession() throws Exception {
+        CookieManager cookieManager = new CookieManager(null, CookiePolicy.ACCEPT_ALL);
+        HttpClient client = HttpClient.newBuilder()
+                .cookieHandler(cookieManager)
+                .followRedirects(HttpClient.Redirect.NEVER)
+                .build();
+        HttpRequest csrfRequest = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:%d/web/csrf".formatted(port)))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(csrfRequest, HttpResponse.BodyHandlers.ofString());
+        assertThat(response.statusCode()).isEqualTo(HttpStatus.OK.value());
+        var csrfCookie = cookieManager.getCookieStore().getCookies().stream()
+                .filter(cookie -> "NB-XSRF-TOKEN".equals(cookie.getName()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(csrfCookie.getPath()).isEqualTo("/");
+        return new CsrfSession(client, csrfCookie.getValue());
+    }
+
+    private record CsrfSession(HttpClient client, String token) {
     }
 }

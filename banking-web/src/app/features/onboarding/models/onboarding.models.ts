@@ -15,6 +15,21 @@ export interface OnboardingSession {
   applicationId: string | null;
   status: string | null;
   continuationExpiresAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface OnboardingSubmission {
+  applicationId: string;
+  status: string;
+  submittedAt: string;
+  updatedAt: string;
+}
+
+export interface OnboardingStatus {
+  applicationId: string;
+  status: string;
+  nextAction: 'CONTINUE_APPLICATION' | 'WAIT' | 'CHECK_EMAIL' | 'LOGIN' | 'CONTACT_SUPPORT' | 'START_NEW_APPLICATION' | 'NONE';
+  updatedAt: string;
 }
 
 export interface OnboardingApplicantDataRequest {
@@ -67,4 +82,5 @@ export interface ProblemDetail {
   status?: number;
   detail?: string;
   code?: string;
+  missingSections?: string[];
 }

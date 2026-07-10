@@ -14,8 +14,19 @@
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": false,
   "rememberMe": false,
-  "editUsernameAllowed": false,
+  "editUsernameAllowed": true,
   "bruteForceProtected": true,
+  "smtpServer": {
+    "host": "${KEYCLOAK_SMTP_HOST}",
+    "port": "${KEYCLOAK_SMTP_PORT}",
+    "from": "${KEYCLOAK_SMTP_FROM}",
+    "fromDisplayName": "Nerva Banking",
+    "auth": "true",
+    "starttls": "true",
+    "ssl": "false",
+    "user": "${KEYCLOAK_SMTP_USERNAME}",
+    "password": "${KEYCLOAK_SMTP_PASSWORD}"
+  },
   "roles": {
     "realm": [
       {
@@ -124,14 +135,28 @@
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": true,
       "redirectUris": [
-        "http://localhost:8085/web/login/oauth2/code/keycloak"
+        "http://localhost:8085/web/login/oauth2/code/keycloak",
+        "http://localhost:4200/onboarding/credentials-complete"
       ],
       "webOrigins": [
-        "http://localhost:8085"
+        "http://localhost:8085",
+        "http://localhost:4200"
       ],
       "attributes": {
         "post.logout.redirect.uris": "http://localhost:8085/web/session"
       }
+    },
+    {
+      "clientId": "onboarding-orchestrator",
+      "name": "Onboarding Orchestrator",
+      "description": "Confidential client used by onboarding-service for durable provisioning.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "${ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
     }
   ],
   "users": [
@@ -146,6 +171,29 @@
         "ONBOARDING_READ",
         "ONBOARDING_WRITE"
       ]
+    },
+    {
+      "username": "service-account-onboarding-orchestrator",
+      "enabled": true,
+      "serviceAccountClientId": "onboarding-orchestrator",
+      "realmRoles": [
+        "CUSTOMER_READ",
+        "CUSTOMER_WRITE",
+        "ACCOUNT_READ",
+        "ACCOUNT_WRITE",
+        "IDENTITY_READ",
+        "IDENTITY_WRITE",
+        "DOCUMENT_READ",
+        "NOTIFICATION_WRITE"
+      ],
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users",
+          "view-realm"
+        ]
+      }
     },
     {
       "username": "banking-admin",

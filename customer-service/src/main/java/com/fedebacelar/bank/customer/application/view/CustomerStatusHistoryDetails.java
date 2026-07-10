@@ -10,6 +10,11 @@ public record CustomerStatusHistoryDetails(
         CustomerStatus previousStatus,
         CustomerStatus newStatus,
         String reason,
+        String changedBy,
         Instant changedAt
 ) {
+    public CustomerStatusHistoryDetails(UUID id, UUID customerId, CustomerStatus previousStatus,
+            CustomerStatus newStatus, String reason, Instant changedAt) {
+        this(id, customerId, previousStatus, newStatus, reason, "system", changedAt);
+    }
 }

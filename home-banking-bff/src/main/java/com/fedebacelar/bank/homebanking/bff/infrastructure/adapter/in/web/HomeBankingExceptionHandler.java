@@ -6,6 +6,7 @@ import com.fedebacelar.bank.homebanking.bff.application.exception.IdentityNotLin
 import com.fedebacelar.bank.homebanking.bff.application.exception.InvalidOnboardingDocumentException;
 import com.fedebacelar.bank.homebanking.bff.application.exception.OnboardingSessionRequiredException;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -19,6 +20,15 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 public class HomeBankingExceptionHandler {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final Map<String, HttpStatus> PUBLIC_ONBOARDING_ERRORS = Map.of(
+            "INVALID_MAGIC_LINK_TOKEN", HttpStatus.BAD_REQUEST,
+            "INVALID_CONTINUATION_TOKEN", HttpStatus.UNAUTHORIZED,
+            "ONBOARDING_MAGIC_LINK_EXPIRED", HttpStatus.GONE,
+            "ONBOARDING_CONTINUATION_EXPIRED", HttpStatus.UNAUTHORIZED,
+            "ONBOARDING_MAGIC_LINK_ALREADY_CONSUMED", HttpStatus.CONFLICT,
+            "ONBOARDING_INCOMPLETE", HttpStatus.UNPROCESSABLE_ENTITY,
+            "CREDENTIAL_INVITATION_COOLDOWN", HttpStatus.TOO_MANY_REQUESTS
+    );
 
     @ExceptionHandler(IdentityNotLinkedException.class)
     ProblemDetail handleIdentityNotLinked(IdentityNotLinkedException exception) {
@@ -26,7 +36,6 @@ public class HomeBankingExceptionHandler {
         problem.setTitle("Identity is not linked");
         problem.setDetail("The authenticated identity is not linked to a banking customer.");
         problem.setProperty("code", "IDENTITY_NOT_LINKED");
-        problem.setProperty("providerSubject", exception.providerSubject());
         return problem;
     }
 
@@ -66,23 +75,17 @@ public class HomeBankingExceptionHandler {
         return problem;
     }
 
-    @ExceptionHandler(WebClientResponseException.Forbidden.class)
-    ProblemDetail handleDownstreamForbidden(WebClientResponseException exception) {
-        ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.FORBIDDEN);
-        problem.setTitle("Access denied");
-        problem.setDetail("You do not have enough permissions to complete this operation.");
-        problem.setProperty("code", "DOWNSTREAM_ACCESS_DENIED");
-        problem.setProperty("downstreamStatus", exception.getStatusCode().value());
-        return problem;
-    }
-
     @ExceptionHandler(WebClientResponseException.class)
     ProblemDetail handleDownstreamError(WebClientResponseException exception) {
-        ProblemDetail problem = ProblemDetail.forStatus(exception.getStatusCode());
+        Optional<String> downstreamCode = downstreamCode(exception)
+                .filter(PUBLIC_ONBOARDING_ERRORS::containsKey);
+        HttpStatus publicStatus = downstreamCode
+                .map(PUBLIC_ONBOARDING_ERRORS::get)
+                .orElse(HttpStatus.SERVICE_UNAVAILABLE);
+        ProblemDetail problem = ProblemDetail.forStatus(publicStatus);
         problem.setTitle("Request could not be completed");
         problem.setDetail("We could not complete the operation right now. Try again later.");
-        problem.setProperty("code", downstreamCode(exception).orElse("DOWNSTREAM_SERVICE_ERROR"));
-        problem.setProperty("downstreamStatus", exception.getStatusCode().value());
+        problem.setProperty("code", downstreamCode.orElse("ONBOARDING_SERVICE_UNAVAILABLE"));
         return problem;
     }
 

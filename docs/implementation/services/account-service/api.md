@@ -16,6 +16,8 @@ POST /accounts
 
 Creates a bank account.
 
+The optional `Idempotency-Key` header follows the same durable contract as customer creation: same key/payload returns the original account; payload drift returns `409 IDEMPOTENCY_CONFLICT`.
+
 Current responsibilities:
 
 - Validate that the customer exists through `customer-service`.

@@ -19,12 +19,12 @@ import com.fedebacelar.bank.onboarding.application.port.out.OnboardingApplicantD
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingApplicationRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingDocumentReferenceRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTermsAcceptanceRepositoryPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingStatusHistoryRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.TokenGeneratorPort;
 import com.fedebacelar.bank.onboarding.application.port.out.TokenHashingPort;
 import com.fedebacelar.bank.onboarding.domain.enums.ApplicantDocumentType;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingApplicationStatus;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingDocumentCategory;
-import com.fedebacelar.bank.onboarding.domain.exception.DuplicateActiveOnboardingApplicationException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingContinuationExpiredException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingMagicLinkAlreadyConsumedException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingMagicLinkExpiredException;
@@ -33,6 +33,7 @@ import com.fedebacelar.bank.onboarding.domain.model.ApplicantData;
 import com.fedebacelar.bank.onboarding.domain.model.OnboardingApplication;
 import com.fedebacelar.bank.onboarding.domain.model.OnboardingDocumentReference;
 import com.fedebacelar.bank.onboarding.domain.model.OnboardingTermsAcceptance;
+import com.fedebacelar.bank.onboarding.infrastructure.config.OnboardingReviewProperties;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -50,19 +51,23 @@ class OnboardingApplicationServiceTest {
     private final OnboardingApplicantDataRepositoryPort applicantDataRepositoryPort = mock(OnboardingApplicantDataRepositoryPort.class);
     private final OnboardingDocumentReferenceRepositoryPort documentReferenceRepositoryPort = mock(OnboardingDocumentReferenceRepositoryPort.class);
     private final OnboardingTermsAcceptanceRepositoryPort termsAcceptanceRepositoryPort = mock(OnboardingTermsAcceptanceRepositoryPort.class);
+    private final OnboardingStatusHistoryRepositoryPort statusHistoryRepositoryPort = mock(OnboardingStatusHistoryRepositoryPort.class);
     private final TokenGeneratorPort tokenGeneratorPort = mock(TokenGeneratorPort.class);
     private final TokenHashingPort tokenHashingPort = mock(TokenHashingPort.class);
     private final NotificationPort notificationPort = mock(NotificationPort.class);
+    private final OnboardingReviewProperties reviewProperties = new OnboardingReviewProperties();
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-05T10:00:00Z"), ZoneOffset.UTC);
     private final OnboardingApplicationService service = new OnboardingApplicationService(
             repositoryPort,
             applicantDataRepositoryPort,
             documentReferenceRepositoryPort,
             termsAcceptanceRepositoryPort,
+            statusHistoryRepositoryPort,
             tokenGeneratorPort,
             tokenHashingPort,
             notificationPort,
             clock,
+            reviewProperties,
             30,
             120,
             15,
@@ -139,13 +144,24 @@ class OnboardingApplicationServiceTest {
     }
 
     @Test
-    void rejectsDuplicateApplicationAfterSubmission() {
+    void resendsReadOnlyAccessLinkAfterSubmission() {
         OnboardingApplication application = applicationWithStatus(OnboardingApplicationStatus.SUBMITTED);
         when(repositoryPort.findFirstByEmailAndStatusInOrderByCreatedAtDesc(eq("person@example.com"), ArgumentMatchers.<Set<OnboardingApplicationStatus>>any()))
                 .thenReturn(Optional.of(application));
+        when(tokenGeneratorPort.generate()).thenReturn("new-magic-token");
+        when(tokenHashingPort.hash("new-magic-token")).thenReturn("new-magic-hash");
+        when(repositoryPort.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        assertThatThrownBy(() -> service.start(new StartOnboardingApplicationCommand("person@example.com")))
-                .isInstanceOf(DuplicateActiveOnboardingApplicationException.class);
+        var details = service.start(new StartOnboardingApplicationCommand("person@example.com"));
+
+        assertThat(details.id()).isEqualTo(application.id());
+        assertThat(details.status()).isEqualTo(OnboardingApplicationStatus.SUBMITTED);
+        verify(notificationPort).sendMagicLink(
+                eq(application.id()),
+                eq("person@example.com"),
+                eq("http://localhost:4200/onboarding/continue?token=new-magic-token"),
+                eq(Duration.ofMinutes(30))
+        );
     }
 
     @Test

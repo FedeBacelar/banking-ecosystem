@@ -7,6 +7,7 @@ import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingContinuation;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingDocumentReference;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingSession;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingTermsAcceptance;
+import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingSubmission;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.ApplicantDataResponse;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.AcceptTermsRequest;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.ConsumeMagicLinkRequest;
@@ -17,6 +18,8 @@ import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboardin
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.SaveDocumentReferenceRequest;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.StartOnboardingApplicationRequest;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.TermsAcceptanceResponse;
+import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.SubmitOnboardingRequest;
+import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.OnboardingSubmissionResponse;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.ValidateContinuationResponse;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.ValidateContinuationRequest;
 import java.util.UUID;
@@ -107,6 +110,30 @@ public class OnboardingServiceAdapter implements OnboardingServicePort {
                 .bodyToMono(TermsAcceptanceResponse.class)
                 .block();
 
+        return response.toDomain();
+    }
+
+    @Override
+    public OnboardingSubmission submit(String continuationToken, String accessToken) {
+        OnboardingSubmissionResponse response = webClient.post()
+                .uri("http://onboarding-service/internal/onboarding/continuations/submissions")
+                .headers(headers -> headers.setBearerAuth(accessToken))
+                .bodyValue(new SubmitOnboardingRequest(continuationToken))
+                .retrieve()
+                .bodyToMono(OnboardingSubmissionResponse.class)
+                .block();
+        return response.toDomain();
+    }
+
+    @Override
+    public OnboardingSubmission resendCredentialInvitation(String continuationToken, String accessToken) {
+        OnboardingSubmissionResponse response = webClient.post()
+                .uri("http://onboarding-service/internal/onboarding/continuations/credential-invitations/resend")
+                .headers(headers -> headers.setBearerAuth(accessToken))
+                .bodyValue(new SubmitOnboardingRequest(continuationToken))
+                .retrieve()
+                .bodyToMono(OnboardingSubmissionResponse.class)
+                .block();
         return response.toDomain();
     }
 }

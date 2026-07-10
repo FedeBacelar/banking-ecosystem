@@ -113,6 +113,7 @@ Current clients:
 banking-api
 banking-swagger
 home-banking-bff
+onboarding-orchestrator
 ```
 
 Current roles:
@@ -244,6 +245,26 @@ ONBOARDING_WRITE
 `DOCUMENT_WRITE` is needed because the current BFF applicant-data flow uploads DNI evidence through `document-service`.
 
 This is not a human test user and should not be used for browser login.
+
+## Onboarding Orchestrator Client
+
+`onboarding-orchestrator` is a dedicated client-credentials client used only by `onboarding-service`. It has the minimum customer, account, identity, document, notification, and Keycloak user-administration roles needed by the process manager. It is not a shared human user and is never used by the browser.
+
+## Credential Setup
+
+Approved applicants are created with provisional username `pending-{applicationId}`, verified email, customer realm roles, and required actions `UPDATE_PROFILE` and `UPDATE_PASSWORD`.
+
+Keycloak sends the action link itself through `execute-actions-email`; identity tokens are not transported through `notification-service`. SMTP values and the orchestrator secret are environment placeholders. Local values live in ignored `infra/keycloak/.env`; safe names live in `.env.example`.
+
+The one-shot `keycloak-realm-init` container applies `banking-user-profile.json` after realm startup. The profile permits the applicant to choose the username while email, first name, and last name remain visible but user read-only. Unmanaged attributes remain on Keycloak's strict `DISABLED` default; the managed profile does not enable arbitrary user attributes.
+
+The credential action lifespan defaults to 24 hours and redirects to:
+
+```txt
+http://localhost:4200/onboarding/credentials-complete
+```
+
+When `keycloak-realm-init` exits with code `0`, that stopped container is expected; it is an initialization job.
 
 ## Login Theme
 

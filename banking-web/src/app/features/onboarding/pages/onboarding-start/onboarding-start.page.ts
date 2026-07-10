@@ -39,11 +39,10 @@ export class OnboardingStartPage {
       .startApplication(email)
       .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({
-        next: (application) => {
+        next: () => {
           void this.router.navigate(['/onboarding/check-email'], {
             state: {
-              email: application.email,
-              magicLinkExpiresAt: application.magicLinkExpiresAt
+              email
             }
           });
         },

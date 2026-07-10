@@ -1,37 +1,18 @@
 # banking-web
 
-`banking-web` is the Angular frontend for the banking ecosystem.
+`banking-web` is an Angular 22 standalone application. Its current onboarding UI is a functional verification client, not the final guided banking experience.
 
-The first implemented slice covers public digital onboarding.
-
-## Current Scope
-
-Implemented:
+## Implemented Demo Flow
 
 ```txt
-- Angular 22 standalone application.
-- Lazy loaded onboarding routes.
-- Public email capture screen.
-- Check-email confirmation screen.
-- Magic-link continuation screen.
-- Onboarding session state screen.
-- Applicant data form for the first wizard step.
-- DNI front/back upload controls.
-- Terms acceptance capture.
-- Local development proxy for /web.
+email -> check email -> consume magic link -> applicant data
+      -> DNI front/back -> terms -> submit -> status
+      -> credential invitation -> Keycloak actions -> completion page
 ```
 
-Not implemented yet:
-
-```txt
-- Submit application UI.
-- Credential setup UI.
-- Authenticated home banking screens.
-```
+The applicant page chains the BFF operations in order and submits only after every required call succeeds. The status page polls the safe BFF status contract and supports invitation resend when credentials are pending.
 
 ## Architecture
-
-Current structure:
 
 ```txt
 src/app/core/api
@@ -39,40 +20,7 @@ src/app/shared/ui
 src/app/features/onboarding
 ```
 
-The frontend calls only the BFF:
-
-```txt
-banking-web -> /web/onboarding/** -> api-gateway -> home-banking-bff
-```
-
-It does not call `onboarding-service` directly and does not store access tokens in browser storage.
-
-The onboarding continuation token is handled by the BFF as an HttpOnly cookie.
-
-The applicant-data screen currently saves applicant data, uploads `DNI_FRONT` and `DNI_BACK`, and accepts the current onboarding terms version through BFF endpoints. The UI is functional first-slice quality; guided banking controls and final styling are planned for a later iteration.
-
-## Local Runtime
-
-Run:
-
-```powershell
-cd banking-web
-npm start
-```
-
-Open:
-
-```txt
-http://localhost:4200/onboarding/start
-```
-
-The Angular dev server proxies `/web` to:
-
-```txt
-http://localhost:8085
-```
-
-The development proxy points to `api-gateway`. Browser code must keep using `/web/**`; it must not call `home-banking-bff` or internal services directly.
+Routes are lazy loaded. Browser code calls only relative `/web/**` URLs. The BFF owns the continuation token as an HttpOnly cookie; Angular obtains a CSRF cookie before each mutation and does not store access tokens.
 
 ## Routes
 
@@ -82,11 +30,24 @@ The development proxy points to `api-gateway`. Browser code must keep using `/we
 /onboarding/continue?token=...
 /onboarding/session
 /onboarding/applicant-data
+/onboarding/status
+/onboarding/credentials-complete
 ```
 
-## Tests and Build
+## Local Runtime
+
+```powershell
+cd banking-web
+npm start
+```
+
+Open `http://localhost:4200/onboarding/start`. The dev proxy sends `/web` to `http://localhost:8085` (api-gateway).
+
+## Verification
 
 ```powershell
 npm test -- --watch=false
 npm run build
 ```
+
+The final guided form, banking-grade visual system, and authenticated home-banking UI remain a separate frontend feature. The current BFF contracts are intended to support that replacement without changing the process owner.

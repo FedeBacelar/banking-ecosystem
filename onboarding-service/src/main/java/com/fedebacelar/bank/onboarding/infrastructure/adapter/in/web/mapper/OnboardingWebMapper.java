@@ -109,7 +109,8 @@ public class OnboardingWebMapper {
                 details.id(),
                 details.email(),
                 details.status(),
-                details.continuationExpiresAt()
+                details.continuationExpiresAt(),
+                details.updatedAt()
         );
     }
 

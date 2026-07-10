@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -22,6 +23,8 @@ import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingContinuation;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingDocumentReference;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingSession;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingTermsAcceptance;
+import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingSubmission;
+import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingPublicStatus;
 import jakarta.servlet.http.Cookie;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -85,13 +88,10 @@ class OnboardingControllerTest {
                         now
                 ));
 
-        mockMvc.perform(post("/onboarding/applications")
+        mockMvc.perform(post("/onboarding/applications").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"applicant@example.com\"}"))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(applicationId.toString()))
-                .andExpect(jsonPath("$.email").value("applicant@example.com"))
-                .andExpect(jsonPath("$.status").value("EMAIL_VERIFICATION_PENDING"));
+                .andExpect(status().isAccepted());
     }
 
     @Test
@@ -112,13 +112,14 @@ class OnboardingControllerTest {
                         now
                 ));
 
-        mockMvc.perform(post("/web/onboarding/applications")
+        mockMvc.perform(post("/web/onboarding/applications").with(csrf())
                         .contextPath("/web")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"applicant@example.com\"}"))
-                .andExpect(status().isCreated())
+                .andExpect(status().isAccepted())
                 .andExpect(header().doesNotExist("Location"))
-                .andExpect(jsonPath("$.id").value(applicationId.toString()));
+                .andExpect(header().string("Cache-Control", "no-store, max-age=0"))
+                .andExpect(header().exists("X-Correlation-Id"));
     }
 
     @Test
@@ -129,7 +130,7 @@ class OnboardingControllerTest {
         when(onboardingFlowService.consumeMagicLink("magic-token"))
                 .thenReturn(new OnboardingContinuation(applicationId, "IN_PROGRESS", "continuation-token", expiresAt));
 
-        mockMvc.perform(post("/onboarding/magic-links/consume")
+        mockMvc.perform(post("/onboarding/magic-links/consume").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"token\":\"magic-token\"}"))
                 .andExpect(status().isOk())
@@ -150,7 +151,7 @@ class OnboardingControllerTest {
         when(onboardingFlowService.consumeMagicLink("magic-token"))
                 .thenReturn(new OnboardingContinuation(applicationId, "IN_PROGRESS", "continuation-token", expiresAt));
 
-        mockMvc.perform(post("/web/onboarding/magic-links/consume")
+        mockMvc.perform(post("/web/onboarding/magic-links/consume").with(csrf())
                         .contextPath("/web")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"token\":\"magic-token\"}"))
@@ -213,7 +214,7 @@ class OnboardingControllerTest {
                         now
                 ));
 
-        mockMvc.perform(put("/onboarding/applicant-data")
+        mockMvc.perform(put("/onboarding/applicant-data").with(csrf())
                         .cookie(new Cookie(CONTINUATION_COOKIE, "continuation-token"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -267,7 +268,7 @@ class OnboardingControllerTest {
                         now
                 ));
 
-        mockMvc.perform(put("/web/onboarding/applicant-data")
+        mockMvc.perform(put("/web/onboarding/applicant-data").with(csrf())
                         .contextPath("/web")
                         .cookie(new Cookie(CONTINUATION_COOKIE, "continuation-token"))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -319,7 +320,7 @@ class OnboardingControllerTest {
                 now
         ));
 
-        mockMvc.perform(multipart("/web/onboarding/documents/{category}", "DNI_FRONT")
+        mockMvc.perform(multipart("/web/onboarding/documents/{category}", "DNI_FRONT").with(csrf())
                         .file(file)
                         .contextPath("/web")
                         .cookie(new Cookie(CONTINUATION_COOKIE, "continuation-token")))
@@ -336,7 +337,7 @@ class OnboardingControllerTest {
                 .when(onboardingFlowService)
                 .saveApplicantData(org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.any());
 
-        mockMvc.perform(put("/web/onboarding/applicant-data")
+        mockMvc.perform(put("/web/onboarding/applicant-data").with(csrf())
                         .contextPath("/web")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -379,7 +380,7 @@ class OnboardingControllerTest {
                         org.mockito.ArgumentMatchers.any()
                 );
 
-        mockMvc.perform(multipart("/web/onboarding/documents/{category}", "DNI_FRONT")
+        mockMvc.perform(multipart("/web/onboarding/documents/{category}", "DNI_FRONT").with(csrf())
                         .file(file)
                         .contextPath("/web")
                         .cookie(new Cookie(CONTINUATION_COOKIE, "continuation-token")))
@@ -405,7 +406,7 @@ class OnboardingControllerTest {
                         org.mockito.ArgumentMatchers.any()
                 );
 
-        mockMvc.perform(multipart("/web/onboarding/documents/{category}", "DNI_FRONT")
+        mockMvc.perform(multipart("/web/onboarding/documents/{category}", "DNI_FRONT").with(csrf())
                         .file(file)
                         .contextPath("/web"))
                 .andExpect(status().isUnauthorized())
@@ -427,7 +428,7 @@ class OnboardingControllerTest {
                         now
                 ));
 
-        mockMvc.perform(put("/web/onboarding/terms")
+        mockMvc.perform(put("/web/onboarding/terms").with(csrf())
                         .contextPath("/web")
                         .cookie(new Cookie(CONTINUATION_COOKIE, "continuation-token"))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -448,7 +449,7 @@ class OnboardingControllerTest {
                 .when(onboardingFlowService)
                 .acceptTerms(null, true, "ONBOARDING_TERMS_AR_V1");
 
-        mockMvc.perform(put("/web/onboarding/terms")
+        mockMvc.perform(put("/web/onboarding/terms").with(csrf())
                         .contextPath("/web")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -464,9 +465,60 @@ class OnboardingControllerTest {
 
     @Test
     void shouldClearOnboardingSessionCookie() throws Exception {
-        mockMvc.perform(delete("/onboarding/session"))
+        mockMvc.perform(delete("/onboarding/session").with(csrf()))
                 .andExpect(status().isNoContent())
                 .andExpect(cookie().maxAge(CONTINUATION_COOKIE, 0))
                 .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("Path=/web/onboarding")));
+    }
+
+    @Test
+    void shouldSubmitApplicationFromContinuationCookie() throws Exception {
+        UUID applicationId = UUID.randomUUID();
+        Instant now = Instant.parse("2026-07-10T12:00:00Z");
+        when(onboardingFlowService.submit("continuation-token"))
+                .thenReturn(new OnboardingSubmission(applicationId, "SUBMITTED", now, now));
+
+        mockMvc.perform(post("/onboarding/submissions").with(csrf())
+                        .cookie(new Cookie(CONTINUATION_COOKIE, "continuation-token")))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.applicationId").value(applicationId.toString()))
+                .andExpect(jsonPath("$.status").value("SUBMITTED"));
+    }
+
+    @Test
+    void shouldExposeOnlyPublicOnboardingStatusContract() throws Exception {
+        UUID applicationId = UUID.randomUUID();
+        Instant now = Instant.parse("2026-07-10T12:00:00Z");
+        when(onboardingFlowService.getStatus("continuation-token"))
+                .thenReturn(new OnboardingPublicStatus(applicationId, "PROVISIONING", "WAIT", now));
+
+        mockMvc.perform(get("/onboarding/status")
+                        .cookie(new Cookie(CONTINUATION_COOKIE, "continuation-token")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.applicationId").value(applicationId.toString()))
+                .andExpect(jsonPath("$.status").value("PROVISIONING"))
+                .andExpect(jsonPath("$.nextAction").value("WAIT"))
+                .andExpect(jsonPath("$.externalReference").doesNotExist())
+                .andExpect(jsonPath("$.reasonCode").doesNotExist());
+    }
+
+    @Test
+    void shouldResendCredentialInvitationFromContinuationCookie() throws Exception {
+        UUID applicationId = UUID.randomUUID();
+        Instant now = Instant.parse("2026-07-10T12:00:00Z");
+        when(onboardingFlowService.resendCredentialInvitation("continuation-token"))
+                .thenReturn(new OnboardingSubmission(applicationId, "CREDENTIAL_SETUP_PENDING", now, now));
+
+        mockMvc.perform(post("/onboarding/credential-invitations/resend").with(csrf())
+                        .cookie(new Cookie(CONTINUATION_COOKIE, "continuation-token")))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.status").value("CREDENTIAL_SETUP_PENDING"));
+    }
+
+    @Test
+    void shouldRequireCsrfForEveryOnboardingMutation() throws Exception {
+        mockMvc.perform(post("/onboarding/submissions")
+                        .cookie(new Cookie(CONTINUATION_COOKIE, "continuation-token")))
+                .andExpect(status().isForbidden());
     }
 }

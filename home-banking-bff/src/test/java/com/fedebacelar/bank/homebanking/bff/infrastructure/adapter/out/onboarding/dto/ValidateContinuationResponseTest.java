@@ -13,11 +13,13 @@ class ValidateContinuationResponseTest {
     void shouldMapApplicationIdToActiveSession() {
         UUID applicationId = UUID.randomUUID();
         Instant continuationExpiresAt = Instant.parse("2026-07-05T12:00:00Z");
+        Instant updatedAt = Instant.parse("2026-07-05T10:00:00Z");
         ValidateContinuationResponse response = new ValidateContinuationResponse(
                 applicationId,
                 "applicant@example.com",
                 "IN_PROGRESS",
-                continuationExpiresAt
+                continuationExpiresAt,
+                updatedAt
         );
 
         OnboardingSession session = response.toSession();
@@ -26,5 +28,6 @@ class ValidateContinuationResponseTest {
         assertThat(session.applicationId()).isEqualTo(applicationId);
         assertThat(session.status()).isEqualTo("IN_PROGRESS");
         assertThat(session.continuationExpiresAt()).isEqualTo(continuationExpiresAt);
+        assertThat(session.updatedAt()).isEqualTo(updatedAt);
     }
 }

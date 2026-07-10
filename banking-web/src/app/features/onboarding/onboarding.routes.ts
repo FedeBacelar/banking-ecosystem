@@ -36,5 +36,17 @@ export const onboardingRoutes: Routes = [
       import('./pages/onboarding-applicant-data/onboarding-applicant-data.page').then(
         (m) => m.OnboardingApplicantDataPage
       )
+  },
+  {
+    path: 'status',
+    loadComponent: () =>
+      import('./pages/onboarding-status/onboarding-status.page').then((m) => m.OnboardingStatusPage)
+  },
+  {
+    path: 'credentials-complete',
+    loadComponent: () =>
+      import('./pages/onboarding-credentials-complete/onboarding-credentials-complete.page').then(
+        (m) => m.OnboardingCredentialsCompletePage
+      )
   }
 ];

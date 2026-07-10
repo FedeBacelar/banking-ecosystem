@@ -124,14 +124,14 @@
       @if (successMessage()) {
         <div class="status-panel status-panel--success" role="status">
           <strong>{{ successMessage() }}</strong>
-          <span>El proximo paso sera enviar la solicitud para revision.</span>
+          <span>La solicitud fue enviada para revision.</span>
         </div>
       }
 
       <div class="button-row">
         <a class="ghost-button" routerLink="/onboarding/session">Volver</a>
         <button class="primary-button" type="submit" [disabled]="isSubmitting()">
-          {{ isSubmitting() ? 'Guardando...' : 'Guardar datos' }}
+          {{ isSubmitting() ? 'Enviando...' : 'Enviar solicitud' }}
         </button>
       </div>
     </form>

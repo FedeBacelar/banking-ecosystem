@@ -1,6 +1,7 @@
 package com.fedebacelar.bank.customer.infrastructure.adapter.in.web;
 
 import com.fedebacelar.bank.customer.application.port.in.FindCustomerByDocumentUseCase;
+import com.fedebacelar.bank.customer.application.port.in.FindCustomerByEmailUseCase;
 import com.fedebacelar.bank.customer.application.port.in.FindCustomerByNumberUseCase;
 import com.fedebacelar.bank.customer.application.port.in.GetCustomerStatusHistoryUseCase;
 import com.fedebacelar.bank.customer.application.port.in.GetCustomerUseCase;
@@ -26,6 +27,7 @@ public class CustomerQueryController {
 
     private final GetCustomerUseCase getCustomerUseCase;
     private final FindCustomerByDocumentUseCase findCustomerByDocumentUseCase;
+    private final FindCustomerByEmailUseCase findCustomerByEmailUseCase;
     private final FindCustomerByNumberUseCase findCustomerByNumberUseCase;
     private final GetCustomerStatusHistoryUseCase getCustomerStatusHistoryUseCase;
     private final CustomerWebMapper mapper;
@@ -33,12 +35,14 @@ public class CustomerQueryController {
     public CustomerQueryController(
             GetCustomerUseCase getCustomerUseCase,
             FindCustomerByDocumentUseCase findCustomerByDocumentUseCase,
+            FindCustomerByEmailUseCase findCustomerByEmailUseCase,
             FindCustomerByNumberUseCase findCustomerByNumberUseCase,
             GetCustomerStatusHistoryUseCase getCustomerStatusHistoryUseCase,
             CustomerWebMapper mapper
     ) {
         this.getCustomerUseCase = getCustomerUseCase;
         this.findCustomerByDocumentUseCase = findCustomerByDocumentUseCase;
+        this.findCustomerByEmailUseCase = findCustomerByEmailUseCase;
         this.findCustomerByNumberUseCase = findCustomerByNumberUseCase;
         this.getCustomerStatusHistoryUseCase = getCustomerStatusHistoryUseCase;
         this.mapper = mapper;
@@ -58,6 +62,12 @@ public class CustomerQueryController {
             @RequestParam @Pattern(regexp = "^[A-Z]{2}$") String country
     ) {
         return mapper.toResponse(findCustomerByDocumentUseCase.findByDocument(type, number, country));
+    }
+
+    @Operation(summary = "Get customer by email")
+    @GetMapping("/by-email")
+    public CustomerResponse getByEmail(@RequestParam String email) {
+        return mapper.toResponse(findCustomerByEmailUseCase.findByEmail(email));
     }
 
     @Operation(summary = "Get customer by customer number")

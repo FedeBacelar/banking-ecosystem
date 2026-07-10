@@ -9,14 +9,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fedebacelar.bank.customer.application.port.in.ApproveCustomerKycUseCase;
 import com.fedebacelar.bank.customer.application.port.in.CloseCustomerUseCase;
 import com.fedebacelar.bank.customer.application.port.in.FindCustomerByDocumentUseCase;
+import com.fedebacelar.bank.customer.application.port.in.FindCustomerByEmailUseCase;
 import com.fedebacelar.bank.customer.application.port.in.FindCustomerByNumberUseCase;
 import com.fedebacelar.bank.customer.application.port.in.GetCustomerStatusHistoryUseCase;
 import com.fedebacelar.bank.customer.application.port.in.GetCustomerUseCase;
 import com.fedebacelar.bank.customer.application.port.in.ReactivateCustomerUseCase;
-import com.fedebacelar.bank.customer.application.port.in.RegisterNaturalPersonCustomerUseCase;
+import com.fedebacelar.bank.customer.application.port.in.RegisterNaturalPersonCustomerIdempotentlyUseCase;
 import com.fedebacelar.bank.customer.application.port.in.RejectCustomerKycUseCase;
 import com.fedebacelar.bank.customer.application.port.in.SuspendCustomerUseCase;
 import com.fedebacelar.bank.customer.infrastructure.adapter.in.web.mapper.CustomerWebMapper;
+import com.fedebacelar.bank.customer.infrastructure.adapter.in.web.RequestFingerprint;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +51,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Import({
         SecurityConfig.class,
         CustomerWebMapper.class,
+        RequestFingerprint.class,
         SecurityConfigTest.TestCustomerController.class,
         SecurityConfigTest.TestActuatorController.class,
         SecurityConfigTest.TestDocsController.class
@@ -63,7 +66,10 @@ class SecurityConfigTest {
     private JwtDecoder jwtDecoder;
 
     @MockitoBean
-    private RegisterNaturalPersonCustomerUseCase registerNaturalPersonCustomerUseCase;
+    private RegisterNaturalPersonCustomerIdempotentlyUseCase registerNaturalPersonCustomerUseCase;
+
+    @MockitoBean
+    private FindCustomerByEmailUseCase findCustomerByEmailUseCase;
 
     @MockitoBean
     private GetCustomerUseCase getCustomerUseCase;

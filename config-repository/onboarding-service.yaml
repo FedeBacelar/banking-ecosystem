@@ -14,11 +14,65 @@ spring:
     enabled: true
   security:
     oauth2:
+      client:
+        registration:
+          onboarding-orchestrator:
+            provider: keycloak
+            client-id: ${ONBOARDING_INTERNAL_OAUTH_CLIENT_ID:onboarding-orchestrator}
+            client-secret: ${ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET:local-onboarding-secret}
+            authorization-grant-type: client_credentials
+        provider:
+          keycloak:
+            issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/banking-ecosystem}
       resourceserver:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/banking-ecosystem}
 
 onboarding:
+  provisioning:
+    max-attempts: 6
+    worker-delay: PT1S
+    worker-lease: PT2M
+    worker-batch-size: 20
+    credential-reconciliation-delay: PT30S
+    credential-invitation-cooldown: PT1M
+    retry-backoff:
+      - PT5S
+      - PT30S
+      - PT2M
+      - PT10M
+      - PT30M
+  expiration:
+    worker-delay: PT1M
+    batch-size: 100
+  keycloak:
+    admin-base-url: ${KEYCLOAK_ADMIN_BASE_URL:http://localhost:8090}
+    realm: ${KEYCLOAK_REALM:banking-ecosystem}
+    action-client-id: ${ONBOARDING_CREDENTIAL_ACTION_CLIENT_ID:home-banking-bff}
+    credential-redirect-uri: ${ONBOARDING_CREDENTIAL_REDIRECT_URI:http://localhost:4200/onboarding/credentials-complete}
+    action-lifespan: ${ONBOARDING_CREDENTIAL_ACTION_LIFESPAN:PT24H}
+  review:
+    mode: AUTO
+    policy-version: AR_DNI_SAVINGS_V1
+    required-terms-version: ONBOARDING_TERMS_AR_V1
+    max-attempts: 6
+    worker-delay: PT1S
+    worker-lease: PT2M
+    worker-batch-size: 20
+    retry-backoff:
+      - PT5S
+      - PT30S
+      - PT2M
+      - PT10M
+      - PT30M
+    checks:
+      DUPLICATE_CHECK: LOCAL
+      DOCUMENTS_PRESENT: LOCAL
+      TERMS_ACCEPTED: LOCAL
+      BASIC_ELIGIBILITY: LOCAL
+      DOCUMENT_PROOFING: SIMULATED
+      SANCTIONS_PEP_SCREENING: SIMULATED
+      FRAUD_SCREENING: SIMULATED
   magic-link:
     ttl-minutes: ${ONBOARDING_MAGIC_LINK_TTL_MINUTES:30}
   continuation:

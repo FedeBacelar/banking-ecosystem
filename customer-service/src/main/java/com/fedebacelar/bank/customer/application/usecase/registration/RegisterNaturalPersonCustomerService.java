@@ -102,7 +102,7 @@ public class RegisterNaturalPersonCustomerService implements RegisterNaturalPers
         );
 
         List<ContactPoint> contactPoints = command.contactPoints().stream()
-                .map(contact -> new ContactPoint(UUID.randomUUID(), partyId, contact.type(), contact.value(), false, true))
+                .map(contact -> new ContactPoint(UUID.randomUUID(), partyId, contact.type(), contact.value(), contact.verified(), true))
                 .toList();
 
         List<Address> addresses = command.addresses().stream()

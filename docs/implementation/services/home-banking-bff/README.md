@@ -1,138 +1,48 @@
 # home-banking-bff Implementation
 
-`home-banking-bff` is the browser-facing backend for the future home banking UI.
+`home-banking-bff` is the only browser backend. It owns browser sessions, HttpOnly onboarding cookies, CSRF, public DTOs, and composition; it does not own banking lifecycle or persistence.
 
-It does not own banking business data. It owns browser session behavior and composes data from internal services.
-
-## Current Status
-
-Implemented as a first functional BFF slice.
-
-Current capabilities:
-
-- Starts OAuth2/OIDC login with Keycloak.
-- Maintains the browser session using an HttpOnly session cookie.
-- Performs OIDC logout so the BFF session and Keycloak session are closed together.
-- Resolves the authenticated Keycloak subject through `identity-service`.
-- Reads the linked customer from `customer-service`.
-- Reads customer accounts from `account-service`.
-- Forwards the user's access token when calling protected internal services.
-- Starts onboarding applications through `onboarding-service`.
-- Consumes onboarding magic links and stores continuation tokens in an HttpOnly cookie.
-- Validates the onboarding continuation cookie.
-- Saves applicant data through `onboarding-service` using the onboarding continuation cookie.
-- Uploads onboarding documents to `document-service` and stores references through `onboarding-service`.
-- Captures onboarding terms acceptance through `onboarding-service`.
-
-## Architecture
-
-The BFF uses a lightweight ports-and-adapters structure:
+## Access Model
 
 ```txt
-application/port/in
-application/port/out
-application/usecase
-domain/model
-infrastructure/adapter/in/web
-infrastructure/adapter/out/account
-infrastructure/adapter/out/customer
-infrastructure/adapter/out/identity
-infrastructure/adapter/out/onboarding
-infrastructure/adapter/out/security
-infrastructure/config
+browser -> api-gateway:8085 /web/** -> home-banking-bff:8086 /web/**
 ```
 
-DTOs are kept close to their boundary:
+Direct port `8086` is diagnostics only. Angular proxies `/web` to the gateway, never to a business service.
+
+## Public Onboarding Contracts
 
 ```txt
-infrastructure/adapter/in/web/dto
-infrastructure/adapter/out/identity/dto
-```
-
-This is intentionally lighter than the business services.
-
-`home-banking-bff` does not own entities, repositories, migrations, or banking lifecycle rules. It owns browser session behavior and composition for the home banking experience.
-
-Main implemented use case:
-
-```txt
-GetAuthenticatedHomeContextUseCase
-```
-
-## Local Runtime
-
-Default local port:
-
-```txt
-8086
-```
-
-Gateway path:
-
-```txt
-http://localhost:8085/web/**
-```
-
-Direct local path:
-
-```txt
-http://localhost:8086/web/**
-```
-
-This direct path is for diagnostics only. Frontend/browser traffic must enter through `api-gateway` at `http://localhost:8085/web/**`. Do not use port `8086` as the normal browser origin because it bypasses the gateway and can break cookie and OAuth redirect behavior.
-
-## Endpoints
-
-```txt
-GET /web/session
-GET /web/me
-GET /web/logout
-POST /web/onboarding/applications
-POST /web/onboarding/magic-links/consume
-GET /web/onboarding/session
-PUT /web/onboarding/applicant-data
-POST /web/onboarding/documents/{category}
-PUT /web/onboarding/terms
+GET    /web/csrf
+POST   /web/onboarding/applications
+POST   /web/onboarding/magic-links/consume
+GET    /web/onboarding/session
 DELETE /web/onboarding/session
+PUT    /web/onboarding/applicant-data
+POST   /web/onboarding/documents/{category}
+PUT    /web/onboarding/terms
+POST   /web/onboarding/submissions
+GET    /web/onboarding/status
+POST   /web/onboarding/credential-invitations/resend
 ```
 
-`GET /web/session` returns the current browser session state. It is public and can be used by a future frontend to know if the browser is already authenticated.
-
-`GET /web/me` returns the authenticated home banking context: identity subject, linked customer, and current accounts.
-
-`GET /web/logout` clears the local BFF session and logs out from Keycloak. After logout, the browser returns to `/web/session`.
-
-`POST /web/onboarding/applications` starts onboarding for an unauthenticated applicant.
-
-`POST /web/onboarding/magic-links/consume` consumes a magic link and writes the continuation token as an HttpOnly cookie.
-
-`GET /web/onboarding/session` reads and validates the onboarding continuation cookie.
-
-`PUT /web/onboarding/applicant-data` stores the first applicant data step. The browser does not send the continuation token in the request body; the BFF reads it from the HttpOnly onboarding cookie.
-
-`POST /web/onboarding/documents/{category}` uploads a DNI file using multipart form data. The BFF validates the continuation cookie through `onboarding-service`, uploads the file to `document-service`, and then stores the returned document reference in `onboarding-service`.
-
-`PUT /web/onboarding/terms` captures acceptance of the active onboarding terms version. The browser sends only the acceptance flag and version; the BFF reads the continuation token from the HttpOnly onboarding cookie.
-
-`DELETE /web/onboarding/session` clears the onboarding continuation cookie.
+Application start always returns generic `202 Accepted`; it does not reveal whether an email is already known. Status exposes only `applicationId`, public state, `nextAction`, and `updatedAt`. It never exposes review evidence, external resource IDs, Keycloak subject, or dependency errors.
 
 ## Security
 
-The browser authenticates with `home-banking-bff` through OAuth2/OIDC login.
+- Mutations require the `NB-XSRF-TOKEN` cookie and `X-XSRF-TOKEN` header initialized by `/web/csrf`. The cookie uses `Path=/` so the SPA can read it while its routes live outside `/web`.
+- The continuation token is an HttpOnly, `SameSite=Lax` cookie scoped to `/web/onboarding`.
+- Onboarding responses use `Cache-Control: no-store` and `X-Correlation-Id`.
+- Downstream codes are allowlisted; authorization and remote implementation details become a generic public service error.
+- The BFF calls onboarding/document/notification with its service-account token. Browser tokens are not forwarded for anonymous onboarding.
 
-After login, the browser keeps only the BFF session cookie. The BFF keeps access to the OAuth2 authorized client server-side and sends the access token to internal services as a Bearer token.
+After normal home-banking login, the BFF keeps the OAuth2 authorized client server-side and resolves the authenticated identity to a customer.
 
-Logout must be federated through Keycloak. Clearing only the BFF cookie is not enough because Keycloak can still have an active identity provider session.
-
-The onboarding endpoints are public because applicants do not have a banking user yet. The BFF still calls `onboarding-service` as a confidential OAuth2 client using client credentials. The browser never receives that internal access token.
-
-## Tests
-
-Current test command:
+## Verification
 
 ```powershell
 cd home-banking-bff
 .\mvnw.cmd test
 ```
 
-The suite should pass before closing changes to the BFF.
+The current suite has 43 passing tests, including context-path routing, CSRF, safe public errors, cookies, and new submit/status/resend contracts.

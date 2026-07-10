@@ -15,6 +15,8 @@ public interface CustomerRepositoryPort {
 
     Optional<NaturalPersonCustomer> findByDocument(DocumentType type, String number, String country);
 
+    Optional<NaturalPersonCustomer> findByEmail(String email);
+
     Optional<NaturalPersonCustomer> findByCustomerNumber(String customerNumber);
 
     List<CustomerStatusHistory> findStatusHistory(UUID customerId);

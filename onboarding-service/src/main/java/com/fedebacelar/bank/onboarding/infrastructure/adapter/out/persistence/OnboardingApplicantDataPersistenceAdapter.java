@@ -31,4 +31,16 @@ public class OnboardingApplicantDataPersistenceAdapter implements OnboardingAppl
     public Optional<ApplicantData> findByApplicationId(UUID applicationId) {
         return repository.findById(applicationId.toString()).map(mapper::toDomain);
     }
+
+    @Override
+    public boolean existsActiveApplicationByDocumentExcluding(
+            UUID applicationId,
+            String documentType,
+            String documentNumber,
+            String issuingCountry
+    ) {
+        return repository.countActiveApplicationByDocumentExcluding(
+                applicationId.toString(), documentType, documentNumber, issuingCountry
+        ) > 0;
+    }
 }

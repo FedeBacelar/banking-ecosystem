@@ -4,6 +4,9 @@ import com.fedebacelar.bank.onboarding.domain.enums.OnboardingApplicationStatus;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.out.persistence.entity.OnboardingApplicationEntity;
 import java.util.Optional;
 import java.util.Set;
+import java.util.List;
+import java.time.Instant;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface OnboardingApplicationJpaRepository extends JpaRepository<OnboardingApplicationEntity, String> {
@@ -15,4 +18,10 @@ public interface OnboardingApplicationJpaRepository extends JpaRepository<Onboar
     Optional<OnboardingApplicationEntity> findFirstByEmailAndStatusInOrderByCreatedAtDesc(String email, Set<OnboardingApplicationStatus> statuses);
 
     boolean existsByEmailAndStatusIn(String email, Set<OnboardingApplicationStatus> statuses);
+
+    boolean existsByEmailAndStatusInAndIdNot(String email, Set<OnboardingApplicationStatus> statuses, String id);
+
+    List<OnboardingApplicationEntity> findByExpiresAtLessThanEqualAndStatusInOrderByExpiresAtAsc(
+            Instant now, Set<OnboardingApplicationStatus> statuses, Pageable pageable
+    );
 }
