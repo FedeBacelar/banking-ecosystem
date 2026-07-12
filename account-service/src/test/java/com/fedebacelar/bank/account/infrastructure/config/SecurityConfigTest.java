@@ -11,9 +11,10 @@ import com.fedebacelar.bank.account.application.port.in.GetAccountBalanceUseCase
 import com.fedebacelar.bank.account.application.port.in.GetAccountStatusHistoryUseCase;
 import com.fedebacelar.bank.account.application.port.in.GetAccountUseCase;
 import com.fedebacelar.bank.account.application.port.in.GetCustomerAccountsUseCase;
-import com.fedebacelar.bank.account.application.port.in.OpenAccountUseCase;
+import com.fedebacelar.bank.account.application.port.in.OpenAccountIdempotentlyUseCase;
 import com.fedebacelar.bank.account.application.port.in.UpdateAccountAliasUseCase;
 import com.fedebacelar.bank.account.infrastructure.adapter.in.web.mapper.AccountWebMapper;
+import com.fedebacelar.bank.account.infrastructure.adapter.in.web.RequestFingerprint;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Import({
         SecurityConfig.class,
         AccountWebMapper.class,
+        RequestFingerprint.class,
         SecurityConfigTest.TestAccountController.class,
         SecurityConfigTest.TestActuatorController.class,
         SecurityConfigTest.TestDocsController.class
@@ -60,7 +62,7 @@ class SecurityConfigTest {
     private JwtDecoder jwtDecoder;
 
     @MockitoBean
-    private OpenAccountUseCase openAccountUseCase;
+    private OpenAccountIdempotentlyUseCase openAccountUseCase;
 
     @MockitoBean
     private GetAccountUseCase getAccountUseCase;

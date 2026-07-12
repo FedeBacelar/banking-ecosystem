@@ -1,5 +1,5 @@
 // Banking ecosystem database model
-// Source: current Flyway migrations in customer-service, account-service, and identity-service.
+// Source: current Flyway migrations in customer-service, account-service, identity-service, notification-service, document-service, and onboarding-service.
 // Important: account_db.account.customer_id is a logical reference to customer-service.
 // Important: identity_db.identity_link.customer_id is a logical reference to customer-service.
 // It is intentionally not declared as a DBML Ref because there is no physical FK across service databases.
@@ -81,6 +81,54 @@ Enum identity_link_status {
   PENDING_VERIFICATION
   ACTIVE
   DISABLED
+}
+
+Enum notification_channel {
+  EMAIL
+}
+
+Enum notification_template_code {
+  ONBOARDING_EMAIL_MAGIC_LINK
+  ONBOARDING_APPROVED_CREDENTIAL_INVITATION
+  ONBOARDING_REJECTED
+  ONBOARDING_COMPLETED
+}
+
+Enum notification_status {
+  PENDING
+  SENT
+  FAILED
+}
+
+Enum banking_document_category {
+  DNI_FRONT
+  DNI_BACK
+}
+
+Enum document_storage_provider {
+  MINIO
+}
+
+Enum banking_document_status {
+  STORED
+}
+
+Enum onboarding_application_status {
+  EMAIL_VERIFICATION_PENDING
+  IN_PROGRESS
+  SUBMITTED
+  UNDER_AUTOMATED_REVIEW
+  REVIEW_FAILED
+  APPROVED
+  PROVISIONING
+  CREDENTIAL_SETUP_PENDING
+  CREDENTIAL_SETUP_EXPIRED
+  CREDENTIAL_SETUP_FAILED
+  COMPLETED
+  REJECTED
+  EXPIRED
+  CANCELLED
+  PROVISIONING_FAILED
 }
 
 Table customer_db.party {
@@ -180,6 +228,7 @@ Table customer_db.customer_status_history {
   previous_status customer_status
   new_status customer_status [not null]
   reason varchar(500) [not null]
+  changed_by varchar(100) [not null]
   changed_at timestamp(6) [not null]
 
   indexes {
@@ -195,6 +244,15 @@ Table customer_db.customer_number_sequence {
   updated_at timestamp(6) [not null]
 
   Note: 'Local sequence used to generate customer numbers.'
+}
+
+Table customer_db.customer_idempotency {
+  idempotency_key varchar(160) [pk, not null]
+  request_hash char(64) [not null]
+  resource_id char(36)
+  created_at timestamp(6) [not null]
+
+  Note: 'Durable customer creation idempotency reservation. resource_id is assigned atomically after creation.'
 }
 
 Table account_db.account {
@@ -259,6 +317,15 @@ Table account_db.account_number_sequence {
   Note: 'Local sequence used to generate account numbers.'
 }
 
+Table account_db.account_idempotency {
+  idempotency_key varchar(160) [pk, not null]
+  request_hash char(64) [not null]
+  resource_id char(36)
+  created_at timestamp(6) [not null]
+
+  Note: 'Durable account opening idempotency reservation. resource_id is assigned atomically after creation.'
+}
+
 Table identity_db.identity_link {
   id char(36) [pk, not null]
   customer_id char(36) [not null, note: 'Logical reference to customer_db.customer.id. No physical FK across service databases.']
@@ -271,11 +338,268 @@ Table identity_db.identity_link {
 
   indexes {
     (provider, provider_subject) [unique, name: 'uk_identity_link_provider_subject']
+    (customer_id, provider) [unique, name: 'uk_identity_link_customer_provider']
     customer_id [name: 'idx_identity_link_customer_id']
     status [name: 'idx_identity_link_status']
   }
 
   Note: 'External identity to banking customer link persisted by identity-service.'
+}
+
+Table notification_db.notification {
+  id char(36) [pk, not null]
+  channel notification_channel [not null]
+  recipient varchar(255) [not null]
+  template_code notification_template_code [not null]
+  variables_json json [not null]
+  correlation_id varchar(120)
+  subject varchar(255) [not null]
+  body text [not null]
+  status notification_status [not null]
+  attempt_count int [not null, default: 0]
+  last_error text
+  sent_at timestamp(6)
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+  version bigint [not null, default: 0]
+
+  indexes {
+    recipient [name: 'idx_notification_recipient']
+    template_code [name: 'idx_notification_template_code']
+    status [name: 'idx_notification_status']
+    correlation_id [name: 'idx_notification_correlation_id']
+    created_at [name: 'idx_notification_created_at']
+  }
+
+  Note: 'Notification request and delivery state persisted by notification-service.'
+}
+
+Table document_db.document {
+  id char(36) [pk, not null]
+  business_context varchar(80) [not null]
+  business_reference_id varchar(120) [not null]
+  category banking_document_category [not null]
+  original_filename varchar(255) [not null]
+  content_type varchar(120) [not null]
+  size_bytes bigint [not null]
+  storage_provider document_storage_provider [not null]
+  bucket_name varchar(120) [not null]
+  object_key varchar(500) [not null]
+  status banking_document_status [not null]
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+  version bigint [not null, default: 0]
+
+  indexes {
+    object_key [unique, name: 'uk_document_object_key']
+    (business_context, business_reference_id) [name: 'idx_document_business_reference']
+    category [name: 'idx_document_category']
+    status [name: 'idx_document_status']
+    created_at [name: 'idx_document_created_at']
+  }
+
+  Note: 'Document metadata and object storage location persisted by document-service.'
+}
+
+Table onboarding_db.onboarding_application {
+  id char(36) [pk, not null]
+  email varchar(255) [not null]
+  status onboarding_application_status [not null]
+  review_mode varchar(20) [not null]
+  review_policy_version varchar(80) [not null]
+  magic_link_token_hash char(64) [not null]
+  magic_link_expires_at timestamp(6) [not null]
+  magic_link_consumed_at timestamp(6)
+  email_verified_at timestamp(6)
+  continuation_token_hash char(64)
+  continuation_expires_at timestamp(6)
+  expires_at timestamp(6) [not null]
+  submitted_at timestamp(6)
+  decided_at timestamp(6)
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+  version bigint [not null, default: 0]
+
+  indexes {
+    magic_link_token_hash [unique, name: 'uk_onboarding_magic_link_token_hash']
+    continuation_token_hash [unique, name: 'uk_onboarding_continuation_token_hash']
+    (email, status) [name: 'idx_onboarding_email_status']
+    status [name: 'idx_onboarding_status']
+    expires_at [name: 'idx_onboarding_expires_at']
+  }
+
+  Note: 'Digital onboarding application state persisted by onboarding-service.'
+}
+
+Table onboarding_db.onboarding_applicant_data {
+  application_id char(36) [pk, not null]
+  first_name varchar(120) [not null]
+  middle_name varchar(120)
+  last_name varchar(120) [not null]
+  birth_date date [not null]
+  nationality varchar(2) [not null]
+  document_type varchar(40) [not null]
+  document_number varchar(80) [not null]
+  document_issuing_country varchar(2) [not null]
+  document_expiration_date date
+  phone_number varchar(40) [not null]
+  street varchar(160) [not null]
+  street_number varchar(40) [not null]
+  city varchar(120) [not null]
+  province varchar(120) [not null]
+  postal_code varchar(30) [not null]
+  country varchar(2) [not null]
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+  version bigint [not null, default: 0]
+
+  indexes {
+    (document_type, document_number, document_issuing_country) [name: 'idx_onboarding_applicant_document']
+  }
+}
+
+Table onboarding_db.onboarding_document_reference {
+  id char(36) [pk, not null]
+  application_id char(36) [not null]
+  category varchar(40) [not null]
+  document_id char(36) [not null, note: 'Logical reference to document_db.document.id.']
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+  version bigint [not null, default: 0]
+
+  indexes {
+    (application_id, category) [unique, name: 'uk_onboarding_document_reference_application_category']
+    document_id [name: 'idx_onboarding_document_reference_document']
+  }
+}
+
+Table onboarding_db.onboarding_terms_acceptance {
+  application_id char(36) [pk, not null]
+  terms_version varchar(80) [not null]
+  accepted_at timestamp(6) [not null]
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+  version bigint [not null, default: 0]
+}
+
+Table onboarding_db.onboarding_status_history {
+  id char(36) [pk, not null]
+  application_id char(36) [not null]
+  previous_status onboarding_application_status
+  new_status onboarding_application_status [not null]
+  reason_code varchar(80) [not null]
+  actor_type varchar(40) [not null]
+  occurred_at timestamp(6) [not null]
+
+  indexes {
+    (application_id, occurred_at) [name: 'idx_onboarding_status_history_application']
+  }
+}
+
+Table onboarding_db.onboarding_review_check {
+  id char(36) [pk, not null]
+  application_id char(36) [not null]
+  check_type varchar(50) [not null]
+  execution_mode varchar(30) [not null]
+  execution_status varchar(30) [not null]
+  outcome varchar(40)
+  blocking_check boolean [not null]
+  policy_version varchar(80) [not null]
+  provider varchar(80)
+  reason_code varchar(80)
+  attempts int [not null, default: 0]
+  started_at timestamp(6)
+  completed_at timestamp(6)
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+  version bigint [not null, default: 0]
+
+  indexes {
+    (application_id, check_type) [unique, name: 'uk_onboarding_review_check_application_type']
+  }
+}
+
+Table onboarding_db.onboarding_work_item {
+  id char(36) [pk, not null]
+  application_id char(36) [not null]
+  job_type varchar(40) [not null]
+  status varchar(30) [not null]
+  attempts int [not null, default: 0]
+  next_attempt_at timestamp(6) [not null]
+  locked_until timestamp(6)
+  last_error_code varchar(80)
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+  version bigint [not null, default: 0]
+
+  indexes {
+    (application_id, job_type) [unique, name: 'uk_onboarding_work_item_application_type']
+    (job_type, status, next_attempt_at) [name: 'idx_onboarding_work_item_due']
+  }
+}
+
+Table onboarding_db.onboarding_provisioning_step {
+  id char(36) [pk, not null]
+  application_id char(36) [not null]
+  step_type varchar(50) [not null]
+  status varchar(30) [not null]
+  request_hash char(64)
+  external_reference varchar(255)
+  attempts int [not null, default: 0]
+  next_attempt_at timestamp(6) [not null]
+  last_error_code varchar(80)
+  started_at timestamp(6)
+  completed_at timestamp(6)
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+  version bigint [not null, default: 0]
+
+  indexes {
+    (application_id, step_type) [unique, name: 'uk_onboarding_provisioning_application_step']
+    (status, next_attempt_at) [name: 'idx_onboarding_provisioning_due']
+  }
+}
+
+Table onboarding_db.onboarding_uniqueness_reservation {
+  id char(36) [pk, not null]
+  reservation_type varchar(30) [not null]
+  normalized_value varchar(255) [not null]
+  application_id char(36) [not null]
+  status varchar(20) [not null]
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+
+  indexes {
+    (reservation_type, normalized_value) [unique, name: 'uk_onboarding_reservation_type_value']
+    (application_id, status) [name: 'idx_onboarding_reservation_application']
+  }
+}
+
+Table onboarding_db.onboarding_magic_link_delivery {
+  application_id char(36) [pk, not null]
+  delivery_id char(36) [not null, unique]
+  recipient varchar(255) [not null]
+  encrypted_magic_link text
+  expires_at timestamp(6) [not null]
+  sent_at timestamp(6)
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+  version bigint [not null, default: 0]
+
+  indexes {
+    (sent_at, expires_at) [name: 'idx_magic_link_delivery_pending']
+  }
+
+  Note: 'Transactional outbox payload. Ciphertext is cleared after terminal delivery handling.'
+}
+
+Table onboarding_db.onboarding_email_request_guard {
+  email varchar(255) [pk, not null]
+  last_requested_at timestamp(6)
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+
+  Note: 'Serializes application starts and enforces the enumeration-safe email cooldown.'
 }
 
 Ref: customer_db.natural_person.party_id > customer_db.party.id
@@ -285,5 +609,16 @@ Ref: customer_db.contact_point.party_id > customer_db.party.id
 Ref: customer_db.address.party_id > customer_db.party.id
 Ref: customer_db.kyc_profile.customer_id > customer_db.customer.id
 Ref: customer_db.customer_status_history.customer_id > customer_db.customer.id
+Ref: customer_db.customer_idempotency.resource_id > customer_db.customer.id
 Ref: account_db.account_balance.account_id > account_db.account.id
 Ref: account_db.account_status_history.account_id > account_db.account.id
+Ref: account_db.account_idempotency.resource_id > account_db.account.id
+Ref: onboarding_db.onboarding_applicant_data.application_id > onboarding_db.onboarding_application.id
+Ref: onboarding_db.onboarding_document_reference.application_id > onboarding_db.onboarding_application.id
+Ref: onboarding_db.onboarding_terms_acceptance.application_id > onboarding_db.onboarding_application.id
+Ref: onboarding_db.onboarding_status_history.application_id > onboarding_db.onboarding_application.id
+Ref: onboarding_db.onboarding_review_check.application_id > onboarding_db.onboarding_application.id
+Ref: onboarding_db.onboarding_work_item.application_id > onboarding_db.onboarding_application.id
+Ref: onboarding_db.onboarding_provisioning_step.application_id > onboarding_db.onboarding_application.id
+Ref: onboarding_db.onboarding_uniqueness_reservation.application_id > onboarding_db.onboarding_application.id
+Ref: onboarding_db.onboarding_magic_link_delivery.application_id > onboarding_db.onboarding_application.id

@@ -5,5 +5,5 @@ import com.fedebacelar.bank.homebanking.bff.domain.model.HomeBankingContext;
 
 public interface GetAuthenticatedHomeContextUseCase {
 
-    HomeBankingContext getHomeContext(AuthenticatedUser user, String accessToken);
+    HomeBankingContext getHomeContext(AuthenticatedUser user);
 }

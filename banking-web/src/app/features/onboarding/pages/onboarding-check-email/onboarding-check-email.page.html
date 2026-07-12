@@ -1,0 +1,18 @@
+<app-onboarding-shell
+  title="Revisá tu correo"
+  subtitle="Te enviamos un enlace para validar el email y continuar la solicitud.">
+  <div class="status-panel status-panel--success">
+    <strong>Solicitud iniciada</strong>
+    @if (email) {
+      <span>Enviamos el enlace a {{ email }}.</span>
+    } @else {
+      <span>Si el email existe para una solicitud válida, vas a recibir el enlace en unos minutos.</span>
+    }
+  </div>
+
+  @if (magicLinkExpiresAt) {
+    <p class="supporting-copy">El enlace tiene vencimiento. Si expira, iniciá una nueva solicitud.</p>
+  }
+
+  <a class="secondary-link" routerLink="/onboarding/start">Usar otro email</a>
+</app-onboarding-shell>

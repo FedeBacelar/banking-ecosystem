@@ -1,101 +1,43 @@
-# BFF Session Security
+# Home Banking BFF Session Security
 
-This document describes the current browser session model for `home-banking-bff`.
+`home-banking-bff` owns two distinct cookie-backed concerns. They must not be conflated.
 
-## Model
-
-The frontend should call banking APIs through the gateway:
+## Authenticated OIDC Session
 
 ```txt
-Browser -> api-gateway -> home-banking-bff -> internal services
+browser -> /web/oauth2/authorization/keycloak
+Keycloak -> /web/login/oauth2/code/keycloak
+BFF -> server-side OAuth2 session
+browser -> HttpOnly JSESSIONID
 ```
 
-The browser does not store the access token directly.
+`GET /web/me` requires this authenticated session. It resolves the Keycloak subject to the bank customer and composes the home context with BFF machine credentials.
 
-Instead:
+`POST /web/logout` invalidates the local session and starts OIDC logout so the Keycloak session is also closed. Logout is a cookie-authorized mutation and remains CSRF protected.
+
+There is no public `/web/session` status endpoint. A frontend that needs the current authenticated context calls `/web/me` and handles authentication through the normal OIDC entry point.
+
+## Onboarding Continuation
+
+`NB_ONBOARDING_CONTINUATION` is not an authenticated customer session. It is an opaque, HttpOnly capability scoped to `/web/onboarding` that identifies one applicant workflow after magic-link verification.
+
+Properties:
 
 ```txt
-Browser -> home-banking-bff: HttpOnly session cookie
-home-banking-bff -> internal services: Bearer access token
+HttpOnly=true
+SameSite=Lax
+Path=/web/onboarding
+Secure=true outside local HTTP development
 ```
 
-## Login Flow
+The BFF never returns the continuation token in JSON. `onboarding-service` stores only its hash.
 
-1. The browser requests a BFF endpoint.
-2. If there is no session, `home-banking-bff` redirects to Keycloak.
-3. Keycloak authenticates the user.
-4. Keycloak redirects back to the BFF callback.
-5. The BFF creates a server-side session.
-6. The browser receives an HttpOnly session cookie.
-7. The BFF uses the authorized OAuth2 client to call internal services with the access token.
+## CSRF
 
-## Logout Flow
+The magic-link exchange materializes `NB-XSRF-TOKEN` in the same response that establishes continuation authority. Angular reads this non-HttpOnly cookie and automatically sends `X-XSRF-TOKEN` on subsequent mutations.
 
-Logout is handled by the BFF through OIDC client-initiated logout:
+There is no `/web/csrf` endpoint and CSRF is not a business step. Application start and magic-link exchange are exempt because they do not trust an existing cookie; submit, invitation resend, and logout are protected.
 
-```txt
-Browser -> api-gateway -> home-banking-bff /web/logout
-home-banking-bff -> Keycloak end-session endpoint
-Keycloak -> api-gateway -> home-banking-bff /web/session
-```
+## Browser Storage
 
-The BFF invalidates its local session and asks Keycloak to close the identity provider session.
-
-This avoids a confusing local-development behavior: if only the BFF cookie is deleted, Keycloak can still silently authenticate the same user on the next request.
-
-## Gateway Rule
-
-`api-gateway` allows `/web/**` through without requiring a Bearer token.
-
-That is intentional. Browser authentication is session-based at the BFF layer.
-
-Business APIs such as `/api/customers/**` and `/api/accounts/**` still require Bearer tokens at the gateway.
-
-Business services also validate Bearer tokens directly.
-
-## Internal Resolution
-
-`home-banking-bff` resolves the authenticated user with this chain:
-
-```txt
-Keycloak subject
-  -> identity-service
-    -> customerId
-      -> customer-service
-      -> account-service
-```
-
-`identity-service` remains internal and is not exposed as a direct public gateway route.
-
-## Customer Data Boundary
-
-The browser-facing customer flow must not accept a `customerId` from the browser.
-
-For customer-facing endpoints, the BFF must derive the customer from the authenticated identity:
-
-```txt
-Keycloak subject -> identity link -> customerId
-```
-
-That is how the current `/web/me` endpoint returns "my" customer and "my" accounts.
-
-`identity-admin` is only for administering identity links. It is expected to fail the full home banking composition if it does not also have customer/account read permissions.
-
-Use `home-banking-user` for the browser customer flow.
-
-The current business-service role checks are intentionally coarse-grained. A future hardening step should add ownership validation inside `customer-service` and `account-service` as defense in depth.
-
-## Secrets
-
-The BFF OAuth2 client is confidential and requires a client secret.
-
-Local development may use a safe default, but real secrets must be injected from outside the repository.
-
-## Local Verification
-
-1. Open `http://localhost:8085/web/me`.
-2. Login through Keycloak with `home-banking-user`.
-3. If the identity is not linked, expect `409 IDENTITY_NOT_LINKED`.
-4. Open `http://localhost:8085/web/session` and expect `authenticated: true`.
-5. Open `http://localhost:8085/web/logout`.
-6. After redirect, `http://localhost:8085/web/session` should return `authenticated: false`.
+Neither OIDC access tokens nor onboarding continuation tokens belong in `localStorage`, `sessionStorage`, URLs, or application state. The initial magic token uses a URL fragment and is removed immediately after the exchange.

@@ -31,5 +31,7 @@ public class CustomerStatusHistoryEntity {
 
     private String reason;
 
+    private String changedBy;
+
     private Instant changedAt;
 }

@@ -14,10 +14,25 @@
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": false,
   "rememberMe": false,
-  "editUsernameAllowed": false,
+  "editUsernameAllowed": true,
   "bruteForceProtected": true,
+  "smtpServer": {
+    "host": "${KEYCLOAK_SMTP_HOST}",
+    "port": "${KEYCLOAK_SMTP_PORT}",
+    "from": "${KEYCLOAK_SMTP_FROM}",
+    "fromDisplayName": "Nerva Banking",
+    "auth": "true",
+    "starttls": "true",
+    "ssl": "false",
+    "user": "${KEYCLOAK_SMTP_USERNAME}",
+    "password": "${KEYCLOAK_SMTP_PASSWORD}"
+  },
   "roles": {
     "realm": [
+      {
+        "name": "HOME_BANKING_USER",
+        "description": "Identifies a customer allowed to start a home banking session."
+      },
       {
         "name": "CUSTOMER_READ",
         "description": "Allows reading customer information."
@@ -41,6 +56,26 @@
       {
         "name": "IDENTITY_WRITE",
         "description": "Allows creating and changing identity links."
+      },
+      {
+        "name": "NOTIFICATION_WRITE",
+        "description": "Allows sending internal notifications."
+      },
+      {
+        "name": "DOCUMENT_READ",
+        "description": "Allows reading banking document metadata."
+      },
+      {
+        "name": "DOCUMENT_WRITE",
+        "description": "Allows uploading banking documents."
+      },
+      {
+        "name": "ONBOARDING_READ",
+        "description": "Allows reading onboarding application metadata."
+      },
+      {
+        "name": "ONBOARDING_WRITE",
+        "description": "Allows starting and changing onboarding applications."
       }
     ]
   },
@@ -53,7 +88,7 @@
       "protocol": "openid-connect",
       "publicClient": true,
       "standardFlowEnabled": true,
-      "directAccessGrantsEnabled": true,
+      "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
       "redirectUris": [
         "http://localhost:*"
@@ -75,12 +110,18 @@
       "redirectUris": [
         "http://localhost:8080/swagger-ui/oauth2-redirect.html",
         "http://localhost:8081/swagger-ui/oauth2-redirect.html",
-        "http://localhost:8082/swagger-ui/oauth2-redirect.html"
+        "http://localhost:8082/swagger-ui/oauth2-redirect.html",
+        "http://localhost:8083/swagger-ui/oauth2-redirect.html",
+        "http://localhost:8084/swagger-ui/oauth2-redirect.html",
+        "http://localhost:8087/swagger-ui/oauth2-redirect.html"
       ],
       "webOrigins": [
         "http://localhost:8080",
         "http://localhost:8081",
-        "http://localhost:8082"
+        "http://localhost:8082",
+        "http://localhost:8083",
+        "http://localhost:8084",
+        "http://localhost:8087"
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256"
@@ -93,41 +134,129 @@
       "enabled": true,
       "protocol": "openid-connect",
       "publicClient": false,
-      "secret": "local-bff-secret",
+      "secret": "${HOME_BANKING_BFF_OAUTH_CLIENT_SECRET}",
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
       "redirectUris": [
         "http://localhost:8085/web/login/oauth2/code/keycloak",
-        "http://localhost:8086/web/login/oauth2/code/keycloak"
+        "http://localhost:4200/onboarding/credentials-complete"
       ],
       "webOrigins": [
         "http://localhost:8085",
-        "http://localhost:8086"
+        "http://localhost:4200"
       ],
       "attributes": {
-        "post.logout.redirect.uris": "http://localhost:8085/web/session##http://localhost:8086/web/session"
+        "post.logout.redirect.uris": "http://localhost:4200/*"
       }
+    },
+    {
+      "clientId": "onboarding-bff-service",
+      "name": "Onboarding BFF Service",
+      "description": "Machine client used only by the browser BFF onboarding facade.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "${ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
+    },
+    {
+      "clientId": "home-banking-bff-service",
+      "name": "Home Banking BFF Service",
+      "description": "Machine client used for subject-resolved home banking reads.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "${HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
+    },
+    {
+      "clientId": "onboarding-orchestrator",
+      "name": "Onboarding Orchestrator",
+      "description": "Confidential client used by onboarding-service for durable provisioning.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "${ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
     }
   ],
   "users": [
     {
-      "username": "identity-admin",
-      "email": "identity-admin@local.dev",
-      "firstName": "Identity",
+      "username": "service-account-onboarding-bff-service",
+      "enabled": true,
+      "serviceAccountClientId": "onboarding-bff-service",
+      "realmRoles": [
+        "ONBOARDING_READ",
+        "ONBOARDING_WRITE"
+      ]
+    },
+    {
+      "username": "service-account-home-banking-bff-service",
+      "enabled": true,
+      "serviceAccountClientId": "home-banking-bff-service",
+      "realmRoles": [
+        "CUSTOMER_READ",
+        "ACCOUNT_READ",
+        "IDENTITY_READ"
+      ]
+    },
+    {
+      "username": "service-account-onboarding-orchestrator",
+      "enabled": true,
+      "serviceAccountClientId": "onboarding-orchestrator",
+      "realmRoles": [
+        "CUSTOMER_READ",
+        "CUSTOMER_WRITE",
+        "ACCOUNT_READ",
+        "ACCOUNT_WRITE",
+        "IDENTITY_READ",
+        "IDENTITY_WRITE",
+        "DOCUMENT_READ",
+        "DOCUMENT_WRITE",
+        "NOTIFICATION_WRITE"
+      ],
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users",
+          "view-realm"
+        ]
+      }
+    },
+    {
+      "username": "banking-admin",
+      "email": "banking-admin@local.dev",
+      "firstName": "Banking",
       "lastName": "Admin",
       "enabled": true,
       "emailVerified": true,
       "credentials": [
         {
           "type": "password",
-          "value": "identity-admin-password",
+          "value": "banking-admin-password",
           "temporary": false
         }
       ],
       "realmRoles": [
+        "CUSTOMER_READ",
+        "CUSTOMER_WRITE",
+        "ACCOUNT_READ",
+        "ACCOUNT_WRITE",
         "IDENTITY_READ",
-        "IDENTITY_WRITE"
+        "IDENTITY_WRITE",
+        "NOTIFICATION_WRITE",
+        "DOCUMENT_READ",
+        "DOCUMENT_WRITE",
+        "ONBOARDING_READ",
+        "ONBOARDING_WRITE"
       ]
     },
     {
@@ -145,9 +274,7 @@
         }
       ],
       "realmRoles": [
-        "CUSTOMER_READ",
-        "ACCOUNT_READ",
-        "IDENTITY_READ"
+        "HOME_BANKING_USER"
       ]
     }
   ]

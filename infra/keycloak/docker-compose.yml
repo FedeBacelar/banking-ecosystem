@@ -6,6 +6,15 @@ services:
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      HOME_BANKING_BFF_OAUTH_CLIENT_SECRET: ${HOME_BANKING_BFF_OAUTH_CLIENT_SECRET:-local-bff-secret}
+      ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET: ${ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET:-local-onboarding-bff-secret}
+      HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET: ${HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET:-local-home-banking-service-secret}
+      ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET: ${ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET:-local-onboarding-secret}
+      KEYCLOAK_SMTP_HOST: ${KEYCLOAK_SMTP_HOST:-smtp.gmail.com}
+      KEYCLOAK_SMTP_PORT: ${KEYCLOAK_SMTP_PORT:-587}
+      KEYCLOAK_SMTP_FROM: ${KEYCLOAK_SMTP_FROM:-no-reply@nerva.local}
+      KEYCLOAK_SMTP_USERNAME: ${KEYCLOAK_SMTP_USERNAME:-}
+      KEYCLOAK_SMTP_PASSWORD: ${KEYCLOAK_SMTP_PASSWORD:-}
       KC_SPI_THEME_CACHE_THEMES: "false"
       KC_SPI_THEME_CACHE_TEMPLATES: "false"
       KC_SPI_THEME_STATIC_MAX_AGE: "-1"
@@ -13,13 +22,62 @@ services:
       - "${KEYCLOAK_PORT:-8090}:8080"
     volumes:
       - keycloak_data:/opt/keycloak/data
-      - ./realms:/opt/keycloak/data/import:ro
+      - ./realms/banking-ecosystem-realm.json:/opt/keycloak/data/import/banking-ecosystem-realm.json:ro
       - ./themes:/opt/keycloak/themes:ro
     healthcheck:
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080; echo -e 'GET /realms/master HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; grep -q '200 OK' <&3"]
       interval: 10s
       timeout: 5s
       retries: 20
+
+  keycloak-realm-init:
+    image: quay.io/keycloak/keycloak:26.6.4
+    container_name: banking-keycloak-realm-init
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-ec"]
+    command:
+      - |
+        /opt/keycloak/bin/kcadm.sh config credentials \
+          --server http://keycloak:8080 \
+          --realm master \
+          --user "$${KEYCLOAK_ADMIN_USERNAME}" \
+          --password "$${KEYCLOAK_ADMIN_PASSWORD}"
+        /opt/keycloak/bin/kcadm.sh update \
+          realms/banking-ecosystem/users/profile \
+          -f /config/banking-user-profile.json
+
+        reconcile_client_secret() {
+          local client_id="$$1"
+          local client_secret="$$2"
+          local client_uuid
+          client_uuid=$$(/opt/keycloak/bin/kcadm.sh get clients \
+            -r banking-ecosystem \
+            -q clientId="$$client_id" \
+            --fields id \
+            --format csv \
+            --noquotes)
+          test -n "$$client_uuid"
+          /opt/keycloak/bin/kcadm.sh update "clients/$$client_uuid" \
+            -r banking-ecosystem \
+            -s "secret=$$client_secret"
+        }
+
+        reconcile_client_secret home-banking-bff "$$HOME_BANKING_BFF_OAUTH_CLIENT_SECRET"
+        reconcile_client_secret onboarding-bff-service "$$ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET"
+        reconcile_client_secret home-banking-bff-service "$$HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET"
+        reconcile_client_secret onboarding-orchestrator "$$ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET"
+    environment:
+      KEYCLOAK_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      HOME_BANKING_BFF_OAUTH_CLIENT_SECRET: ${HOME_BANKING_BFF_OAUTH_CLIENT_SECRET:-local-bff-secret}
+      ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET: ${ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET:-local-onboarding-bff-secret}
+      HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET: ${HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET:-local-home-banking-service-secret}
+      ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET: ${ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET:-local-onboarding-secret}
+    volumes:
+      - ./realms/banking-user-profile.json:/config/banking-user-profile.json:ro
+    restart: "no"
 
 volumes:
   keycloak_data:

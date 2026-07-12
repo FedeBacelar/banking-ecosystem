@@ -1,5 +1,6 @@
 package com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web;
 
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oidcLogin;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -7,6 +8,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fedebacelar.bank.homebanking.bff.application.port.in.GetAuthenticatedHomeContextUseCase;
+import com.fedebacelar.bank.homebanking.bff.domain.model.AuthenticatedUser;
+import com.fedebacelar.bank.homebanking.bff.domain.model.HomeBankingContext;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,6 +19,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -45,21 +51,31 @@ class SessionControllerTest {
     }
 
     @Test
-    void shouldExposeAnonymousSession() throws Exception {
-        mockMvc.perform(get("/session"))
+    void shouldExposeAuthenticatedAggregateFromMeOnly() throws Exception {
+        UUID customerId = UUID.randomUUID();
+        AuthenticatedUser user = new AuthenticatedUser("keycloak-sub", "homebanking-user", "user@example.com");
+        ObjectMapper mapper = new ObjectMapper();
+        when(getAuthenticatedHomeContextUseCase.getHomeContext(user)).thenReturn(new HomeBankingContext(
+                user.subject(),
+                user.username(),
+                user.email(),
+                customerId,
+                mapper.readTree("{\"id\":\"%s\"}".formatted(customerId)),
+                List.of()
+        ));
+
+        mockMvc.perform(get("/me").with(oidcLogin().idToken(token -> token
+                        .subject(user.subject())
+                        .claim("preferred_username", user.username())
+                        .claim("email", user.email()))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.authenticated").value(false));
+                .andExpect(jsonPath("$.subject").value(user.subject()))
+                .andExpect(jsonPath("$.customerId").value(customerId.toString()));
     }
 
     @Test
-    void shouldExposeAuthenticatedSession() throws Exception {
-        mockMvc.perform(get("/session")
-                        .with(oidcLogin().idToken(token -> token
-                                .subject("keycloak-sub")
-                                .claim("preferred_username", "homebanking-user"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.authenticated").value(true))
-                .andExpect(jsonPath("$.subject").value("keycloak-sub"))
-                .andExpect(jsonPath("$.username").value("homebanking-user"));
+    void shouldNotExposeRedundantSessionEndpoint() throws Exception {
+        mockMvc.perform(get("/session"))
+                .andExpect(status().is3xxRedirection());
     }
 }

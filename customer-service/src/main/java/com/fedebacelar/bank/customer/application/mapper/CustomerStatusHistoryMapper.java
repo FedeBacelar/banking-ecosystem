@@ -15,6 +15,7 @@ public final class CustomerStatusHistoryMapper {
                 history.previousStatus(),
                 history.newStatus(),
                 history.reason(),
+                history.changedBy(),
                 history.changedAt()
         );
     }

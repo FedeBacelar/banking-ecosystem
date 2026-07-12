@@ -1,0 +1,45 @@
+package com.fedebacelar.bank.onboarding.infrastructure.adapter.out.notification;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.fedebacelar.bank.onboarding.domain.exception.NotificationDeliveryException;
+import com.fedebacelar.bank.onboarding.infrastructure.adapter.out.notification.dto.NotificationResponse;
+import com.fedebacelar.bank.onboarding.infrastructure.adapter.out.notification.dto.SendEmailNotificationRequest;
+import java.time.Duration;
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+
+class NotificationFeignAdapterTest {
+
+    private final NotificationFeignClient notificationFeignClient = mock(NotificationFeignClient.class);
+    private final NotificationFeignAdapter adapter = new NotificationFeignAdapter(notificationFeignClient);
+
+    @Test
+    void sendsMagicLinkWhenNotificationIsSent() {
+        UUID applicationId = UUID.randomUUID();
+        UUID deliveryId = UUID.randomUUID();
+        when(notificationFeignClient.sendEmail(any())).thenReturn(new NotificationResponse("SENT"));
+
+        adapter.sendMagicLink(deliveryId, applicationId, "person@example.com", "http://localhost/link", Duration.ofMinutes(30));
+
+        ArgumentCaptor<SendEmailNotificationRequest> request = ArgumentCaptor.forClass(SendEmailNotificationRequest.class);
+        verify(notificationFeignClient).sendEmail(request.capture());
+        org.assertj.core.api.Assertions.assertThat(request.getValue().correlationId()).isEqualTo(deliveryId.toString());
+        org.assertj.core.api.Assertions.assertThat(request.getValue().sensitive()).isTrue();
+    }
+
+    @Test
+    void rejectsFailedNotificationDelivery() {
+        UUID applicationId = UUID.randomUUID();
+        UUID deliveryId = UUID.randomUUID();
+        when(notificationFeignClient.sendEmail(any())).thenReturn(new NotificationResponse("FAILED"));
+
+        assertThatThrownBy(() -> adapter.sendMagicLink(deliveryId, applicationId, "person@example.com", "http://localhost/link", Duration.ofMinutes(30)))
+                .isInstanceOf(NotificationDeliveryException.class);
+    }
+}

@@ -8,8 +8,13 @@ import jakarta.validation.constraints.Size;
 
 public record ContactPointRequest(
         @NotNull ContactType type,
-        @NotBlank @Size(max = 255) String value
+        @NotBlank @Size(max = 255) String value,
+        Boolean verified
 ) {
+
+    public ContactPointRequest(ContactType type, String value) {
+        this(type, value, false);
+    }
 
     @AssertTrue(message = "email contact must contain a valid email address")
     public boolean isValidEmailContact() {

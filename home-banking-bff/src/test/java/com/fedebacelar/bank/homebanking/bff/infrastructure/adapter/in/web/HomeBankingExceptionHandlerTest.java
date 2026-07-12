@@ -13,7 +13,7 @@ class HomeBankingExceptionHandlerTest {
     private final HomeBankingExceptionHandler handler = new HomeBankingExceptionHandler();
 
     @Test
-    void shouldMapDownstreamForbiddenToProblemDetail() {
+    void shouldHideDownstreamAuthorizationDetails() {
         WebClientResponseException exception = WebClientResponseException.Forbidden.create(
                 HttpStatus.FORBIDDEN.value(),
                 "Forbidden",
@@ -22,12 +22,54 @@ class HomeBankingExceptionHandlerTest {
                 null
         );
 
-        ProblemDetail problem = handler.handleDownstreamForbidden(exception);
+        ProblemDetail problem = handler.handleDownstreamError(exception);
 
-        assertThat(problem.getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
-        assertThat(problem.getTitle()).isEqualTo("Access denied by internal service");
+        assertThat(problem.getStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE.value());
         assertThat(problem.getProperties())
-                .containsEntry("code", "DOWNSTREAM_ACCESS_DENIED")
-                .containsEntry("downstreamStatus", HttpStatus.FORBIDDEN.value());
+                .containsEntry("code", "ONBOARDING_SERVICE_UNAVAILABLE")
+                .doesNotContainKey("downstreamStatus");
+    }
+
+    @Test
+    void shouldPreserveOnlyAllowlistedPublicOnboardingCode() {
+        WebClientResponseException exception = WebClientResponseException.UnprocessableEntity.create(
+                HttpStatus.UNPROCESSABLE_ENTITY.value(),
+                "Unprocessable entity",
+                HttpHeaders.EMPTY,
+                """
+                {
+                  "title": "Onboarding incomplete",
+                  "code": "ONBOARDING_INCOMPLETE"
+                }
+                """.getBytes(),
+                null
+        );
+
+        ProblemDetail problem = handler.handleDownstreamError(exception);
+
+        assertThat(problem.getStatus()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY.value());
+        assertThat(problem.getProperties())
+                .containsEntry("code", "ONBOARDING_INCOMPLETE")
+                .doesNotContainKey("downstreamStatus");
+    }
+
+    @Test
+    void shouldPreserveTheStableDocumentStorageFailureCode() {
+        WebClientResponseException exception = WebClientResponseException.create(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                "Service unavailable",
+                HttpHeaders.EMPTY,
+                """
+                {
+                  "code": "ONBOARDING_DOCUMENT_UPLOAD_UNAVAILABLE"
+                }
+                """.getBytes(),
+                null
+        );
+
+        ProblemDetail problem = handler.handleDownstreamError(exception);
+
+        assertThat(problem.getStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE.value());
+        assertThat(problem.getProperties()).containsEntry("code", "ONBOARDING_DOCUMENT_UPLOAD_UNAVAILABLE");
     }
 }

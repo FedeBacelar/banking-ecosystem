@@ -14,7 +14,16 @@ It is intentionally different from the business and technical documentation:
 customer-service
 account-service
 identity-service
+notification-service
+document-service
+onboarding-service
 home-banking-bff
+```
+
+## Current Frontends
+
+```txt
+banking-web
 ```
 
 ## Service Documentation
@@ -22,7 +31,14 @@ home-banking-bff
 - [customer-service](services/customer-service/README.md)
 - [account-service](services/account-service/README.md)
 - [identity-service](services/identity-service/README.md)
+- [notification-service](services/notification-service/README.md)
+- [document-service](services/document-service/README.md)
+- [onboarding-service](services/onboarding-service/README.md)
 - [home-banking-bff](services/home-banking-bff/README.md)
+
+## Frontend Documentation
+
+- [banking-web](frontends/banking-web.md)
 
 ## Platform Documentation
 

@@ -18,8 +18,9 @@ Current capabilities:
 - Provides a local `banking-api` client for API token testing.
 - Provides a local `banking-swagger` client for service Swagger UI OAuth2 login with PKCE.
 - Provides a local `home-banking-bff` confidential client for browser login through the BFF.
-- Provides initial API roles for customer, account, and identity access.
-- Issues JWT access tokens validated by `api-gateway`, `customer-service`, `account-service`, and `identity-service`.
+- Allows `home-banking-bff` to use client credentials for internal onboarding calls.
+- Provides API roles for customer, account, identity, notification, document, and onboarding access.
+- Issues JWT access tokens validated by `api-gateway`, `customer-service`, `account-service`, `identity-service`, `notification-service`, `document-service`, and `onboarding-service`.
 - Provides a local `banking` login theme for the browser-facing authentication flow.
 
 ## Local Runtime
@@ -49,7 +50,7 @@ Gateway:  http://localhost:8085
 Keycloak: http://localhost:8090
 ```
 
-Production-style model:
+Deployment boundary model:
 
 ```txt
 API:  https://api.bank.example
@@ -112,6 +113,9 @@ Current clients:
 banking-api
 banking-swagger
 home-banking-bff
+onboarding-bff-service
+home-banking-bff-service
+onboarding-orchestrator
 ```
 
 Current roles:
@@ -123,23 +127,28 @@ ACCOUNT_READ
 ACCOUNT_WRITE
 IDENTITY_READ
 IDENTITY_WRITE
+NOTIFICATION_WRITE
+DOCUMENT_READ
+DOCUMENT_WRITE
+ONBOARDING_READ
+ONBOARDING_WRITE
 ```
 
 Current local test users:
 
 ```txt
-identity-admin
+banking-admin
 home-banking-user
 ```
 
 Local user purpose:
 
 ```txt
-identity-admin    -> identity link administration
+banking-admin     -> local operational/API testing across current services
 home-banking-user -> browser login through home-banking-bff
 ```
 
-`identity-admin` is an operational user. It should not be used as the final customer in the BFF flow.
+`banking-admin` is an operational user. It should not be used as the final customer in the BFF flow.
 
 `home-banking-user` represents the typical home banking customer. The customer does not choose which `customerId` to read; the BFF resolves it from the Keycloak subject through `identity-service`.
 
@@ -152,6 +161,9 @@ api-gateway
 customer-service
 account-service
 identity-service
+notification-service
+document-service
+onboarding-service
 ```
 
 All protected components validate JWT access tokens issued by the `banking-ecosystem` realm.
@@ -165,13 +177,16 @@ ACCOUNT_READ   -> read account API
 ACCOUNT_WRITE  -> write account API
 IDENTITY_READ  -> read/resolve identity links
 IDENTITY_WRITE -> create/update identity links
+NOTIFICATION_WRITE -> send internal notifications
+DOCUMENT_READ -> read document metadata
+DOCUMENT_WRITE -> upload documents
+ONBOARDING_READ -> read onboarding application metadata and validate continuations
+ONBOARDING_WRITE -> start onboarding applications and consume magic links
 ```
 
-The current role model is coarse-grained. The BFF enforces the customer-facing "own data" flow by deriving the `customerId` from the authenticated identity link and not accepting a customer id from the browser.
+The current role model is coarse-grained. The BFF enforces the customer-facing "own data" flow by deriving the `customerId` from the authenticated identity link and not accepting a customer id from the browser. Business services currently authorize API capabilities by role; they do not independently derive customer ownership from a human subject.
 
-Future hardening should add ownership checks inside business services too, so direct API access cannot use a customer token to read another customer's data.
-
-The imported realm intentionally keeps only the two users required for the main local flow. Extra users for negative authorization tests should be created temporarily when needed.
+The imported realm intentionally keeps one operational/API admin user and one browser customer user. Extra users for negative authorization tests should be created temporarily when needed.
 
 ## Swagger Client
 
@@ -185,6 +200,9 @@ Local redirect URLs:
 http://localhost:8080/swagger-ui/oauth2-redirect.html
 http://localhost:8081/swagger-ui/oauth2-redirect.html
 http://localhost:8082/swagger-ui/oauth2-redirect.html
+http://localhost:8083/swagger-ui/oauth2-redirect.html
+http://localhost:8084/swagger-ui/oauth2-redirect.html
+http://localhost:8087/swagger-ui/oauth2-redirect.html
 ```
 
 If a local Keycloak volume already existed before this client was added, add the client manually or recreate the local Keycloak volume.
@@ -199,17 +217,62 @@ Local redirect URLs:
 
 ```txt
 http://localhost:8085/web/login/oauth2/code/keycloak
-http://localhost:8086/web/login/oauth2/code/keycloak
 ```
 
 Local post logout redirect URLs:
 
 ```txt
-http://localhost:8085/web/session
-http://localhost:8086/web/session
+http://localhost:4200/*
 ```
 
+The browser-facing local flow must use the gateway URL on port `8085`. Direct BFF URLs on port `8086` are only for diagnostics and should not be registered as the normal browser callback.
+
 The local secret in the realm import is only a development default. Real secrets must come from environment variables or a secrets manager.
+
+The interactive `home-banking-bff` client has service accounts disabled. Machine access is separated into confidential clients:
+
+```txt
+onboarding-bff-service   -> ONBOARDING_READ, ONBOARDING_WRITE
+home-banking-bff-service -> IDENTITY_READ, CUSTOMER_READ, ACCOUNT_READ
+```
+
+The browser never uses these clients and the BFF never forwards the user's OIDC access token into the service graph.
+
+The onboarding facade does not call document or notification services. It sends one composite submission to `onboarding-service`, which owns that orchestration.
+
+## Onboarding Orchestrator Client
+
+`onboarding-orchestrator` is a dedicated client-credentials client used only by `onboarding-service`. Its current realm roles are:
+
+```txt
+CUSTOMER_READ
+CUSTOMER_WRITE
+ACCOUNT_READ
+ACCOUNT_WRITE
+IDENTITY_READ
+IDENTITY_WRITE
+DOCUMENT_READ
+DOCUMENT_WRITE
+NOTIFICATION_WRITE
+```
+
+It also receives only the Keycloak realm-management roles required to query and manage onboarding users. It is not a shared human user.
+
+## Credential Setup
+
+Approved applicants are created with provisional username `pending-{applicationId}`, verified email, customer realm roles, and required actions `UPDATE_PROFILE` and `UPDATE_PASSWORD`.
+
+Keycloak sends the action link itself through `execute-actions-email`; identity tokens are not transported through `notification-service`. SMTP values and the orchestrator secret are environment placeholders. Local values live in ignored `infra/keycloak/.env`; safe names live in `.env.example`.
+
+The one-shot `keycloak-realm-init` container applies `banking-user-profile.json` after realm startup. The profile permits the applicant to choose the username while email, first name, and last name remain visible but user read-only. Unmanaged attributes remain on Keycloak's strict `DISABLED` default; the managed profile does not enable arbitrary user attributes.
+
+The credential action lifespan defaults to 24 hours and redirects to:
+
+```txt
+http://localhost:4200/onboarding/credentials-complete
+```
+
+When `keycloak-realm-init` exits with code `0`, that stopped container is expected; it is an initialization job.
 
 ## Login Theme
 
@@ -241,6 +304,8 @@ Information/result page
 Expired login page
 Logout confirmation
 ```
+
+No custom email theme is configured. Identity emails currently use Keycloak's inherited email templates with the configured realm sender.
 
 Public self-registration, public password recovery, and Keycloak remember-me are disabled in the imported realm. In a banking product, those flows should be modeled as controlled customer operations before exposing them from the login screen.
 

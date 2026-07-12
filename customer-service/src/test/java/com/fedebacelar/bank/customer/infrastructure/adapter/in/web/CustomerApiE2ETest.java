@@ -1,6 +1,7 @@
 package com.fedebacelar.bank.customer.infrastructure.adapter.in.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -9,6 +10,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -19,6 +23,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.HttpClientErrorException;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -53,7 +58,7 @@ class CustomerApiE2ETest {
                 .defaultHeader("Authorization", "Bearer " + token)
                 .build();
 
-        JsonNode created = post(client, "/api/customers/natural-persons", """
+        JsonNode created = post(client, "/customers/natural-persons", """
                 {
                   "firstName": "Federico",
                   "lastName": "Bacelar",
@@ -72,7 +77,8 @@ class CustomerApiE2ETest {
         assertThat(get(client, "/customers/by-document?type=DNI&number=E2E-30111222&country=AR").get("customerId").asText()).isEqualTo(customerId.toString());
         assertThat(get(client, "/customers/by-number/" + customerNumber).get("customerId").asText()).isEqualTo(customerId.toString());
 
-        JsonNode active = patch(client, "/customers/" + customerId + "/kyc/approve", null);
+        JsonNode active = patch(client, "/customers/" + customerId + "/kyc/approve",
+                "{\"reasonCode\":\"TEST_KYC_APPROVED\",\"changedBy\":\"e2e-test\"}");
         assertThat(active.get("status").asText()).isEqualTo("ACTIVE");
         assertThat(active.get("kycStatus").asText()).isEqualTo("APPROVED");
 
@@ -85,6 +91,81 @@ class CustomerApiE2ETest {
         assertThat(history.get(4).get("newStatus").asText()).isEqualTo("CLOSED");
     }
 
+    @Test
+    void enforcesIdempotencyKeyPayloadContractWithoutDuplicatingCustomer() throws Exception {
+        String token = tokenWithRoles("CUSTOMER_READ", "CUSTOMER_WRITE");
+        RestClient client = RestClient.builder()
+                .baseUrl("http://localhost:" + port)
+                .defaultHeader("Authorization", "Bearer " + token)
+                .build();
+        String key = "onboarding:00000000-0000-0000-0000-000000000001:CREATE_CUSTOMER";
+        String request = """
+                {
+                  "firstName": "Idempotent",
+                  "lastName": "Customer",
+                  "birthDate": "1990-01-15",
+                  "nationality": "AR",
+                  "documentType": "DNI",
+                  "documentNumber": "E2E-IDEMPOTENT-1",
+                  "issuingCountry": "AR"
+                }
+                """;
+
+        JsonNode first = postIdempotent(client, key, request);
+        JsonNode repeated = postIdempotent(client, key, request);
+
+        assertThat(repeated.get("customerId").asText()).isEqualTo(first.get("customerId").asText());
+        assertThatThrownBy(() -> postIdempotent(client, key, request.replace("Customer", "Changed")))
+                .isInstanceOfSatisfying(HttpClientErrorException.Conflict.class, exception ->
+                        assertThat(exception.getResponseBodyAsString()).contains("IDEMPOTENCY_CONFLICT"));
+    }
+
+    @Test
+    void serializesConcurrentRequestsUsingTheSameIdempotencyKey() throws Exception {
+        String token = tokenWithRoles("CUSTOMER_READ", "CUSTOMER_WRITE");
+        RestClient client = RestClient.builder()
+                .baseUrl("http://localhost:" + port)
+                .defaultHeader("Authorization", "Bearer " + token)
+                .build();
+        String key = "onboarding:00000000-0000-0000-0000-000000000002:CREATE_CUSTOMER";
+        String request = """
+                {
+                  "firstName": "Concurrent",
+                  "lastName": "Customer",
+                  "birthDate": "1990-01-15",
+                  "nationality": "AR",
+                  "documentType": "DNI",
+                  "documentNumber": "E2E-IDEMPOTENT-2",
+                  "issuingCountry": "AR"
+                }
+                """;
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var first = executor.submit(() -> {
+                ready.countDown();
+                start.await();
+                return postIdempotent(client, key, request);
+            });
+            var second = executor.submit(() -> {
+                ready.countDown();
+                start.await();
+                return postIdempotent(client, key, request);
+            });
+
+            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+            JsonNode firstResult = first.get(30, TimeUnit.SECONDS);
+            JsonNode secondResult = second.get(30, TimeUnit.SECONDS);
+
+            assertThat(secondResult.get("customerId").asText())
+                    .isEqualTo(firstResult.get("customerId").asText());
+            assertThat(get(client, "/customers/by-document?type=DNI&number=E2E-IDEMPOTENT-2&country=AR")
+                    .get("customerId").asText()).isEqualTo(firstResult.get("customerId").asText());
+        }
+    }
+
     private JsonNode get(RestClient client, String path) throws Exception {
         return objectMapper.readTree(client.get().uri(path).retrieve().body(String.class));
     }
@@ -92,6 +173,16 @@ class CustomerApiE2ETest {
     private JsonNode post(RestClient client, String path, String body) throws Exception {
         return objectMapper.readTree(client.post()
                 .uri(path)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .body(String.class));
+    }
+
+    private JsonNode postIdempotent(RestClient client, String key, String body) throws Exception {
+        return objectMapper.readTree(client.post()
+                .uri("/customers/natural-persons")
+                .header("Idempotency-Key", key)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
                 .retrieve()

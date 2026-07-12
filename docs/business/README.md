@@ -16,6 +16,9 @@ ecosystem/overview.md
 services/customer-service/
 services/account-service/
 services/identity-service/
+services/notification-service/
+services/document-service/
+services/onboarding-service/
 ```
 
 Read business documentation before changing service boundaries or domain rules.

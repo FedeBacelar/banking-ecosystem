@@ -6,6 +6,8 @@ import static org.mockito.Mockito.when;
 
 import com.fedebacelar.bank.homebanking.bff.application.port.out.GetCustomerAccountsPort;
 import com.fedebacelar.bank.homebanking.bff.application.port.out.GetCustomerPort;
+import com.fedebacelar.bank.homebanking.bff.application.port.out.GetInternalAccessTokenPort;
+import com.fedebacelar.bank.homebanking.bff.application.port.out.InternalAccessPurpose;
 import com.fedebacelar.bank.homebanking.bff.application.port.out.ResolveIdentityLinkPort;
 import com.fedebacelar.bank.homebanking.bff.domain.model.AuthenticatedUser;
 import com.fedebacelar.bank.homebanking.bff.domain.model.HomeBankingContext;
@@ -21,10 +23,12 @@ class GetAuthenticatedHomeContextServiceTest {
     private final ResolveIdentityLinkPort resolveIdentityLinkPort = mock(ResolveIdentityLinkPort.class);
     private final GetCustomerPort getCustomerPort = mock(GetCustomerPort.class);
     private final GetCustomerAccountsPort getCustomerAccountsPort = mock(GetCustomerAccountsPort.class);
+    private final GetInternalAccessTokenPort getInternalAccessTokenPort = mock(GetInternalAccessTokenPort.class);
     private final GetAuthenticatedHomeContextService useCase = new GetAuthenticatedHomeContextService(
             resolveIdentityLinkPort,
             getCustomerPort,
-            getCustomerAccountsPort
+            getCustomerAccountsPort,
+            getInternalAccessTokenPort
     );
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -36,12 +40,13 @@ class GetAuthenticatedHomeContextServiceTest {
         JsonNode customer = objectMapper.readTree("{\"customerId\":\"%s\"}".formatted(customerId));
         JsonNode account = objectMapper.readTree("{\"accountNumber\":\"ACC-2026-000001\"}");
 
+        when(getInternalAccessTokenPort.getAccessToken(InternalAccessPurpose.HOME_BANKING)).thenReturn(accessToken);
         when(resolveIdentityLinkPort.resolveByKeycloakSubject(user.subject(), accessToken))
                 .thenReturn(new IdentityLink(customerId));
         when(getCustomerPort.getCustomer(customerId, accessToken)).thenReturn(customer);
         when(getCustomerAccountsPort.getAccounts(customerId, accessToken)).thenReturn(List.of(account));
 
-        HomeBankingContext context = useCase.getHomeContext(user, accessToken);
+        HomeBankingContext context = useCase.getHomeContext(user);
 
         assertThat(context.subject()).isEqualTo(user.subject());
         assertThat(context.username()).isEqualTo(user.username());

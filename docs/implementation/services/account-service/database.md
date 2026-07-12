@@ -26,6 +26,8 @@ Container internal port:
 V1__create_account_schema.sql
 V2__add_account_lookup_indexes.sql
 V3__create_account_number_sequence.sql
+V4__create_account_idempotency.sql
+V5__reserve_account_idempotency_before_creation.sql
 ```
 
 ## Tables
@@ -76,6 +78,10 @@ It lets us know when and why an account moved between statuses.
 ### account_number_sequence
 
 Stores the sequence used to generate account numbers.
+
+### account_idempotency
+
+Reserves the idempotency key and request hash before account creation, then assigns the created account in the same transaction. A row-level lock prevents concurrent requests from opening duplicate accounts under one key.
 
 ## Ownership Rule
 

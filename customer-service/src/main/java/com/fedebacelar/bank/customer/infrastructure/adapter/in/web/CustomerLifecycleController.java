@@ -6,6 +6,7 @@ import com.fedebacelar.bank.customer.application.port.in.ReactivateCustomerUseCa
 import com.fedebacelar.bank.customer.application.port.in.RejectCustomerKycUseCase;
 import com.fedebacelar.bank.customer.application.port.in.SuspendCustomerUseCase;
 import com.fedebacelar.bank.customer.infrastructure.adapter.in.web.dto.CustomerReasonRequest;
+import com.fedebacelar.bank.customer.infrastructure.adapter.in.web.dto.ApproveCustomerKycRequest;
 import com.fedebacelar.bank.customer.infrastructure.adapter.in.web.dto.CustomerResponse;
 import com.fedebacelar.bank.customer.infrastructure.adapter.in.web.mapper.CustomerWebMapper;
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,8 +49,13 @@ public class CustomerLifecycleController {
 
     @Operation(summary = "Approve customer KYC", description = "Moves a pending KYC customer to ACTIVE and marks KYC as APPROVED.")
     @PatchMapping("/{customerId}/kyc/approve")
-    public CustomerResponse approveKyc(@PathVariable UUID customerId) {
-        return mapper.toResponse(approveCustomerKycUseCase.approveKyc(customerId));
+    public CustomerResponse approveKyc(
+            @PathVariable UUID customerId,
+            @Valid @RequestBody ApproveCustomerKycRequest request
+    ) {
+        return mapper.toResponse(approveCustomerKycUseCase.approveKyc(
+                customerId, request.reasonCode(), request.changedBy()
+        ));
     }
 
     @Operation(summary = "Reject customer KYC", description = "Marks KYC as REJECTED and closes the customer.")

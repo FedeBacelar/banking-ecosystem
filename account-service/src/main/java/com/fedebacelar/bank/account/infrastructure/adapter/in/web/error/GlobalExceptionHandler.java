@@ -10,6 +10,7 @@ import com.fedebacelar.bank.account.domain.exception.CustomerNotEligibleForAccou
 import com.fedebacelar.bank.account.domain.exception.DuplicateAccountAliasException;
 import com.fedebacelar.bank.account.domain.exception.ExternalCustomerNotFoundException;
 import com.fedebacelar.bank.account.domain.exception.InvalidAccountStatusTransitionException;
+import com.fedebacelar.bank.account.domain.exception.IdempotencyConflictException;
 import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
 import org.springframework.http.HttpStatus;
@@ -73,6 +74,15 @@ public class GlobalExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "The account was modified by another request. Retry the operation with the latest account state.");
         problem.setType(URI.create("https://bank.fedebacelar.com/problems/concurrent-account-update"));
         problem.setTitle("Concurrent account update");
+        return problem;
+    }
+
+    @ExceptionHandler(IdempotencyConflictException.class)
+    ProblemDetail handleIdempotencyConflict(IdempotencyConflictException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
+        problem.setType(URI.create("https://bank.fedebacelar.com/problems/idempotency-conflict"));
+        problem.setTitle("Idempotency conflict");
+        problem.setProperty("code", "IDEMPOTENCY_CONFLICT");
         return problem;
     }
 

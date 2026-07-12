@@ -6,16 +6,21 @@ The repository is organized as a monorepo. Each service owns its code, configura
 
 ## Structure
 
-- `customer-service`: customer onboarding, customer lifecycle, and initial KYC API.
+- `customer-service`: formal customer registration, customer lifecycle, and KYC state.
 - `account-service`: bank accounts, account identifiers, account lifecycle, balances, and customer validation.
 - `identity-service`: links authenticated external identities to internal banking customers.
-- `home-banking-bff`: browser-facing backend for future home banking sessions.
+- `notification-service`: notification requests, templates, delivery attempts, and email delivery state.
+- `document-service`: document metadata and object storage integration for banking evidence.
+- `onboarding-service`: digital onboarding applications, email magic links, and onboarding state.
+- `home-banking-bff`: browser-facing session boundary, onboarding facade, and customer data composition.
+- `banking-web`: Angular verification client for the implemented digital onboarding flow.
 - `config-server`: centralized configuration server for the local ecosystem.
 - `eureka-server`: service discovery server for the local microservices ecosystem.
 - `api-gateway`: external HTTP entry point and route layer for the local ecosystem.
 - `config-repository`: local configuration source served by `config-server`.
 - `infra/mysql`: local MySQL containers, one database per business service.
-- `infra/keycloak`: local identity provider infrastructure for future OAuth2/OpenID Connect security.
+- `infra/keycloak`: local OAuth2/OpenID Connect identity provider, service clients, and banking login theme.
+- `infra/minio`: local S3-compatible object storage for banking documents.
 - `docs`: centralized business, technical, implementation, and database documentation.
 
 ## Local Infrastructure
@@ -35,6 +40,12 @@ Local defaults:
 - Account DB: `account_db`
 - Identity DB port: `3309`
 - Identity DB: `identity_db`
+- Notification DB port: `3310`
+- Notification DB: `notification_db`
+- Document DB port: `3311`
+- Document DB: `document_db`
+- Onboarding DB port: `3312`
+- Onboarding DB: `onboarding_db`
 
 To override local values, create `infra/mysql/.env` from `infra/mysql/.env.example` and run:
 
@@ -50,10 +61,24 @@ Start Keycloak local infrastructure:
 docker compose -f infra/keycloak/docker-compose.yml up -d
 ```
 
+Create ignored `infra/keycloak/.env` from `.env.example` to enable Keycloak credential emails. The `keycloak-realm-init` container applies the restricted banking user profile and is expected to stop with exit code `0` after startup.
+
 Keycloak admin console:
 
 ```txt
 http://localhost:8090
+```
+
+Start MinIO local object storage:
+
+```powershell
+docker compose -f infra/minio/docker-compose.yml up -d
+```
+
+MinIO console:
+
+```txt
+http://localhost:9001
 ```
 
 ## Run Locally
@@ -71,6 +96,9 @@ Config Server examples:
 http://localhost:8888/customer-service/default
 http://localhost:8888/account-service/default
 http://localhost:8888/identity-service/default
+http://localhost:8888/notification-service/default
+http://localhost:8888/document-service/default
+http://localhost:8888/onboarding-service/default
 http://localhost:8888/home-banking-bff/default
 http://localhost:8888/api-gateway/default
 ```
@@ -127,6 +155,47 @@ Identity Swagger:
 http://localhost:8082/swagger-ui.html
 ```
 
+Start `notification-service`:
+
+```powershell
+cd ..\notification-service
+.\mvnw.cmd spring-boot:run
+```
+
+For local SMTP delivery, create the ignored `notification-service/.env` from `.env.example`. The service loads it automatically when started from its directory; operating-system environment variables still take precedence.
+
+Notification Swagger:
+
+```txt
+http://localhost:8083/swagger-ui.html
+```
+
+Start `document-service`:
+
+```powershell
+cd ..\document-service
+.\mvnw.cmd spring-boot:run
+```
+
+Document Swagger:
+
+```txt
+http://localhost:8084/swagger-ui.html
+```
+
+Start `onboarding-service`:
+
+```powershell
+cd ..\onboarding-service
+.\mvnw.cmd spring-boot:run
+```
+
+Onboarding Swagger:
+
+```txt
+http://localhost:8087/swagger-ui.html
+```
+
 Start `home-banking-bff`:
 
 ```powershell
@@ -137,8 +206,10 @@ cd ..\home-banking-bff
 BFF local path through the gateway:
 
 ```txt
-http://localhost:8085/web/session
+http://localhost:8085/web/me
 ```
+
+Public onboarding contracts, including CSRF-protected submit, status, and credential invitation resend, are available only through `http://localhost:8085/web/onboarding/**`.
 
 Start `api-gateway`:
 
@@ -151,6 +222,19 @@ Gateway entry point:
 
 ```txt
 http://localhost:8085
+```
+
+Start `banking-web`:
+
+```powershell
+cd ..\banking-web
+npm start
+```
+
+Angular frontend:
+
+```txt
+http://localhost:4200/onboarding/start
 ```
 
 ## Tests
@@ -181,6 +265,21 @@ cd ..\identity-service
 ```
 
 ```powershell
+cd ..\notification-service
+.\mvnw.cmd test
+```
+
+```powershell
+cd ..\document-service
+.\mvnw.cmd test
+```
+
+```powershell
+cd ..\onboarding-service
+.\mvnw.cmd test
+```
+
+```powershell
 cd ..\home-banking-bff
 .\mvnw.cmd test
 ```
@@ -188,6 +287,12 @@ cd ..\home-banking-bff
 ```powershell
 cd ..\api-gateway
 .\mvnw.cmd test
+```
+
+```powershell
+cd ..\banking-web
+npm test -- --watch=false
+npm run build
 ```
 
 Integration tests use Testcontainers with MySQL.

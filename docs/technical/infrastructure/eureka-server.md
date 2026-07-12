@@ -62,6 +62,9 @@ Current clients:
 customer-service
 account-service
 identity-service
+document-service
+notification-service
+onboarding-service
 home-banking-bff
 api-gateway
 ```
@@ -72,12 +75,13 @@ A gateway is different from Eureka.
 
 Eureka helps services find each other. A gateway gives external clients a single entry point.
 
-Example gateway responsibility:
+Current gateway responsibility:
 
 ```txt
-/api/customers/** -> customer-service
-/api/accounts/**  -> account-service
+/web/** -> home-banking-bff
 ```
+
+Business services discover each other through Eureka and do not become external gateway routes.
 
 ### Config Server
 

@@ -10,6 +10,7 @@ public record CustomerStatusHistoryResponse(
         CustomerStatus previousStatus,
         CustomerStatus newStatus,
         String reason,
+        String changedBy,
         Instant changedAt
 ) {
 }

@@ -12,6 +12,9 @@ Swagger OAuth2 is configured for service-level documentation:
 customer-service
 account-service
 identity-service
+notification-service
+document-service
+onboarding-service
 ```
 
 It is not configured for `api-gateway`.
@@ -39,6 +42,9 @@ Local redirect URIs:
 http://localhost:8080/swagger-ui/oauth2-redirect.html
 http://localhost:8081/swagger-ui/oauth2-redirect.html
 http://localhost:8082/swagger-ui/oauth2-redirect.html
+http://localhost:8083/swagger-ui/oauth2-redirect.html
+http://localhost:8084/swagger-ui/oauth2-redirect.html
+http://localhost:8087/swagger-ui/oauth2-redirect.html
 ```
 
 ## Usage
@@ -58,6 +64,9 @@ Example service URLs:
 http://localhost:8080/swagger-ui.html
 http://localhost:8081/swagger-ui.html
 http://localhost:8082/swagger-ui.html
+http://localhost:8083/swagger-ui.html
+http://localhost:8084/swagger-ui.html
+http://localhost:8087/swagger-ui.html
 ```
 
 ## Required Roles
@@ -73,6 +82,11 @@ ACCOUNT_READ
 ACCOUNT_WRITE
 IDENTITY_READ
 IDENTITY_WRITE
+NOTIFICATION_WRITE
+DOCUMENT_READ
+DOCUMENT_WRITE
+ONBOARDING_READ
+ONBOARDING_WRITE
 ```
 
 ## Existing Keycloak Volumes

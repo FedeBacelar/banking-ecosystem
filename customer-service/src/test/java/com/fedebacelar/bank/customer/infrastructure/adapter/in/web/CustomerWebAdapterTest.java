@@ -11,12 +11,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fedebacelar.bank.customer.application.port.in.ApproveCustomerKycUseCase;
 import com.fedebacelar.bank.customer.application.port.in.CloseCustomerUseCase;
 import com.fedebacelar.bank.customer.application.port.in.FindCustomerByDocumentUseCase;
+import com.fedebacelar.bank.customer.application.port.in.FindCustomerByEmailUseCase;
 import com.fedebacelar.bank.customer.application.port.in.FindCustomerByNumberUseCase;
 import com.fedebacelar.bank.customer.application.port.in.GetCustomerUseCase;
 import com.fedebacelar.bank.customer.application.port.in.GetCustomerStatusHistoryUseCase;
 import com.fedebacelar.bank.customer.application.port.in.ReactivateCustomerUseCase;
 import com.fedebacelar.bank.customer.application.port.in.RejectCustomerKycUseCase;
-import com.fedebacelar.bank.customer.application.port.in.RegisterNaturalPersonCustomerUseCase;
+import com.fedebacelar.bank.customer.application.port.in.RegisterNaturalPersonCustomerIdempotentlyUseCase;
 import com.fedebacelar.bank.customer.application.port.in.SuspendCustomerUseCase;
 import com.fedebacelar.bank.customer.application.view.CustomerDetails;
 import com.fedebacelar.bank.customer.application.view.CustomerStatusHistoryDetails;
@@ -48,14 +49,17 @@ import org.springframework.test.web.servlet.MockMvc;
         CustomerLifecycleController.class
 }, excludeAutoConfiguration = OAuth2ResourceServerAutoConfiguration.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import({CustomerWebMapper.class, GlobalExceptionHandler.class})
+@Import({CustomerWebMapper.class, GlobalExceptionHandler.class, RequestFingerprint.class})
 class CustomerWebAdapterTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
-    private RegisterNaturalPersonCustomerUseCase registerNaturalPersonCustomerUseCase;
+    private RegisterNaturalPersonCustomerIdempotentlyUseCase registerNaturalPersonCustomerUseCase;
+
+    @MockitoBean
+    private FindCustomerByEmailUseCase findCustomerByEmailUseCase;
 
     @MockitoBean
     private GetCustomerUseCase getCustomerUseCase;
@@ -86,9 +90,9 @@ class CustomerWebAdapterTest {
 
     @Test
     void registersNaturalPerson() throws Exception {
-        when(registerNaturalPersonCustomerUseCase.register(any())).thenReturn(customerDetails());
+        when(registerNaturalPersonCustomerUseCase.register(any(), any(), any())).thenReturn(customerDetails());
 
-        mockMvc.perform(post("/api/customers/natural-persons")
+        mockMvc.perform(post("/customers/natural-persons")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -108,7 +112,7 @@ class CustomerWebAdapterTest {
 
     @Test
     void returnsBadRequestForInvalidBody() throws Exception {
-        mockMvc.perform(post("/api/customers/natural-persons")
+        mockMvc.perform(post("/customers/natural-persons")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -127,7 +131,7 @@ class CustomerWebAdapterTest {
 
     @Test
     void returnsBadRequestForNullContactValueWithoutServerError() throws Exception {
-        mockMvc.perform(post("/api/customers/natural-persons")
+        mockMvc.perform(post("/customers/natural-persons")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -152,7 +156,7 @@ class CustomerWebAdapterTest {
 
     @Test
     void returnsBadRequestForTooLongCustomerFields() throws Exception {
-        mockMvc.perform(post("/api/customers/natural-persons")
+        mockMvc.perform(post("/customers/natural-persons")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -171,7 +175,7 @@ class CustomerWebAdapterTest {
 
     @Test
     void returnsBadRequestForTooLongNestedCustomerFields() throws Exception {
-        mockMvc.perform(post("/api/customers/natural-persons")
+        mockMvc.perform(post("/customers/natural-persons")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -207,10 +211,10 @@ class CustomerWebAdapterTest {
 
     @Test
     void returnsConflictForDuplicatedDocument() throws Exception {
-        when(registerNaturalPersonCustomerUseCase.register(any()))
+        when(registerNaturalPersonCustomerUseCase.register(any(), any(), any()))
                 .thenThrow(new DuplicateDocumentException(DocumentType.DNI, "30111222", "AR"));
 
-        mockMvc.perform(post("/api/customers/natural-persons")
+        mockMvc.perform(post("/customers/natural-persons")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -238,10 +242,21 @@ class CustomerWebAdapterTest {
 
     @Test
     void approvesKyc() throws Exception {
-        when(approveCustomerKycUseCase.approveKyc(UUID.fromString("11111111-1111-1111-1111-111111111111")))
+        when(approveCustomerKycUseCase.approveKyc(
+                UUID.fromString("11111111-1111-1111-1111-111111111111"),
+                "AUTO_ONBOARDING_APPROVED",
+                "onboarding-service"
+        ))
                 .thenReturn(customerDetails(CustomerStatus.ACTIVE, KycStatus.APPROVED));
 
-        mockMvc.perform(patch("/customers/11111111-1111-1111-1111-111111111111/kyc/approve"))
+        mockMvc.perform(patch("/customers/11111111-1111-1111-1111-111111111111/kyc/approve")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "reasonCode": "AUTO_ONBOARDING_APPROVED",
+                                  "changedBy": "onboarding-service"
+                                }
+                                """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.kycStatus").value("APPROVED"));

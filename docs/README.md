@@ -57,19 +57,24 @@ docs/database/README.md
 customer-service
 account-service
 identity-service
+notification-service
+document-service
+onboarding-service
 home-banking-bff
 config-server
 eureka-server
 api-gateway
+banking-web
 ```
 
 ## Current Infrastructure
 
 ```txt
-MySQL local with one database container per business service.
+MySQL with one local database container per stateful business service.
 Config Server for centralized configuration.
 Eureka Server for service discovery.
 API Gateway for external HTTP routing.
-Keycloak for local identity provider infrastructure.
-Banking BFF for browser sessions through the gateway.
+Keycloak for human and machine identity in the local environment.
+MinIO for document object storage.
+Home Banking BFF for browser sessions and public web contracts through the gateway.
 ```

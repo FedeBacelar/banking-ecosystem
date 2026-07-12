@@ -21,7 +21,7 @@ public class CustomerWebMapper {
 
     public RegisterNaturalPersonCustomerCommand toCommand(RegisterNaturalPersonCustomerRequest request) {
         var contacts = request.contactPoints() == null ? List.<ContactPointCommand>of() : request.contactPoints().stream()
-                .map(contact -> new ContactPointCommand(contact.type(), contact.value()))
+                .map(contact -> new ContactPointCommand(contact.type(), contact.value(), Boolean.TRUE.equals(contact.verified())))
                 .toList();
 
         var addresses = request.addresses() == null ? List.<AddressCommand>of() : request.addresses().stream()
@@ -100,6 +100,7 @@ public class CustomerWebMapper {
                 details.previousStatus(),
                 details.newStatus(),
                 details.reason(),
+                details.changedBy(),
                 details.changedAt()
         );
     }

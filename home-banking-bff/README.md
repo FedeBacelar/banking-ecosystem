@@ -1,133 +1,67 @@
 # home-banking-bff
 
-`home-banking-bff` is the browser-facing backend for the future home banking UI.
+`home-banking-bff` is the only browser backend. It stays behind `api-gateway` and owns browser-specific security and contracts, not banking lifecycle or persistence.
 
-It stays behind `api-gateway` and owns browser session behavior.
+## Responsibilities
 
-## Responsibility
-
-- Start OAuth2/OIDC login with Keycloak.
-- Maintain a browser session through an HttpOnly session cookie.
+- Start and complete OAuth2/OIDC login with Keycloak.
+- Keep the authenticated OAuth2 state server-side in an HttpOnly session.
 - Resolve the authenticated Keycloak subject through `identity-service`.
-- Compose customer-facing responses from internal services.
-- Forward the user's access token to protected internal services.
+- Compose customer-facing responses without accepting a browser-selected `customerId`.
+- Keep the onboarding continuation token in an HttpOnly cookie.
+- Protect cookie-authorized mutations with CSRF.
+- Translate the small public onboarding API into internal `onboarding-service` calls.
+- Obtain dedicated client-credentials tokens for internal calls; browser tokens are not forwarded.
 
-It does not own customer data, accounts, balances, identity links, or authentication credentials.
-
-## Architecture
-
-The service uses a lightweight ports-and-adapters structure.
-
-It intentionally does not copy the full business-service architecture because it does not own persistence or core banking rules.
-
-Current structure:
+## Public Topology
 
 ```txt
-application/port/in
-application/port/out
-application/usecase
-domain/model
-infrastructure/adapter/in/web
-infrastructure/adapter/out/account
-infrastructure/adapter/out/customer
-infrastructure/adapter/out/identity
-infrastructure/config
+browser -> api-gateway:8085 /web/** -> home-banking-bff:8086 /web/**
 ```
 
-DTOs are kept close to their boundary:
+Port `8086` is available only for technical diagnostics. Frontend traffic must use the gateway.
+
+## Public Contracts
+
+Authenticated home banking:
 
 ```txt
-infrastructure/adapter/in/web/dto
-infrastructure/adapter/out/identity/dto
+GET  /web/me
+POST /web/logout
 ```
 
-Main use case:
+Digital onboarding:
 
 ```txt
-GetAuthenticatedHomeContextUseCase
+POST /web/onboarding/applications
+POST /web/onboarding/magic-links/consume
+POST /web/onboarding/submissions
+GET  /web/onboarding/status
+POST /web/onboarding/credential-invitations/resend
 ```
 
-The controller handles HTTP and session details. The use case owns the home banking composition flow. Output adapters call internal services through Eureka service names.
+There is no public CSRF bootstrap endpoint and no onboarding session endpoint.
 
-## Local Runtime
+- Application start returns generic `202 Accepted` and does not reveal whether the email exists.
+- Magic-link exchange sets the opaque continuation cookie and materializes the readable XSRF cookie in the same response.
+- Submit is one multipart command containing applicant data, terms acceptance, DNI front, and DNI back.
+- Status exposes only `applicationId`, public status, `nextAction`, and `updatedAt`.
+- Internal checks, dependency errors, Keycloak subjects, and provisioning references never reach the browser.
 
-Default local port:
+## CSRF Model
 
-```txt
-8086
-```
+Application start and magic-link exchange do not rely on an existing browser cookie and are exempt from CSRF. Once the exchange establishes continuation authority, Spring Security requires the `X-XSRF-TOKEN` header on later mutations.
 
-Public local path through gateway:
+Angular reads `NB-XSRF-TOKEN` and sends the header automatically. CSRF is a transport defense, not a frontend workflow step and not an extra request.
 
-```txt
-http://localhost:8085/web/**
-```
+## Internal Access
 
-Direct local service path:
+The BFF calls internal services through Eureka. It uses purpose-specific confidential clients and least-privilege roles. The onboarding process itself remains owned by `onboarding-service`; the BFF does not orchestrate review or provisioning.
 
-```txt
-http://localhost:8086/web/**
-```
-
-## Endpoints
-
-```txt
-GET /web/session
-GET /web/me
-GET /web/logout
-```
-
-`GET /web/session` is public and returns whether the current browser has an authenticated BFF session.
-
-`GET /web/me` requires an authenticated browser session.
-
-If no session exists, Spring Security redirects to Keycloak login.
-
-`GET /web/logout` clears the local BFF session and starts OIDC logout at Keycloak. After Keycloak logout, the browser is redirected back to `/web/session`.
-
-## Flow
-
-```txt
-Browser -> api-gateway -> home-banking-bff -> Keycloak login
-Browser -> api-gateway -> home-banking-bff with HttpOnly cookie
-home-banking-bff -> identity-service/customer-service/account-service with Bearer token
-```
-
-The browser does not send a `customerId` to decide which banking data to read.
-
-The BFF resolves the customer from the authenticated identity:
-
-```txt
-Keycloak subject -> identity-service -> customerId
-```
-
-Use `home-banking-user` for local browser testing. `identity-admin` is an operational user for identity link administration, not the typical customer login.
-
-## Logout Flow
-
-```txt
-Browser -> api-gateway -> home-banking-bff /web/logout
-home-banking-bff -> Keycloak end-session endpoint
-Keycloak -> api-gateway -> home-banking-bff /web/session
-```
-
-This matters because deleting only the BFF cookie does not fully log the user out. If the Keycloak session is still alive, the next login attempt can silently authenticate the same user again.
-
-The local Keycloak client must allow these post logout redirects:
-
-```txt
-http://localhost:8085/web/session
-http://localhost:8086/web/session
-```
-
-## Tests
+## Verification
 
 ```powershell
 .\mvnw.cmd test
 ```
 
-Current verified result:
-
-```txt
-5 tests passing
-```
+Tests cover the real `/web` context path, cookies, CSRF, safe public errors, internal token purposes, and the minimal onboarding contract.

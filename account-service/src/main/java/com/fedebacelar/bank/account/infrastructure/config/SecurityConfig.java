@@ -26,14 +26,14 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> {
-                    authorize.requestMatchers("/actuator/health", "/actuator/info").permitAll();
+                    authorize.requestMatchers("/actuator/health/**", "/actuator/info").permitAll();
                     if (publicDocsEnabled) {
                         authorize.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll();
                     }
-                    authorize.requestMatchers(HttpMethod.GET, "/api/accounts/**").hasRole("ACCOUNT_READ");
-                    authorize.requestMatchers(HttpMethod.POST, "/api/accounts/**").hasRole("ACCOUNT_WRITE");
-                    authorize.requestMatchers(HttpMethod.PATCH, "/api/accounts/**").hasRole("ACCOUNT_WRITE");
-                    authorize.requestMatchers("/api/accounts/**").denyAll();
+                    authorize.requestMatchers(HttpMethod.GET, "/accounts/**").hasRole("ACCOUNT_READ");
+                    authorize.requestMatchers(HttpMethod.POST, "/accounts/**").hasRole("ACCOUNT_WRITE");
+                    authorize.requestMatchers(HttpMethod.PATCH, "/accounts/**").hasRole("ACCOUNT_WRITE");
+                    authorize.requestMatchers("/accounts/**").denyAll();
                     authorize.anyRequest().authenticated();
                 })
                 .oauth2ResourceServer(oauth2 -> oauth2

@@ -4,10 +4,7 @@ import com.fedebacelar.bank.homebanking.bff.application.port.in.GetAuthenticated
 import com.fedebacelar.bank.homebanking.bff.domain.model.AuthenticatedUser;
 import com.fedebacelar.bank.homebanking.bff.domain.model.HomeBankingContext;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web.dto.AuthenticatedUserResponse;
-import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web.dto.SessionResponse;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
-import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,23 +18,10 @@ public class SessionController {
         this.getAuthenticatedHomeContextUseCase = getAuthenticatedHomeContextUseCase;
     }
 
-    @GetMapping("/session")
-    public SessionResponse session(@AuthenticationPrincipal OidcUser user) {
-        if (user == null) {
-            return new SessionResponse(false, null, null);
-        }
-
-        return new SessionResponse(true, user.getSubject(), user.getPreferredUsername());
-    }
-
     @GetMapping("/me")
-    public AuthenticatedUserResponse me(
-            @AuthenticationPrincipal OidcUser user,
-            @RegisteredOAuth2AuthorizedClient("keycloak") OAuth2AuthorizedClient authorizedClient
-    ) {
+    public AuthenticatedUserResponse me(@AuthenticationPrincipal OidcUser user) {
         HomeBankingContext context = getAuthenticatedHomeContextUseCase.getHomeContext(
-                new AuthenticatedUser(user.getSubject(), user.getPreferredUsername(), user.getEmail()),
-                authorizedClient.getAccessToken().getTokenValue()
+                new AuthenticatedUser(user.getSubject(), user.getPreferredUsername(), user.getEmail())
         );
 
         return new AuthenticatedUserResponse(

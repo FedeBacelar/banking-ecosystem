@@ -28,6 +28,8 @@ public class IdentificationDocumentEntity {
 
     private String documentNumber;
 
+    private String documentNumberCanonical;
+
     private String issuingCountry;
 
     private LocalDate expirationDate;

@@ -3,7 +3,9 @@ package com.fedebacelar.bank.customer.infrastructure.adapter.out.persistence;
 import com.fedebacelar.bank.customer.application.port.out.CustomerRepositoryPort;
 import com.fedebacelar.bank.customer.application.port.out.IdentificationDocumentLookupPort;
 import com.fedebacelar.bank.customer.domain.enums.DocumentType;
+import com.fedebacelar.bank.customer.domain.enums.ContactType;
 import com.fedebacelar.bank.customer.domain.model.CustomerStatusHistory;
+import com.fedebacelar.bank.customer.domain.model.DocumentNumber;
 import com.fedebacelar.bank.customer.domain.model.NaturalPersonCustomer;
 import com.fedebacelar.bank.customer.infrastructure.adapter.out.persistence.entity.CustomerEntity;
 import com.fedebacelar.bank.customer.infrastructure.adapter.out.persistence.mapper.CustomerPersistenceMapper;
@@ -80,8 +82,18 @@ public class CustomerPersistenceAdapter implements CustomerRepositoryPort, Ident
     @Override
     @Transactional(readOnly = true)
     public Optional<NaturalPersonCustomer> findByDocument(DocumentType type, String number, String country) {
-        return identificationDocumentJpaRepository.findByDocumentTypeAndDocumentNumberAndIssuingCountry(type, number, country)
+        return identificationDocumentJpaRepository.findByDocumentTypeAndDocumentNumberCanonicalAndIssuingCountry(
+                        type, DocumentNumber.canonical(number), country.toUpperCase(java.util.Locale.ROOT)
+                )
                 .flatMap(document -> customerJpaRepository.findByPartyId(document.getPartyId()))
+                .flatMap(this::assemble);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<NaturalPersonCustomer> findByEmail(String email) {
+        return contactPointJpaRepository.findFirstByContactTypeAndContactValueIgnoreCase(ContactType.EMAIL, email)
+                .flatMap(contact -> customerJpaRepository.findByPartyId(contact.getPartyId()))
                 .flatMap(this::assemble);
     }
 
@@ -102,7 +114,9 @@ public class CustomerPersistenceAdapter implements CustomerRepositoryPort, Ident
     @Override
     @Transactional(readOnly = true)
     public boolean existsDocument(DocumentType type, String number, String country) {
-        return identificationDocumentJpaRepository.existsByDocumentTypeAndDocumentNumberAndIssuingCountry(type, number, country);
+        return identificationDocumentJpaRepository.existsByDocumentTypeAndDocumentNumberCanonicalAndIssuingCountry(
+                type, DocumentNumber.canonical(number), country.toUpperCase(java.util.Locale.ROOT)
+        );
     }
 
     private Optional<NaturalPersonCustomer> assemble(CustomerEntity customerEntity) {

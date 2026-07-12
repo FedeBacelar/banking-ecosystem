@@ -1,0 +1,63 @@
+server:
+  port: ${DOCUMENT_SERVICE_PORT:8084}
+
+spring:
+  datasource:
+    url: ${DOCUMENT_DB_URL:jdbc:mysql://localhost:3311/document_db}
+    username: ${DOCUMENT_DB_USERNAME:document_user}
+    password: ${DOCUMENT_DB_PASSWORD:document_password}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  servlet:
+    multipart:
+      max-file-size: ${DOCUMENT_UPLOAD_MAX_SIZE_BYTES:10485760}
+      max-request-size: ${DOCUMENT_UPLOAD_MAX_SIZE_BYTES:10485760}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/banking-ecosystem}
+
+document:
+  upload:
+    max-size-bytes: ${DOCUMENT_UPLOAD_MAX_SIZE_BYTES:10485760}
+    allowed-content-types: ${DOCUMENT_UPLOAD_ALLOWED_CONTENT_TYPES:image/jpeg,image/png,application/pdf}
+  storage:
+    provider: ${DOCUMENT_STORAGE_PROVIDER:minio}
+    endpoint: ${DOCUMENT_STORAGE_ENDPOINT:http://localhost:9000}
+    bucket: ${DOCUMENT_STORAGE_BUCKET:banking-documents}
+    access-key: ${DOCUMENT_STORAGE_ACCESS_KEY:nerva_minio}
+    secret-key: ${DOCUMENT_STORAGE_SECRET_KEY:nerva_minio_password}
+    region: ${DOCUMENT_STORAGE_REGION:us-east-1}
+    path-style-access: ${DOCUMENT_STORAGE_PATH_STYLE_ACCESS:true}
+
+banking:
+  security:
+    public-docs-enabled: ${PUBLIC_DOCS_ENABLED:true}
+
+eureka:
+  client:
+    enabled: ${EUREKA_CLIENT_ENABLED:true}
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+info:
+  app:
+    name: document-service
+    description: Document service for banking files and evidence
+    version: 0.0.1-SNAPSHOT
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    oauth:
+      client-id: ${SWAGGER_OAUTH_CLIENT_ID:banking-swagger}
+      use-pkce-with-authorization-code-grant: true

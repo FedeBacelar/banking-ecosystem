@@ -12,13 +12,14 @@ Keycloak provides:
 - OAuth2/OpenID Connect token issuance.
 - Client registration.
 - Role and permission management.
-- Future identity federation, such as Google login.
+- Browser required actions for onboarding credential setup.
+- A custom banking login theme for the customer-facing identity surface.
 
 ## Current Status
 
 Keycloak is available as local infrastructure with a development realm.
 
-`api-gateway`, `customer-service`, `account-service`, `identity-service`, and `home-banking-bff` integrate with this realm.
+`api-gateway`, `customer-service`, `account-service`, `identity-service`, `notification-service`, `document-service`, `onboarding-service`, and `home-banking-bff` integrate with this realm.
 
 ## Local Runtime
 
@@ -49,14 +50,14 @@ Keycloak is exposed through its own auth endpoint.
 
 It is not routed as a business API through `api-gateway`.
 
-Recommended production-style endpoints:
+Deployment boundary:
 
 ```txt
 https://api.bank.example  -> api-gateway
 https://auth.bank.example -> Keycloak
 ```
 
-This separation keeps banking API routing and identity-provider routing independent.
+This documents the same separation already used locally between ports `8085` and `8090`: banking API routing and identity-provider routing remain independent.
 
 Keycloak owns OAuth2/OpenID Connect endpoints such as authorization, token exchange, logout, discovery metadata, and public keys.
 
@@ -78,23 +79,34 @@ Current clients:
 banking-api
 banking-swagger
 home-banking-bff
+onboarding-bff-service
+home-banking-bff-service
+onboarding-orchestrator
 ```
 
-`banking-api` is used to request local access tokens for API testing.
+`banking-api` is a local Authorization Code client. Direct Access Grants are disabled.
 
 `banking-swagger` is used by service Swagger UIs with Authorization Code and PKCE.
 
-`home-banking-bff` is a confidential client used by the browser-facing backend with Authorization Code Flow.
+`home-banking-bff` is a confidential client used by the browser-facing backend with Authorization Code Flow. Its service account is disabled.
+
+`onboarding-bff-service` and `home-banking-bff-service` separate the BFF's machine permissions by purpose. `onboarding-orchestrator` belongs exclusively to `onboarding-service`.
 
 Current realm roles:
 
 ```txt
+HOME_BANKING_USER
 CUSTOMER_READ
 CUSTOMER_WRITE
 ACCOUNT_READ
 ACCOUNT_WRITE
 IDENTITY_READ
 IDENTITY_WRITE
+NOTIFICATION_WRITE
+DOCUMENT_READ
+DOCUMENT_WRITE
+ONBOARDING_READ
+ONBOARDING_WRITE
 ```
 
 These roles represent API capabilities. They are intentionally more specific than generic roles such as `USER` or `ADMIN`.
@@ -102,15 +114,15 @@ These roles represent API capabilities. They are intentionally more specific tha
 ## Local Test Users
 
 ```txt
-identity-admin
+banking-admin
 home-banking-user
 ```
 
-Local users have separate responsibilities.
+Local users have separate responsibilities. The realm intentionally avoids one operational user per service.
 
 ```txt
-identity-admin    -> identity link administration
-home-banking-user -> browser login through home-banking-bff
+banking-admin      -> local operational/API testing across current services
+home-banking-user  -> browser login through home-banking-bff
 ```
 
 ## Current Integration
@@ -118,18 +130,17 @@ home-banking-user -> browser login through home-banking-bff
 Current request flow:
 
 ```txt
-client -> Keycloak -> access token
-client -> api-gateway with Bearer token
-api-gateway -> validates token
-api-gateway -> routes to business services
-business service -> validates token again
+browser -> api-gateway /web/** -> home-banking-bff
+home-banking-bff -> Keycloak Authorization Code flow
+home-banking-bff -> internal services with purpose-specific client credentials
+onboarding-service -> owned dependencies with onboarding-orchestrator credentials
 ```
 
-`api-gateway`, `customer-service`, `account-service`, and `identity-service` are configured as OAuth2 Resource Servers.
+`customer-service`, `account-service`, `identity-service`, `notification-service`, `document-service`, and `onboarding-service` are configured as OAuth2 Resource Servers.
 
-The gateway owns the external API access rules. Business services also validate tokens directly so direct service access is not trusted by default.
+The gateway owns the external route boundary and publishes only the BFF. Business services validate machine tokens directly; network placement is not authorization.
 
-`home-banking-bff` is configured as an OAuth2 Client. It creates a browser session and uses the user's access token when calling protected internal services.
+`home-banking-bff` is configured as an OAuth2 Client. It creates the browser session, keeps the user's OIDC token server-side, and uses dedicated client-credentials registrations for internal calls.
 
 ## Swagger Client
 
@@ -141,22 +152,35 @@ It is configured for Authorization Code with PKCE and local Swagger redirect URL
 http://localhost:8080/swagger-ui/oauth2-redirect.html
 http://localhost:8081/swagger-ui/oauth2-redirect.html
 http://localhost:8082/swagger-ui/oauth2-redirect.html
+http://localhost:8083/swagger-ui/oauth2-redirect.html
+http://localhost:8084/swagger-ui/oauth2-redirect.html
+http://localhost:8087/swagger-ui/oauth2-redirect.html
 ```
 
 If Keycloak already has an existing Docker volume, the realm import file may not create this client automatically. Create it manually or recreate the local Keycloak volume.
 
 ## BFF Client
 
-`home-banking-bff` is a confidential local client.
+`home-banking-bff` is the confidential client used only for the browser's Authorization Code flow. Its service account is disabled.
 
 Local redirect URLs:
 
 ```txt
 http://localhost:8085/web/login/oauth2/code/keycloak
-http://localhost:8086/web/login/oauth2/code/keycloak
 ```
 
+The browser-facing local flow must use the gateway URL on port `8085`. Direct BFF URLs on port `8086` are only for diagnostics and should not be used by the frontend.
+
 The local client secret is a development default only. Real secrets must come from outside the repository.
+
+Internal BFF calls use purpose-specific confidential clients with client credentials:
+
+```txt
+onboarding-bff-service    -> ONBOARDING_READ, ONBOARDING_WRITE
+home-banking-bff-service  -> CUSTOMER_READ, ACCOUNT_READ, IDENTITY_READ
+```
+
+The BFF never forwards the browser token to internal services. Applicant data and evidence reach `onboarding-service` through one composite submission; that service owns document and notification orchestration through the dedicated `onboarding-orchestrator` client.
 
 ## Login Theme
 

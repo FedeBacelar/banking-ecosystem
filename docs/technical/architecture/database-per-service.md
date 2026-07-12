@@ -10,6 +10,9 @@ This avoids accidental coupling and keeps each service responsible for its own d
 customer-service -> customer_db
 account-service -> account_db
 identity-service -> identity_db
+notification-service -> notification_db
+document-service -> document_db
+onboarding-service -> onboarding_db
 ```
 
 Each database runs in its own MySQL container for local development.
@@ -38,11 +41,14 @@ Each service owns its Flyway migrations:
 customer-service/src/main/resources/db/migration
 account-service/src/main/resources/db/migration
 identity-service/src/main/resources/db/migration
+notification-service/src/main/resources/db/migration
+document-service/src/main/resources/db/migration
+onboarding-service/src/main/resources/db/migration
 ```
 
-## Production Direction
+## Enforced Boundary
 
-The production concept should remain:
+The repository models the following invariant:
 
 ```txt
 One logical database per service.

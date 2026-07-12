@@ -13,7 +13,7 @@ import com.fedebacelar.bank.account.application.port.in.GetAccountBalanceUseCase
 import com.fedebacelar.bank.account.application.port.in.GetAccountStatusHistoryUseCase;
 import com.fedebacelar.bank.account.application.port.in.GetAccountUseCase;
 import com.fedebacelar.bank.account.application.port.in.GetCustomerAccountsUseCase;
-import com.fedebacelar.bank.account.application.port.in.OpenAccountUseCase;
+import com.fedebacelar.bank.account.application.port.in.OpenAccountIdempotentlyUseCase;
 import com.fedebacelar.bank.account.application.port.in.UpdateAccountAliasUseCase;
 import com.fedebacelar.bank.account.application.view.AccountBalanceDetails;
 import com.fedebacelar.bank.account.application.view.AccountDetails;
@@ -46,14 +46,14 @@ import org.springframework.test.web.servlet.MockMvc;
         AccountLifecycleController.class
 }, excludeAutoConfiguration = OAuth2ResourceServerAutoConfiguration.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import({AccountWebMapper.class, GlobalExceptionHandler.class})
+@Import({AccountWebMapper.class, GlobalExceptionHandler.class, RequestFingerprint.class})
 class AccountWebAdapterTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
-    private OpenAccountUseCase openAccountUseCase;
+    private OpenAccountIdempotentlyUseCase openAccountUseCase;
 
     @MockitoBean
     private GetAccountUseCase getAccountUseCase;
@@ -75,7 +75,7 @@ class AccountWebAdapterTest {
 
     @Test
     void opensAccount() throws Exception {
-        when(openAccountUseCase.open(any())).thenReturn(accountDetails(AccountStatus.PENDING_ACTIVATION));
+        when(openAccountUseCase.open(any(), any(), any())).thenReturn(accountDetails(AccountStatus.PENDING_ACTIVATION));
 
         mockMvc.perform(post("/accounts")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -126,7 +126,7 @@ class AccountWebAdapterTest {
 
     @Test
     void returnsConflictForDuplicatedAlias() throws Exception {
-        when(openAccountUseCase.open(any())).thenThrow(new DuplicateAccountAliasException("fede.bank.ars"));
+        when(openAccountUseCase.open(any(), any(), any())).thenThrow(new DuplicateAccountAliasException("fede.bank.ars"));
 
         mockMvc.perform(post("/accounts")
                         .contentType(MediaType.APPLICATION_JSON)

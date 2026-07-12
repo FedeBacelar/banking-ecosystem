@@ -1,0 +1,136 @@
+server:
+  port: ${ONBOARDING_SERVICE_PORT:8087}
+
+spring:
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 3000
+            read-timeout: 20000
+  datasource:
+    url: ${ONBOARDING_DB_URL:jdbc:mysql://localhost:3312/onboarding_db}
+    username: ${ONBOARDING_DB_USERNAME:onboarding_user}
+    password: ${ONBOARDING_DB_PASSWORD:onboarding_password}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  security:
+    oauth2:
+      client:
+        registration:
+          onboarding-orchestrator:
+            provider: keycloak
+            client-id: ${ONBOARDING_INTERNAL_OAUTH_CLIENT_ID:onboarding-orchestrator}
+            client-secret: ${ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET:local-onboarding-secret}
+            authorization-grant-type: client_credentials
+        provider:
+          keycloak:
+            issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/banking-ecosystem}
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/banking-ecosystem}
+
+onboarding:
+  runtime-mode: ${ONBOARDING_RUNTIME_MODE:LOCAL}
+  security:
+    payload-encryption-key: ${ONBOARDING_PAYLOAD_ENCRYPTION_KEY:bG9jYWwtb25ib2FyZGluZy1wYXlsb2FkLWtleS0wMDE=}
+  notification:
+    max-attempts: 6
+    worker-delay: PT1S
+    worker-lease: PT1M
+    worker-batch-size: 20
+    retry-backoff:
+      - PT5S
+      - PT30S
+      - PT2M
+      - PT10M
+      - PT30M
+  provisioning:
+    max-attempts: 6
+    worker-delay: PT1S
+    worker-lease: PT5M
+    worker-batch-size: 20
+    credential-reconciliation-delay: PT30S
+    credential-setup-timeout: P7D
+    credential-invitation-cooldown: PT1M
+    retry-backoff:
+      - PT5S
+      - PT30S
+      - PT2M
+      - PT10M
+      - PT30M
+  expiration:
+    worker-delay: PT1M
+    batch-size: 100
+  keycloak:
+    admin-base-url: ${KEYCLOAK_ADMIN_BASE_URL:http://localhost:8090}
+    realm: ${KEYCLOAK_REALM:banking-ecosystem}
+    action-client-id: ${ONBOARDING_CREDENTIAL_ACTION_CLIENT_ID:home-banking-bff}
+    credential-redirect-uri: ${ONBOARDING_CREDENTIAL_REDIRECT_URI:http://localhost:4200/onboarding/credentials-complete}
+    action-lifespan: ${ONBOARDING_CREDENTIAL_ACTION_LIFESPAN:PT24H}
+  review:
+    mode: AUTO
+    active-policy-version: AR_DNI_SAVINGS_V1
+    business-zone: America/Argentina/Buenos_Aires
+    max-attempts: 6
+    worker-delay: PT1S
+    worker-lease: PT3M
+    worker-batch-size: 20
+    retry-backoff:
+      - PT5S
+      - PT30S
+      - PT2M
+      - PT10M
+      - PT30M
+    policies:
+      AR_DNI_SAVINGS_V1:
+        required-terms-version: ONBOARDING_TERMS_AR_V1
+        checks:
+          DUPLICATE_CHECK: LOCAL
+          DOCUMENTS_PRESENT: LOCAL
+          TERMS_ACCEPTED: LOCAL
+          BASIC_ELIGIBILITY: LOCAL
+          DOCUMENT_PROOFING: SIMULATED
+          SANCTIONS_PEP_SCREENING: SIMULATED
+          FRAUD_SCREENING: SIMULATED
+  magic-link:
+    ttl-minutes: ${ONBOARDING_MAGIC_LINK_TTL_MINUTES:30}
+    request-cooldown: ${ONBOARDING_MAGIC_LINK_REQUEST_COOLDOWN:PT1M}
+  continuation:
+    ttl-minutes: ${ONBOARDING_CONTINUATION_TTL_MINUTES:120}
+  application:
+    ttl-days: ${ONBOARDING_APPLICATION_TTL_DAYS:15}
+  frontend:
+    magic-link-base-url: ${ONBOARDING_FRONTEND_MAGIC_LINK_BASE_URL:http://localhost:4200/onboarding/continue}
+
+banking:
+  security:
+    public-docs-enabled: ${PUBLIC_DOCS_ENABLED:true}
+
+eureka:
+  client:
+    enabled: ${EUREKA_CLIENT_ENABLED:true}
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+info:
+  app:
+    name: onboarding-service
+    description: Digital onboarding workflow service for banking applicants
+    version: 0.0.1-SNAPSHOT
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    oauth:
+      client-id: ${SWAGGER_OAUTH_CLIENT_ID:banking-swagger}
+      use-pkce-with-authorization-code-grant: true

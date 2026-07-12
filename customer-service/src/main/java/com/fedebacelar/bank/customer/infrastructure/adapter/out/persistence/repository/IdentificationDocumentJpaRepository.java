@@ -7,11 +7,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface IdentificationDocumentJpaRepository extends JpaRepository<IdentificationDocumentEntity, String> {
 
-    boolean existsByDocumentTypeAndDocumentNumberAndIssuingCountry(DocumentType documentType, String documentNumber, String issuingCountry);
-
-    Optional<IdentificationDocumentEntity> findByDocumentTypeAndDocumentNumberAndIssuingCountry(
+    boolean existsByDocumentTypeAndDocumentNumberCanonicalAndIssuingCountry(
             DocumentType documentType,
-            String documentNumber,
+            String documentNumberCanonical,
+            String issuingCountry
+    );
+
+    Optional<IdentificationDocumentEntity> findByDocumentTypeAndDocumentNumberCanonicalAndIssuingCountry(
+            DocumentType documentType,
+            String documentNumberCanonical,
             String issuingCountry
     );
 

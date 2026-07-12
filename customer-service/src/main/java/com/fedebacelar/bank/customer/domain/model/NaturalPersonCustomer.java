@@ -21,21 +21,27 @@ public record NaturalPersonCustomer(
         CustomerStatus previousStatus = customer.status();
         validateTransition(previousStatus, newStatus);
         Customer updatedCustomer = customer.withStatus(newStatus, changedAt);
-        return withCustomerAndKyc(updatedCustomer, kycProfile, previousStatus, newStatus, reason, changedAt);
+        return withCustomerAndKyc(updatedCustomer, kycProfile, previousStatus, newStatus, reason, "system", changedAt);
     }
 
     public NaturalPersonCustomer approveKyc(Instant reviewedAt) {
+        return approveKyc("KYC_APPROVED", "system", reviewedAt);
+    }
+
+    public NaturalPersonCustomer approveKyc(String reasonCode, String changedBy, Instant reviewedAt) {
         validateTransition(customer.status(), CustomerStatus.ACTIVE);
         Customer updatedCustomer = customer.withStatus(CustomerStatus.ACTIVE, reviewedAt);
         KycProfile updatedKycProfile = kycProfile.approve(reviewedAt);
-        return withCustomerAndKyc(updatedCustomer, updatedKycProfile, customer.status(), CustomerStatus.ACTIVE, "KYC approved", reviewedAt);
+        return withCustomerAndKyc(updatedCustomer, updatedKycProfile, customer.status(), CustomerStatus.ACTIVE,
+                reasonCode, changedBy, reviewedAt);
     }
 
     public NaturalPersonCustomer rejectKyc(String reason, Instant reviewedAt) {
         validateTransition(customer.status(), CustomerStatus.CLOSED);
         Customer updatedCustomer = customer.withStatus(CustomerStatus.CLOSED, reviewedAt);
         KycProfile updatedKycProfile = kycProfile.reject(reviewedAt);
-        return withCustomerAndKyc(updatedCustomer, updatedKycProfile, customer.status(), CustomerStatus.CLOSED, reason, reviewedAt);
+        return withCustomerAndKyc(updatedCustomer, updatedKycProfile, customer.status(), CustomerStatus.CLOSED,
+                reason, "system", reviewedAt);
     }
 
     public NaturalPersonCustomer suspend(String reason, Instant changedAt) {
@@ -56,6 +62,7 @@ public record NaturalPersonCustomer(
             CustomerStatus previousStatus,
             CustomerStatus newStatus,
             String reason,
+            String changedBy,
             Instant changedAt
     ) {
         CustomerStatusHistory entry = new CustomerStatusHistory(
@@ -64,6 +71,7 @@ public record NaturalPersonCustomer(
                 previousStatus,
                 newStatus,
                 reason,
+                changedBy,
                 changedAt
         );
         List<CustomerStatusHistory> updatedHistory = new java.util.ArrayList<>(statusHistory);

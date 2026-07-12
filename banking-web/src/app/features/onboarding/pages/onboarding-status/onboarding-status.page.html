@@ -1,0 +1,35 @@
+<app-onboarding-shell title="Estado de tu solicitud" subtitle="Podes volver a esta pantalla desde el enlace enviado por correo.">
+  @if (errorMessage()) {
+    <div class="alert alert--error" role="alert">{{ errorMessage() }}</div>
+  } @else if (!status()) {
+    <div class="status-panel"><strong>Consultando estado</strong></div>
+  } @else {
+    <div class="status-panel status-panel--success">
+      @switch (status()?.nextAction) {
+        @case ('WAIT') { <strong>Estamos revisando tu solicitud</strong><span>Te avisaremos cuando haya novedades.</span> }
+        @case ('CHECK_EMAIL') { <strong>Tu cuenta fue aprobada</strong><span>Revisa tu correo para configurar el acceso.</span> }
+        @case ('LOGIN') { <strong>Tu acceso esta listo</strong><span>Ya podes ingresar al home banking.</span> }
+        @case ('CONTACT_SUPPORT') { <strong>No pudimos completar el proceso</strong><span>El equipo debe revisar tu solicitud.</span> }
+        @case ('CONTINUE_APPLICATION') { <strong>Tu solicitud esta en curso</strong><span>Completa los datos pendientes para continuar.</span> }
+        @default { <strong>No podemos continuar con la solicitud</strong> }
+      }
+    </div>
+
+    @if (status()?.nextAction === 'CHECK_EMAIL') {
+      <button class="primary-button" type="button" [disabled]="isResending()" (click)="resendInvitation()">
+        {{ isResending() ? 'Enviando...' : 'Reenviar invitacion' }}
+      </button>
+    }
+    @if (status()?.nextAction === 'WAIT') {
+      <button class="primary-button" type="button" [disabled]="isLoading()" (click)="loadStatus()">
+        {{ isLoading() ? 'Actualizando...' : 'Actualizar estado' }}
+      </button>
+    }
+    @if (status()?.nextAction === 'LOGIN') {
+      <a class="primary-link" href="/web/oauth2/authorization/keycloak">Ingresar</a>
+    }
+    @if (status()?.nextAction === 'CONTINUE_APPLICATION') {
+      <a class="primary-link" routerLink="/onboarding/applicant-data">Continuar solicitud</a>
+    }
+  }
+</app-onboarding-shell>
