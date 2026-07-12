@@ -14,7 +14,7 @@ Current scope:
 banking/login
 ```
 
-The theme is responsible only for authentication screens rendered by Keycloak. Banking product screens belong to the future frontend and should not be implemented inside Keycloak.
+The theme is responsible only for authentication screens rendered by Keycloak. Banking product screens belong to `banking-web` and are not implemented inside Keycloak.
 
 Current covered screens:
 

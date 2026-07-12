@@ -6,20 +6,20 @@ The repository is organized as a monorepo. Each service owns its code, configura
 
 ## Structure
 
-- `customer-service`: customer onboarding, customer lifecycle, and initial KYC API.
+- `customer-service`: formal customer registration, customer lifecycle, and KYC state.
 - `account-service`: bank accounts, account identifiers, account lifecycle, balances, and customer validation.
 - `identity-service`: links authenticated external identities to internal banking customers.
 - `notification-service`: notification requests, templates, delivery attempts, and email delivery state.
 - `document-service`: document metadata and object storage integration for banking evidence.
 - `onboarding-service`: digital onboarding applications, email magic links, and onboarding state.
-- `home-banking-bff`: browser-facing backend for future home banking sessions.
-- `banking-web`: Angular frontend for digital onboarding and future home banking screens.
+- `home-banking-bff`: browser-facing session boundary, onboarding facade, and customer data composition.
+- `banking-web`: Angular verification client for the implemented digital onboarding flow.
 - `config-server`: centralized configuration server for the local ecosystem.
 - `eureka-server`: service discovery server for the local microservices ecosystem.
 - `api-gateway`: external HTTP entry point and route layer for the local ecosystem.
 - `config-repository`: local configuration source served by `config-server`.
 - `infra/mysql`: local MySQL containers, one database per business service.
-- `infra/keycloak`: local identity provider infrastructure for future OAuth2/OpenID Connect security.
+- `infra/keycloak`: local OAuth2/OpenID Connect identity provider, service clients, and banking login theme.
 - `infra/minio`: local S3-compatible object storage for banking documents.
 - `docs`: centralized business, technical, implementation, and database documentation.
 

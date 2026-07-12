@@ -1,10 +1,8 @@
 # Banking Ecosystem Overview
 
-The project models a banking ecosystem using business services with clear ownership.
+The project models a banking ecosystem through services with explicit business ownership. Each stateful service owns its database and exchanges data only through documented contracts.
 
-The main idea is that each service owns one business capability and does not share its database with other services.
-
-## Current Business Services
+## Current Business Capabilities
 
 ```txt
 customer-service
@@ -15,111 +13,86 @@ document-service
 onboarding-service
 ```
 
-## Customer Service
+## Customer
 
-`customer-service` owns the formal relationship between a person and the bank.
+`customer-service` owns the formal relationship between a person and the bank:
 
-It answers questions such as:
+- natural-person registration;
+- customer lifecycle status;
+- KYC state and KYC history;
+- identifying document data;
+- registered contact and address data.
 
-```txt
-- Who is this customer?
-- What is the customer's operational status?
-- Has the customer passed KYC?
-- What document identifies this customer?
-- What contact and address information was registered?
-```
+It does not own account, credential, onboarding application, or transaction state.
 
-## Account Service
+## Account
 
-`account-service` owns bank accounts and their operational state.
+`account-service` owns bank accounts:
 
-It answers questions such as:
+- account identifiers and aliases;
+- account type and currency;
+- account lifecycle and status history;
+- current, available, and held balance positions.
 
-```txt
-- Which accounts exist?
-- Which customer owns each account?
-- What type of account is it?
-- What currency does the account use?
-- What is the account status?
-- What is the operational balance?
-```
+It stores `customerId` as an external reference and validates customer eligibility through `customer-service`. It does not copy customer PII or KYC records.
 
-## Identity Service
+## Identity
 
-`identity-service` owns the link between authenticated external identities and internal banking customers.
-
-It answers questions such as:
+`identity-service` owns the link between an external authenticated subject and a banking customer:
 
 ```txt
-- Which customer belongs to this authenticated identity?
-- Is the identity link active?
-- Which external identities are linked to a customer?
+provider + providerSubject -> customerId
 ```
 
-## Current Relationship Between Services
+The link is unique by provider subject and by customer/provider. The service does not authenticate users and does not own customer master data.
 
-When an account is opened, `account-service` validates the customer through `customer-service`.
+## Notification
 
-`account-service` stores only the external `customerId`. It does not copy personal customer data.
+`notification-service` owns notification requests, templates, delivery attempts, redacted audit records for sensitive messages, and provider delivery state.
 
-When a user logs in, future browser-facing components can resolve the authenticated identity through `identity-service`.
+Business services decide when a notification is required. `notification-service` renders and delivers it. Email is the implemented channel.
 
-`identity-service` stores only the external `customerId`. It does not copy personal customer data.
+## Document
 
-## Notification Service
+`document-service` owns evidence metadata and object-storage integration. It validates upload size, accepted content type, file signature, hash, business context, category, and idempotency key.
 
-`notification-service` owns notification requests and delivery state.
+The implemented onboarding categories are `DNI_FRONT` and `DNI_BACK`. The service stores evidence but does not approve an onboarding application or expose public document downloads.
 
-It answers questions such as:
+## Onboarding
+
+`onboarding-service` owns the application process for a person who does not yet have a banking customer, account, identity link, or usable credentials.
+
+It controls:
+
+- email ownership verification and recoverable continuation access;
+- applicant data, evidence references, and terms acceptance;
+- submit integrity and state transitions;
+- automated review evidence and decisions;
+- durable provisioning across capability owners;
+- credential invitation and completion reconciliation.
+
+After approval, it coordinates customer, account, identity, document, notification, and Keycloak capabilities without taking ownership of their resources.
+
+## Current Interaction Model
 
 ```txt
-- Which notification was requested?
-- Which template was used?
-- Which recipient was targeted?
-- Was the delivery sent or did it fail?
-- What delivery error occurred?
+browser -> api-gateway /web/** -> home-banking-bff
+
+home-banking-bff -> onboarding-service
+home-banking-bff -> identity-service -> customer-service / account-service
+
+onboarding-service -> notification-service
+onboarding-service -> document-service
+onboarding-service -> customer-service
+onboarding-service -> account-service
+onboarding-service -> identity-service
+onboarding-service -> Keycloak
+
+account-service -> customer-service
 ```
 
-The first implemented channel is email.
+Internal calls use service credentials and service discovery where applicable. Services never query another service database.
 
-`notification-service` does not decide why a notification should be sent. Business services decide that a notification is needed, and `notification-service` handles templating, delivery, and delivery state.
+## Boundary Principle
 
-## Document Service
-
-`document-service` owns banking document metadata and the integration with object storage.
-
-It answers questions such as:
-
-```txt
-- Which document was uploaded?
-- Which business process owns it?
-- What category is it?
-- Where is the file stored?
-- Was the file accepted by the storage boundary?
-```
-
-The first implemented use case is onboarding evidence, such as DNI front and back images.
-
-`document-service` does not approve onboarding, review documents, own customer data, or expose public document downloads.
-
-## Onboarding Service
-
-`onboarding-service` owns the applicant workflow before a person becomes a bank customer.
-
-It answers questions such as:
-
-```txt
-- Which onboarding application is active?
-- Has the applicant verified email ownership?
-- Which step is the application currently in?
-- Is the application still valid or expired?
-- Can the applicant continue the process?
-```
-
-The first implemented slice starts an application from an email address, sends a magic link through `notification-service`, and moves the application to `IN_PROGRESS` when the magic link is consumed.
-
-`onboarding-service` does not own final customer records, bank accounts, document file storage, identity links, Keycloak authentication, or email delivery infrastructure.
-
-## Business Principle
-
-The ecosystem should grow by adding services with real banking responsibility, not by creating small CRUD wrappers around tables.
+The ecosystem grows by adding capabilities with real banking responsibility, not by wrapping every table in a separate service. Orchestration does not transfer ownership of the resources being coordinated.

@@ -39,6 +39,6 @@ The service does not own:
 
 ## Current Business Rule
 
-A document upload stores the file in object storage and records metadata with status `STORED`.
+A document upload validates the file boundary, stores content in object storage, and records metadata with status `STORED`.
 
-Review and approval steps belong to onboarding and will be added later as explicit workflow states or tasks.
+`onboarding-service` verifies the stored evidence during automated review. `document-service` never decides the onboarding outcome.

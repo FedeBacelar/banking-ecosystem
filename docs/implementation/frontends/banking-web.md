@@ -41,4 +41,4 @@ npm.cmd test -- --watch=false
 npm.cmd run build
 ```
 
-The proxy routes `/web` to `http://localhost:8085`. The final onboarding and home-banking frontend design is a separate feature built on these contracts.
+The proxy routes `/web` to `http://localhost:8085`. The implemented UI is intentionally limited to contract and end-to-end verification; it is not the final product design.

@@ -50,7 +50,7 @@ Gateway:  http://localhost:8085
 Keycloak: http://localhost:8090
 ```
 
-Production-style model:
+Deployment boundary model:
 
 ```txt
 API:  https://api.bank.example
@@ -113,6 +113,8 @@ Current clients:
 banking-api
 banking-swagger
 home-banking-bff
+onboarding-bff-service
+home-banking-bff-service
 onboarding-orchestrator
 ```
 
@@ -182,9 +184,7 @@ ONBOARDING_READ -> read onboarding application metadata and validate continuatio
 ONBOARDING_WRITE -> start onboarding applications and consume magic links
 ```
 
-The current role model is coarse-grained. The BFF enforces the customer-facing "own data" flow by deriving the `customerId` from the authenticated identity link and not accepting a customer id from the browser.
-
-Future hardening should add ownership checks inside business services too, so direct API access cannot use a customer token to read another customer's data.
+The current role model is coarse-grained. The BFF enforces the customer-facing "own data" flow by deriving the `customerId` from the authenticated identity link and not accepting a customer id from the browser. Business services currently authorize API capabilities by role; they do not independently derive customer ownership from a human subject.
 
 The imported realm intentionally keeps one operational/API admin user and one browser customer user. Extra users for negative authorization tests should be created temporarily when needed.
 
@@ -304,6 +304,8 @@ Information/result page
 Expired login page
 Logout confirmation
 ```
+
+No custom email theme is configured. Identity emails currently use Keycloak's inherited email templates with the configured realm sender.
 
 Public self-registration, public password recovery, and Keycloak remember-me are disabled in the imported realm. In a banking product, those flows should be modeled as controlled customer operations before exposing them from the login screen.
 

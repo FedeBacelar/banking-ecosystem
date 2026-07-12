@@ -1,6 +1,6 @@
 # Local MinIO
 
-Local S3-compatible object storage for banking documents and future file use cases.
+Local S3-compatible object storage behind the generic `document-service` boundary.
 
 The included credentials are development defaults. To override them, create a local `.env` file from `.env.example`. Local `.env` files must not be committed.
 

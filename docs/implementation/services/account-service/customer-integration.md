@@ -24,11 +24,9 @@ The current implementation forwards the incoming `Authorization` header to the F
 client -> api-gateway -> account-service -> customer-service
 ```
 
-This keeps the customer lookup authenticated after business services started validating JWT access tokens directly.
+This keeps the customer lookup authenticated after business services started validating JWT access tokens directly. The caller token is therefore used transitively for the customer lookup.
 
-For the current local setup, account opening requires a token that can write accounts and read the referenced customer. The local `api-tester` user satisfies this because it has all current API roles.
-
-A production-grade evolution would use service-to-service credentials or token exchange for this internal customer lookup.
+For the current local setup, account opening requires a token that can write accounts and read the referenced customer. The local `banking-admin` user satisfies this because it has all current API roles.
 
 ## Why It Exists
 

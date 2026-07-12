@@ -44,7 +44,7 @@ application/
 
 Use cases are grouped by business capability.
 
-Ports are currently kept flat under `in` and `out` to match both implemented services. If they grow too much, both services should be reorganized together.
+Ports are kept under `in` and `out`; larger services group use cases by business capability without changing the dependency direction.
 
 ## Infrastructure
 

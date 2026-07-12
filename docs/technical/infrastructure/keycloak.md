@@ -12,7 +12,8 @@ Keycloak provides:
 - OAuth2/OpenID Connect token issuance.
 - Client registration.
 - Role and permission management.
-- Future identity federation, such as Google login.
+- Browser required actions for onboarding credential setup.
+- A custom banking login theme for the customer-facing identity surface.
 
 ## Current Status
 
@@ -49,14 +50,14 @@ Keycloak is exposed through its own auth endpoint.
 
 It is not routed as a business API through `api-gateway`.
 
-Recommended production-style endpoints:
+Deployment boundary:
 
 ```txt
 https://api.bank.example  -> api-gateway
 https://auth.bank.example -> Keycloak
 ```
 
-This separation keeps banking API routing and identity-provider routing independent.
+This documents the same separation already used locally between ports `8085` and `8090`: banking API routing and identity-provider routing remain independent.
 
 Keycloak owns OAuth2/OpenID Connect endpoints such as authorization, token exchange, logout, discovery metadata, and public keys.
 

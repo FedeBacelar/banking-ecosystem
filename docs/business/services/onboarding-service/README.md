@@ -23,10 +23,11 @@ SUBMITTED -> UNDER_AUTOMATED_REVIEW
 UNDER_AUTOMATED_REVIEW -> APPROVED | REJECTED | REVIEW_FAILED
 APPROVED -> PROVISIONING
 PROVISIONING -> CREDENTIAL_SETUP_PENDING | PROVISIONING_FAILED
-CREDENTIAL_SETUP_PENDING -> COMPLETED
+CREDENTIAL_SETUP_PENDING -> COMPLETED | CREDENTIAL_SETUP_EXPIRED | CREDENTIAL_SETUP_FAILED
+EMAIL_VERIFICATION_PENDING | IN_PROGRESS | SUBMITTED | UNDER_AUTOMATED_REVIEW -> EXPIRED
 ```
 
-`REVIEW_FAILED` and `PROVISIONING_FAILED` represent technical failures, not commercial rejection. They can be retried through protected operational endpoints after correcting the cause.
+`REVIEW_FAILED`, `PROVISIONING_FAILED`, and `CREDENTIAL_SETUP_FAILED` represent technical failures, not commercial rejection. Review and provisioning failures have protected operational retry endpoints. Credential setup expiration and failure are terminal in the current applicant-facing contract.
 
 ## Review Model
 
