@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -45,13 +46,15 @@ public class DocumentController {
     @PostMapping(consumes = "multipart/form-data")
     @ResponseStatus(HttpStatus.CREATED)
     public DocumentResponse upload(
+            @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 200) String idempotencyKey,
+            @RequestHeader("X-Content-SHA256") @NotBlank @Pattern(regexp = "^[a-f0-9]{64}$") String contentSha256,
             @RequestParam @NotBlank @Size(max = 80) @Pattern(regexp = "^[A-Z_]+$") String businessContext,
             @RequestParam @NotBlank @Size(max = 120) String businessReferenceId,
             @RequestParam @NotNull DocumentCategory category,
             @RequestParam @NotNull MultipartFile file
     ) {
         return mapper.toResponse(uploadDocumentUseCase.upload(
-                mapper.toCommand(businessContext, businessReferenceId, category, file)
+                mapper.toCommand(idempotencyKey, contentSha256, businessContext, businessReferenceId, category, file)
         ));
     }
 

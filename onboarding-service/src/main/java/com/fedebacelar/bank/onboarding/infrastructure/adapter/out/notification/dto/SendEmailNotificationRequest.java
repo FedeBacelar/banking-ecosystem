@@ -6,6 +6,7 @@ public record SendEmailNotificationRequest(
         String recipient,
         String templateCode,
         Map<String, String> variables,
-        String correlationId
+        String correlationId,
+        boolean sensitive
 ) {
 }

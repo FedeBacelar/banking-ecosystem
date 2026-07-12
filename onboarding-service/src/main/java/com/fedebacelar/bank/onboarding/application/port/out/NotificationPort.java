@@ -5,5 +5,11 @@ import java.util.UUID;
 
 public interface NotificationPort {
 
-    void sendMagicLink(UUID applicationId, String recipient, String magicLink, Duration expiresIn);
+    void sendMagicLink(
+            UUID deliveryId,
+            UUID applicationId,
+            String recipient,
+            String magicLink,
+            Duration expiresIn
+    );
 }

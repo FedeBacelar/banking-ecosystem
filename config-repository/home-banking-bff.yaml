@@ -5,6 +5,10 @@ server:
   forward-headers-strategy: framework
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: ${HOME_BANKING_BFF_MAX_FILE_SIZE:10MB}
+      max-request-size: ${HOME_BANKING_BFF_MAX_REQUEST_SIZE:21MB}
   security:
     oauth2:
       client:
@@ -18,13 +22,16 @@ spring:
               - openid
               - profile
               - email
-          keycloak-service:
+          onboarding-service:
             provider: keycloak
-            client-id: ${HOME_BANKING_BFF_INTERNAL_OAUTH_CLIENT_ID:home-banking-bff}
-            client-secret: ${HOME_BANKING_BFF_INTERNAL_OAUTH_CLIENT_SECRET:local-bff-secret}
+            client-id: ${ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_ID:onboarding-bff-service}
+            client-secret: ${ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET:local-onboarding-bff-secret}
             authorization-grant-type: client_credentials
-            scope:
-              - openid
+          home-banking-service:
+            provider: keycloak
+            client-id: ${HOME_BANKING_INTERNAL_OAUTH_CLIENT_ID:home-banking-bff-service}
+            client-secret: ${HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET:local-home-banking-service-secret}
+            authorization-grant-type: client_credentials
         provider:
           keycloak:
             issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/banking-ecosystem}
@@ -35,6 +42,12 @@ spring:
       secure: ${HOME_BANKING_BFF_COOKIE_SECURE:false}
 
 home-banking-bff:
+  frontend:
+    home-url: ${HOME_BANKING_FRONTEND_HOME_URL:http://localhost:4200}
+    logout-url: ${HOME_BANKING_FRONTEND_LOGOUT_URL:http://localhost:4200}
+  http:
+    connect-timeout: ${HOME_BANKING_BFF_CONNECT_TIMEOUT:PT3S}
+    response-timeout: ${HOME_BANKING_BFF_RESPONSE_TIMEOUT:PT30S}
   onboarding:
     cookie:
       secure: "${HOME_BANKING_BFF_ONBOARDING_COOKIE_SECURE:${HOME_BANKING_BFF_COOKIE_SECURE:false}}"

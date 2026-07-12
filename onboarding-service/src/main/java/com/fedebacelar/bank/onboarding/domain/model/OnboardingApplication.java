@@ -34,13 +34,24 @@ public record OnboardingApplication(
     private static final Map<OnboardingApplicationStatus, Set<OnboardingApplicationStatus>> ALLOWED_TRANSITIONS = Map.ofEntries(
             Map.entry(OnboardingApplicationStatus.EMAIL_VERIFICATION_PENDING, EnumSet.of(OnboardingApplicationStatus.IN_PROGRESS, OnboardingApplicationStatus.EXPIRED)),
             Map.entry(OnboardingApplicationStatus.IN_PROGRESS, EnumSet.of(OnboardingApplicationStatus.SUBMITTED, OnboardingApplicationStatus.EXPIRED, OnboardingApplicationStatus.CANCELLED)),
-            Map.entry(OnboardingApplicationStatus.SUBMITTED, EnumSet.of(OnboardingApplicationStatus.UNDER_AUTOMATED_REVIEW, OnboardingApplicationStatus.EXPIRED)),
+            Map.entry(OnboardingApplicationStatus.SUBMITTED, EnumSet.of(
+                    OnboardingApplicationStatus.UNDER_AUTOMATED_REVIEW,
+                    OnboardingApplicationStatus.REVIEW_FAILED,
+                    OnboardingApplicationStatus.EXPIRED
+            )),
             Map.entry(OnboardingApplicationStatus.UNDER_AUTOMATED_REVIEW, EnumSet.of(OnboardingApplicationStatus.APPROVED, OnboardingApplicationStatus.REJECTED, OnboardingApplicationStatus.REVIEW_FAILED, OnboardingApplicationStatus.EXPIRED)),
             Map.entry(OnboardingApplicationStatus.REVIEW_FAILED, EnumSet.of(OnboardingApplicationStatus.UNDER_AUTOMATED_REVIEW, OnboardingApplicationStatus.EXPIRED)),
-            Map.entry(OnboardingApplicationStatus.APPROVED, EnumSet.of(OnboardingApplicationStatus.PROVISIONING)),
+            Map.entry(OnboardingApplicationStatus.APPROVED, EnumSet.of(
+                    OnboardingApplicationStatus.PROVISIONING,
+                    OnboardingApplicationStatus.PROVISIONING_FAILED
+            )),
             Map.entry(OnboardingApplicationStatus.PROVISIONING, EnumSet.of(OnboardingApplicationStatus.CREDENTIAL_SETUP_PENDING, OnboardingApplicationStatus.PROVISIONING_FAILED)),
             Map.entry(OnboardingApplicationStatus.PROVISIONING_FAILED, EnumSet.of(OnboardingApplicationStatus.PROVISIONING)),
-            Map.entry(OnboardingApplicationStatus.CREDENTIAL_SETUP_PENDING, EnumSet.of(OnboardingApplicationStatus.COMPLETED))
+            Map.entry(OnboardingApplicationStatus.CREDENTIAL_SETUP_PENDING, EnumSet.of(
+                    OnboardingApplicationStatus.COMPLETED,
+                    OnboardingApplicationStatus.CREDENTIAL_SETUP_EXPIRED,
+                    OnboardingApplicationStatus.CREDENTIAL_SETUP_FAILED
+            ))
     );
 
     public OnboardingApplication(
@@ -105,7 +116,7 @@ public record OnboardingApplication(
     }
 
     public OnboardingApplication refreshAccessLink(String newTokenHash, Instant newExpiresAt, Instant now) {
-        if (!activeForDuplicateCheck()) {
+        if (!allowsApplicantAccessRecovery()) {
             throw new InvalidOnboardingStatusTransitionException(status, OnboardingApplicationStatus.IN_PROGRESS);
         }
         return copy(status, newTokenHash, newExpiresAt, null, emailVerifiedAt,
@@ -113,7 +124,7 @@ public record OnboardingApplication(
     }
 
     public OnboardingApplication renewContinuation(String newTokenHash, Instant newExpiresAt, Instant now) {
-        if (!activeForDuplicateCheck()) {
+        if (!allowsApplicantAccessRecovery()) {
             throw new InvalidOnboardingStatusTransitionException(status, OnboardingApplicationStatus.IN_PROGRESS);
         }
         return copy(status, magicLinkTokenHash, magicLinkExpiresAt, now, emailVerifiedAt,
@@ -180,6 +191,16 @@ public record OnboardingApplication(
         return withStatus(OnboardingApplicationStatus.COMPLETED, now, submittedAt, decidedAt);
     }
 
+    public OnboardingApplication expireCredentialSetup(Instant now) {
+        assertTransition(OnboardingApplicationStatus.CREDENTIAL_SETUP_EXPIRED);
+        return withStatus(OnboardingApplicationStatus.CREDENTIAL_SETUP_EXPIRED, now, submittedAt, decidedAt);
+    }
+
+    public OnboardingApplication failCredentialSetup(Instant now) {
+        assertTransition(OnboardingApplicationStatus.CREDENTIAL_SETUP_FAILED);
+        return withStatus(OnboardingApplicationStatus.CREDENTIAL_SETUP_FAILED, now, submittedAt, decidedAt);
+    }
+
     public boolean magicLinkConsumed() {
         return magicLinkConsumedAt != null;
     }
@@ -192,9 +213,17 @@ public record OnboardingApplication(
         return continuationExpiresAt == null || !continuationExpiresAt.isAfter(now);
     }
 
-    public boolean activeForDuplicateCheck() {
-        return !EnumSet.of(OnboardingApplicationStatus.COMPLETED, OnboardingApplicationStatus.REJECTED,
-                OnboardingApplicationStatus.EXPIRED, OnboardingApplicationStatus.CANCELLED).contains(status);
+    public boolean hasBeenSubmitted() {
+        return submittedAt != null;
+    }
+
+    public boolean allowsApplicantAccessRecovery() {
+        return status.allowsApplicantAccessRecovery();
+    }
+
+    public boolean canExpire() {
+        return ALLOWED_TRANSITIONS.getOrDefault(status, Set.of())
+                .contains(OnboardingApplicationStatus.EXPIRED);
     }
 
     private OnboardingApplication withStatus(

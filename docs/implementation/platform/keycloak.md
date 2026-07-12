@@ -222,33 +222,41 @@ http://localhost:8085/web/login/oauth2/code/keycloak
 Local post logout redirect URLs:
 
 ```txt
-http://localhost:8085/web/session
+http://localhost:4200/*
 ```
 
 The browser-facing local flow must use the gateway URL on port `8085`. Direct BFF URLs on port `8086` are only for diagnostics and should not be registered as the normal browser callback.
 
 The local secret in the realm import is only a development default. Real secrets must come from environment variables or a secrets manager.
 
-The same confidential BFF client has service accounts enabled for backend-to-backend onboarding calls.
-
-Current service account roles:
+The interactive `home-banking-bff` client has service accounts disabled. Machine access is separated into confidential clients:
 
 ```txt
-DOCUMENT_READ
-DOCUMENT_WRITE
-NOTIFICATION_WRITE
-ONBOARDING_READ
-ONBOARDING_WRITE
+onboarding-bff-service   -> ONBOARDING_READ, ONBOARDING_WRITE
+home-banking-bff-service -> IDENTITY_READ, CUSTOMER_READ, ACCOUNT_READ
 ```
 
-`NOTIFICATION_WRITE` is needed because the current `onboarding-service` magic-link flow requests email delivery through `notification-service`.
-`DOCUMENT_WRITE` is needed because the current BFF applicant-data flow uploads DNI evidence through `document-service`.
+The browser never uses these clients and the BFF never forwards the user's OIDC access token into the service graph.
 
-This is not a human test user and should not be used for browser login.
+The onboarding facade does not call document or notification services. It sends one composite submission to `onboarding-service`, which owns that orchestration.
 
 ## Onboarding Orchestrator Client
 
-`onboarding-orchestrator` is a dedicated client-credentials client used only by `onboarding-service`. It has the minimum customer, account, identity, document, notification, and Keycloak user-administration roles needed by the process manager. It is not a shared human user and is never used by the browser.
+`onboarding-orchestrator` is a dedicated client-credentials client used only by `onboarding-service`. Its current realm roles are:
+
+```txt
+CUSTOMER_READ
+CUSTOMER_WRITE
+ACCOUNT_READ
+ACCOUNT_WRITE
+IDENTITY_READ
+IDENTITY_WRITE
+DOCUMENT_READ
+DOCUMENT_WRITE
+NOTIFICATION_WRITE
+```
+
+It also receives only the Keycloak realm-management roles required to query and manage onboarding users. It is not a shared human user.
 
 ## Credential Setup
 

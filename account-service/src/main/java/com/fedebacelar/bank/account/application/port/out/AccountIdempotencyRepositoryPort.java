@@ -1,9 +1,9 @@
 package com.fedebacelar.bank.account.application.port.out;
 
 import com.fedebacelar.bank.account.application.model.IdempotencyRecord;
-import java.util.Optional;
+import java.time.Instant;
 
 public interface AccountIdempotencyRepositoryPort {
-    Optional<IdempotencyRecord> findByKey(String key);
+    IdempotencyRecord acquire(String key, String requestHash, Instant now);
     IdempotencyRecord save(IdempotencyRecord record);
 }

@@ -3,7 +3,6 @@ package com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fedebacelar.bank.homebanking.bff.application.exception.IdentityNotLinkedException;
-import com.fedebacelar.bank.homebanking.bff.application.exception.InvalidOnboardingDocumentException;
 import com.fedebacelar.bank.homebanking.bff.application.exception.OnboardingSessionRequiredException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -27,6 +26,7 @@ public class HomeBankingExceptionHandler {
             "ONBOARDING_CONTINUATION_EXPIRED", HttpStatus.UNAUTHORIZED,
             "ONBOARDING_MAGIC_LINK_ALREADY_CONSUMED", HttpStatus.CONFLICT,
             "ONBOARDING_INCOMPLETE", HttpStatus.UNPROCESSABLE_ENTITY,
+            "ONBOARDING_DOCUMENT_UPLOAD_UNAVAILABLE", HttpStatus.SERVICE_UNAVAILABLE,
             "CREDENTIAL_INVITATION_COOLDOWN", HttpStatus.TOO_MANY_REQUESTS
     );
 
@@ -45,15 +45,6 @@ public class HomeBankingExceptionHandler {
         problem.setTitle("Onboarding session required");
         problem.setDetail("You need a valid onboarding session to continue.");
         problem.setProperty("code", "ONBOARDING_SESSION_REQUIRED");
-        return problem;
-    }
-
-    @ExceptionHandler(InvalidOnboardingDocumentException.class)
-    ProblemDetail handleInvalidOnboardingDocument(InvalidOnboardingDocumentException exception) {
-        ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
-        problem.setTitle("Invalid onboarding document");
-        problem.setDetail("The uploaded document cannot be accepted.");
-        problem.setProperty("code", "INVALID_ONBOARDING_DOCUMENT");
         return problem;
     }
 

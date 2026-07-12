@@ -15,12 +15,12 @@ class InMemoryTemplateRendererAdapterTest {
     @Test
     void rendersMagicLinkTemplate() {
         var rendered = renderer.render(NotificationTemplateCode.ONBOARDING_EMAIL_MAGIC_LINK, Map.of(
-                "magicLink", "http://localhost:4200/onboarding/continue?token=abc",
+                "magicLink", "http://localhost:4200/onboarding/continue#token=abc",
                 "expiresInMinutes", "30"
         ));
 
         assertThat(rendered.subject()).contains("Nerva Banking");
-        assertThat(rendered.body()).contains("http://localhost:4200/onboarding/continue?token=abc");
+        assertThat(rendered.body()).contains("http://localhost:4200/onboarding/continue#token=abc");
         assertThat(rendered.body()).contains("30");
     }
 

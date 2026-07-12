@@ -1,68 +1,42 @@
 # banking-web
 
-Angular frontend for Nerva Banking.
+Angular verification client for Nerva Banking. The current UI proves the onboarding contracts; it is not the final guided banking frontend and may be replaced.
 
-The first implemented slice supports the public digital onboarding entry flow.
-
-## Current Scope
-
-Implemented:
+## Demo Flow
 
 ```txt
 /onboarding/start
 /onboarding/check-email
-/onboarding/continue?token=...
-/onboarding/session
+/onboarding/continue#token=...
+/onboarding/applicant-data
+/onboarding/status
+/onboarding/credentials-complete
 ```
 
-The app calls only the BFF through `/web/onboarding/**`.
+Browser calls are limited to relative `/web/**` URLs, which the development proxy sends to `api-gateway`.
 
-It does not call internal business services directly and does not store access tokens in browser storage.
+The demo performs:
 
-## Development server
+1. one request to start with an email;
+2. one request to exchange the magic link;
+3. one multipart request to submit data, terms, and both DNI files;
+4. status reads while the asynchronous backend process advances.
 
-From this folder:
+It never calls an internal service, stores an access token, requests session metadata, or explicitly fetches CSRF. Angular's HTTP integration sends the XSRF header automatically after the BFF creates the cookie.
+
+## Development
 
 ```powershell
-npm start
+npm.cmd start
 ```
 
-Open:
+Open `http://localhost:4200/onboarding/start`. The proxy maps `/web` to `http://localhost:8085`.
 
-```txt
-http://localhost:4200/onboarding/start
-```
+Real email requires the notification SMTP environment and the onboarding infrastructure to be running.
 
-The local dev server proxies:
-
-```txt
-/web -> http://localhost:8085
-```
-
-## Required Backend
-
-For the full email flow, run:
-
-```txt
-config-server
-eureka-server
-api-gateway
-keycloak
-notification-service
-onboarding-service
-home-banking-bff
-```
-
-`notification-service` must have SMTP environment variables configured to send real email.
-
-## Build
+## Verification
 
 ```powershell
-npm run build
-```
-
-## Tests
-
-```powershell
-npm test -- --watch=false
+npm.cmd test -- --watch=false
+npm.cmd run build
 ```

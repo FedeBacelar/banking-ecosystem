@@ -107,12 +107,15 @@ Example body:
   "recipient": "person@example.com",
   "templateCode": "ONBOARDING_EMAIL_MAGIC_LINK",
   "variables": {
-    "magicLink": "http://localhost:4200/onboarding/continue?token=abc",
+    "magicLink": "http://localhost:4200/onboarding/continue#token=abc",
     "expiresInMinutes": "30"
   },
-  "correlationId": "onboarding-application-id"
+  "correlationId": "onboarding-delivery-id",
+  "sensitive": true
 }
 ```
+
+Sensitive messages are rendered in memory for SMTP, while persisted variables and body are redacted. `(templateCode, correlationId)` is idempotent.
 
 ## Tests
 

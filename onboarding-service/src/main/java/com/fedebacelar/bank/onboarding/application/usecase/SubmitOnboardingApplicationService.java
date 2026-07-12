@@ -1,133 +1,113 @@
 package com.fedebacelar.bank.onboarding.application.usecase;
 
+import com.fedebacelar.bank.onboarding.application.command.OnboardingDocumentUpload;
 import com.fedebacelar.bank.onboarding.application.command.SubmitOnboardingCommand;
 import com.fedebacelar.bank.onboarding.application.port.in.SubmitOnboardingUseCase;
-import com.fedebacelar.bank.onboarding.application.port.out.OnboardingApplicantDataRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingApplicationRepositoryPort;
-import com.fedebacelar.bank.onboarding.application.port.out.OnboardingDocumentReferenceRepositoryPort;
-import com.fedebacelar.bank.onboarding.application.port.out.OnboardingStatusHistoryRepositoryPort;
-import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTermsAcceptanceRepositoryPort;
-import com.fedebacelar.bank.onboarding.application.port.out.OnboardingWorkItemRepositoryPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingDocumentUploadPort;
 import com.fedebacelar.bank.onboarding.application.port.out.TokenHashingPort;
 import com.fedebacelar.bank.onboarding.application.view.OnboardingSubmissionDetails;
-import com.fedebacelar.bank.onboarding.domain.enums.OnboardingActorType;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingApplicationStatus;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingDocumentCategory;
-import com.fedebacelar.bank.onboarding.domain.enums.WorkflowJobType;
 import com.fedebacelar.bank.onboarding.domain.exception.InvalidContinuationTokenException;
 import com.fedebacelar.bank.onboarding.domain.exception.InvalidOnboardingStatusTransitionException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingContinuationExpiredException;
-import com.fedebacelar.bank.onboarding.domain.exception.OnboardingIncompleteException;
+import com.fedebacelar.bank.onboarding.domain.exception.OnboardingDocumentUploadException;
+import com.fedebacelar.bank.onboarding.domain.exception.TermsAcceptanceRequiredException;
 import com.fedebacelar.bank.onboarding.domain.model.OnboardingApplication;
-import com.fedebacelar.bank.onboarding.domain.model.OnboardingStatusHistory;
-import com.fedebacelar.bank.onboarding.domain.model.OnboardingWorkItem;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.LinkedHashSet;
-import java.util.Set;
-import org.springframework.beans.factory.annotation.Value;
+import java.util.HexFormat;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SubmitOnboardingApplicationService implements SubmitOnboardingUseCase {
-    private static final Set<OnboardingApplicationStatus> ALREADY_SUBMITTED = Set.of(
-            OnboardingApplicationStatus.SUBMITTED,
-            OnboardingApplicationStatus.UNDER_AUTOMATED_REVIEW,
-            OnboardingApplicationStatus.REVIEW_FAILED,
-            OnboardingApplicationStatus.APPROVED,
-            OnboardingApplicationStatus.REJECTED,
-            OnboardingApplicationStatus.PROVISIONING,
-            OnboardingApplicationStatus.PROVISIONING_FAILED,
-            OnboardingApplicationStatus.CREDENTIAL_SETUP_PENDING,
-            OnboardingApplicationStatus.COMPLETED
-    );
 
     private final OnboardingApplicationRepositoryPort applicationRepository;
-    private final OnboardingApplicantDataRepositoryPort applicantDataRepository;
-    private final OnboardingDocumentReferenceRepositoryPort documentRepository;
-    private final OnboardingTermsAcceptanceRepositoryPort termsRepository;
-    private final OnboardingStatusHistoryRepositoryPort statusHistoryRepository;
-    private final OnboardingWorkItemRepositoryPort workItemRepository;
+    private final OnboardingDocumentUploadPort documentUploadPort;
+    private final OnboardingSubmissionFinalizer submissionFinalizer;
     private final TokenHashingPort tokenHashingPort;
     private final Clock clock;
-    private final String requiredTermsVersion;
 
     public SubmitOnboardingApplicationService(
             OnboardingApplicationRepositoryPort applicationRepository,
-            OnboardingApplicantDataRepositoryPort applicantDataRepository,
-            OnboardingDocumentReferenceRepositoryPort documentRepository,
-            OnboardingTermsAcceptanceRepositoryPort termsRepository,
-            OnboardingStatusHistoryRepositoryPort statusHistoryRepository,
-            OnboardingWorkItemRepositoryPort workItemRepository,
+            OnboardingDocumentUploadPort documentUploadPort,
+            OnboardingSubmissionFinalizer submissionFinalizer,
             TokenHashingPort tokenHashingPort,
-            Clock clock,
-            @Value("${onboarding.review.required-terms-version:ONBOARDING_TERMS_AR_V1}") String requiredTermsVersion
+            Clock clock
     ) {
         this.applicationRepository = applicationRepository;
-        this.applicantDataRepository = applicantDataRepository;
-        this.documentRepository = documentRepository;
-        this.termsRepository = termsRepository;
-        this.statusHistoryRepository = statusHistoryRepository;
-        this.workItemRepository = workItemRepository;
+        this.documentUploadPort = documentUploadPort;
+        this.submissionFinalizer = submissionFinalizer;
         this.tokenHashingPort = tokenHashingPort;
         this.clock = clock;
-        this.requiredTermsVersion = requiredTermsVersion;
     }
 
     @Override
-    @Transactional
     public OnboardingSubmissionDetails submit(SubmitOnboardingCommand command) {
         Instant now = Instant.now(clock);
         OnboardingApplication application = applicationRepository
                 .findByContinuationTokenHash(tokenHashingPort.hash(command.continuationToken()))
                 .orElseThrow(InvalidContinuationTokenException::new);
 
-        if (application.continuationExpired(now)) {
-            throw new OnboardingContinuationExpiredException();
-        }
-        if (ALREADY_SUBMITTED.contains(application.status())) {
+        validateAccess(application, now);
+        if (application.hasBeenSubmitted()) {
             return details(application);
         }
-        if (application.status() != OnboardingApplicationStatus.IN_PROGRESS) {
-            throw new InvalidOnboardingStatusTransitionException(application.status(), OnboardingApplicationStatus.SUBMITTED);
-        }
+        validateNewSubmission(application, command);
 
-        Set<String> missingSections = missingSections(application);
-        if (!missingSections.isEmpty()) {
-            throw new OnboardingIncompleteException(missingSections);
-        }
+        String frontHash = sha256(command.dniFront());
+        String backHash = sha256(command.dniBack());
+        var frontId = documentUploadPort.upload(
+                application.id(), OnboardingDocumentCategory.DNI_FRONT, command.dniFront(), frontHash
+        );
+        var backId = documentUploadPort.upload(
+                application.id(), OnboardingDocumentCategory.DNI_BACK, command.dniBack(), backHash
+        );
 
-        OnboardingApplication submitted = applicationRepository.save(application.submit(now));
-        statusHistoryRepository.save(OnboardingStatusHistory.transition(
-                application.id(), application.status(), submitted.status(), "APPLICATION_SUBMITTED",
-                OnboardingActorType.APPLICANT_SESSION, now
-        ));
-        workItemRepository.findByApplicationIdAndJobType(application.id(), WorkflowJobType.AUTO_REVIEW)
-                .orElseGet(() -> workItemRepository.save(OnboardingWorkItem.pending(application.id(), WorkflowJobType.AUTO_REVIEW, now)));
-        return details(submitted);
+        return submissionFinalizer.complete(command, frontId, backId);
     }
 
-    private Set<String> missingSections(OnboardingApplication application) {
-        Set<String> missing = new LinkedHashSet<>();
-        if (applicantDataRepository.findByApplicationId(application.id()).isEmpty()) {
-            missing.add("APPLICANT_DATA");
+    private void validateAccess(OnboardingApplication application, Instant now) {
+        if (application.continuationExpired(now) || !now.isBefore(application.expiresAt())) {
+            throw new OnboardingContinuationExpiredException();
         }
-        if (documentRepository.findByApplicationIdAndCategory(application.id(), OnboardingDocumentCategory.DNI_FRONT).isEmpty()) {
-            missing.add("DNI_FRONT");
+    }
+
+    private void validateNewSubmission(OnboardingApplication application, SubmitOnboardingCommand command) {
+        if (application.status() != OnboardingApplicationStatus.IN_PROGRESS) {
+            throw new InvalidOnboardingStatusTransitionException(
+                    application.status(), OnboardingApplicationStatus.SUBMITTED
+            );
         }
-        if (documentRepository.findByApplicationIdAndCategory(application.id(), OnboardingDocumentCategory.DNI_BACK).isEmpty()) {
-            missing.add("DNI_BACK");
+        if (!command.termsAccepted()) {
+            throw new TermsAcceptanceRequiredException();
         }
-        if (termsRepository.findByApplicationId(application.id())
-                .filter(terms -> requiredTermsVersion.equals(terms.termsVersion()))
-                .isEmpty()) {
-            missing.add("TERMS");
+    }
+
+    private String sha256(OnboardingDocumentUpload document) {
+        try (InputStream input = document.openStream()) {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = input.read(buffer)) >= 0) {
+                if (read > 0) {
+                    digest.update(buffer, 0, read);
+                }
+            }
+            return HexFormat.of().formatHex(digest.digest());
+        } catch (IOException | NoSuchAlgorithmException exception) {
+            throw new OnboardingDocumentUploadException("Could not hash onboarding document.", exception);
         }
-        return missing;
     }
 
     private OnboardingSubmissionDetails details(OnboardingApplication application) {
-        return new OnboardingSubmissionDetails(application.id(), application.status(), application.submittedAt(), application.updatedAt());
+        return new OnboardingSubmissionDetails(
+                application.id(), application.status(), application.submittedAt(), application.updatedAt()
+        );
     }
 }

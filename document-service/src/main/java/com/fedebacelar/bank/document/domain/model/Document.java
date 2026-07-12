@@ -8,6 +8,8 @@ import java.util.UUID;
 
 public record Document(
         UUID id,
+        String idempotencyKey,
+        String contentSha256,
         String businessContext,
         String businessReferenceId,
         DocumentCategory category,
@@ -23,20 +25,53 @@ public record Document(
         long version
 ) {
 
-    public static Document createStored(
+    public static Document pending(
+            UUID id,
+            String idempotencyKey,
+            String contentSha256,
             String businessContext,
             String businessReferenceId,
             DocumentCategory category,
             String originalFilename,
             String contentType,
             long sizeBytes,
-            DocumentStorageProvider storageProvider,
             String bucketName,
             String objectKey,
             Instant now
     ) {
         return new Document(
-                UUID.randomUUID(),
+                id,
+                idempotencyKey,
+                contentSha256,
+                businessContext,
+                businessReferenceId,
+                category,
+                originalFilename,
+                contentType,
+                sizeBytes,
+                DocumentStorageProvider.MINIO,
+                bucketName,
+                objectKey,
+                DocumentStatus.PENDING,
+                now,
+                now,
+                0L
+        );
+    }
+
+    public Document markStored(Instant now) {
+        return withStatus(DocumentStatus.STORED, now);
+    }
+
+    public Document markFailed(Instant now) {
+        return withStatus(DocumentStatus.FAILED, now);
+    }
+
+    private Document withStatus(DocumentStatus nextStatus, Instant now) {
+        return new Document(
+                id,
+                idempotencyKey,
+                contentSha256,
                 businessContext,
                 businessReferenceId,
                 category,
@@ -46,11 +81,10 @@ public record Document(
                 storageProvider,
                 bucketName,
                 objectKey,
-                DocumentStatus.STORED,
+                nextStatus,
+                createdAt,
                 now,
-                now,
-                0L
+                version
         );
     }
 }
-

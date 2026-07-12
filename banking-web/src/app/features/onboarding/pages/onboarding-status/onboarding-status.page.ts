@@ -1,7 +1,6 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize, switchMap, timer } from 'rxjs';
+import { finalize } from 'rxjs';
 
 import { OnboardingApiService } from '../../../../core/api/onboarding-api.service';
 import { OnboardingShellComponent } from '../../../../shared/ui/onboarding-shell/onboarding-shell.component';
@@ -15,15 +14,20 @@ import { httpErrorMessage } from '../../utils/http-error-message';
 })
 export class OnboardingStatusPage {
   private readonly api = inject(OnboardingApiService);
-  private readonly destroyRef = inject(DestroyRef);
   readonly status = signal<OnboardingStatus | null>(null);
   readonly errorMessage = signal<string | null>(null);
+  readonly isLoading = signal(false);
   readonly isResending = signal(false);
 
   constructor() {
-    timer(0, 3000).pipe(
-      switchMap(() => this.api.getStatus()),
-      takeUntilDestroyed(this.destroyRef)
+    this.loadStatus();
+  }
+
+  loadStatus(): void {
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+    this.api.getStatus().pipe(
+      finalize(() => this.isLoading.set(false))
     ).subscribe({
       next: (status) => this.status.set(status),
       error: (error: unknown) => this.errorMessage.set(httpErrorMessage(error))

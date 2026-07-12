@@ -3,10 +3,8 @@ package com.fedebacelar.bank.document.infrastructure.adapter.in.web.mapper;
 import com.fedebacelar.bank.document.application.command.UploadDocumentCommand;
 import com.fedebacelar.bank.document.application.view.DocumentDetails;
 import com.fedebacelar.bank.document.domain.enums.DocumentCategory;
-import com.fedebacelar.bank.document.domain.exception.DocumentStorageException;
 import com.fedebacelar.bank.document.domain.model.DocumentFile;
 import com.fedebacelar.bank.document.infrastructure.adapter.in.web.dto.DocumentResponse;
-import java.io.IOException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -14,12 +12,16 @@ import org.springframework.web.multipart.MultipartFile;
 public class DocumentWebMapper {
 
     public UploadDocumentCommand toCommand(
+            String idempotencyKey,
+            String contentSha256,
             String businessContext,
             String businessReferenceId,
             DocumentCategory category,
             MultipartFile file
     ) {
         return new UploadDocumentCommand(
+                idempotencyKey,
+                contentSha256,
                 businessContext,
                 businessReferenceId,
                 category,
@@ -46,16 +48,12 @@ public class DocumentWebMapper {
     }
 
     private DocumentFile toDocumentFile(MultipartFile file) {
-        try {
-            return new DocumentFile(
-                    file.getInputStream(),
-                    file.getSize(),
-                    file.getContentType(),
-                    originalFilename(file)
-            );
-        } catch (IOException exception) {
-            throw new DocumentStorageException("Could not read uploaded document file", exception);
-        }
+        return new DocumentFile(
+                file::getInputStream,
+                file.getSize(),
+                file.getContentType(),
+                originalFilename(file)
+        );
     }
 
     private String originalFilename(MultipartFile file) {

@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 
 class MinioObjectStorageAdapterTest {
 
@@ -21,11 +22,21 @@ class MinioObjectStorageAdapterTest {
     private final MinioObjectStorageAdapter adapter = new MinioObjectStorageAdapter(s3Client, "banking-documents");
 
     @Test
-    void storesFileInConfiguredBucket() {
+    void storesFileInConfiguredBucket() throws Exception {
+        when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class))).thenAnswer(invocation -> {
+            RequestBody body = invocation.getArgument(1);
+            try (var content = body.contentStreamProvider().newStream()) {
+                content.readAllBytes();
+            }
+            return PutObjectResponse.builder().build();
+        });
+
         var storedObject = adapter.store("onboarding/application-1/DNI_FRONT/document-id", file());
 
         assertThat(storedObject.bucketName()).isEqualTo("banking-documents");
         assertThat(storedObject.objectKey()).isEqualTo("onboarding/application-1/DNI_FRONT/document-id");
+        assertThat(storedObject.contentSha256())
+                .isEqualTo("9f64a747e1b97f131fabb6b447296c9b6f0201e79fb3c5356e6c77e89b6a806a");
         verify(s3Client).putObject(any(PutObjectRequest.class), any(RequestBody.class));
     }
 
@@ -41,7 +52,7 @@ class MinioObjectStorageAdapterTest {
 
     private DocumentFile file() {
         return new DocumentFile(
-                new ByteArrayInputStream(new byte[]{1, 2, 3, 4}),
+                () -> new ByteArrayInputStream(new byte[]{1, 2, 3, 4}),
                 4,
                 "image/jpeg",
                 "dni-front.jpg"

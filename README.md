@@ -206,10 +206,10 @@ cd ..\home-banking-bff
 BFF local path through the gateway:
 
 ```txt
-http://localhost:8085/web/session
+http://localhost:8085/web/me
 ```
 
-Public onboarding contracts, including CSRF, submit, status, and credential invitation resend, are also available only through `http://localhost:8085/web/onboarding/**`.
+Public onboarding contracts, including CSRF-protected submit, status, and credential invitation resend, are available only through `http://localhost:8085/web/onboarding/**`.
 
 Start `api-gateway`:
 

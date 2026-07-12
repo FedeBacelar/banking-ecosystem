@@ -13,10 +13,11 @@ Request:
   "recipient": "person@example.com",
   "templateCode": "ONBOARDING_EMAIL_MAGIC_LINK",
   "variables": {
-    "magicLink": "http://localhost:4200/onboarding/continue?token=abc",
+    "magicLink": "http://localhost:4200/onboarding/continue#token=abc",
     "expiresInMinutes": "30"
   },
-  "correlationId": "onboarding-application-id"
+  "correlationId": "onboarding-delivery-id",
+  "sensitive": true
 }
 ```
 
@@ -45,7 +46,9 @@ Response:
 }
 ```
 
-If delivery fails, the notification is persisted with status `FAILED` and the response includes `lastError`.
+If delivery fails, the notification is persisted with status `FAILED`. `lastError` contains only a sanitized exception type.
+
+For `sensitive=true`, templates are rendered only for the SMTP call. Stored variables are empty and the body is redacted. Repeating the same `(templateCode, correlationId)` returns the existing notification without sending another email.
 
 If a required template variable is missing, the service returns `400`.
 

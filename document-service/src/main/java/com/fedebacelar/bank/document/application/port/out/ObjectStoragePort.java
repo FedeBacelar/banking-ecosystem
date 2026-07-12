@@ -6,9 +6,14 @@ public interface ObjectStoragePort {
 
     StoredObject store(String objectKey, DocumentFile file);
 
+    void delete(String objectKey);
+
+    String bucketName();
+
     record StoredObject(
             String bucketName,
-            String objectKey
+            String objectKey,
+            String contentSha256
     ) {
     }
 }

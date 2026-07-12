@@ -8,6 +8,7 @@ import java.util.UUID;
 
 public record DocumentDetails(
         UUID id,
+        String contentSha256,
         String businessContext,
         String businessReferenceId,
         DocumentCategory category,

@@ -15,8 +15,14 @@ public class IdentityProvisioningAdapter implements IdentityProvisioningPort {
         try {
             return client.create(new CreateIdentityLinkRequest(customerId, "KEYCLOAK", subject)).id();
         } catch (FeignException.Conflict conflict) {
-            ProvisionedIdentityResponse existing = client.getBySubject(subject);
-            if (!customerId.equals(existing.customerId())) {
+            ProvisionedIdentityResponse existing;
+            try {
+                existing = client.getBySubject(subject);
+            } catch (FeignException.NotFound notFound) {
+                conflict.addSuppressed(notFound);
+                throw conflict;
+            }
+            if (existing == null || !customerId.equals(existing.customerId())) {
                 throw conflict;
             }
             return existing.id();

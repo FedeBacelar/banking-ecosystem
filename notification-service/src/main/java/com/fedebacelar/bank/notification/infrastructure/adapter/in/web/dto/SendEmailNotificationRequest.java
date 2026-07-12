@@ -11,7 +11,8 @@ public record SendEmailNotificationRequest(
         @NotBlank @Email @Size(max = 255) String recipient,
         @NotNull NotificationTemplateCode templateCode,
         Map<@NotBlank @Size(max = 80) String, @NotBlank @Size(max = 2000) String> variables,
-        @Size(max = 120) String correlationId
+        @Size(max = 120) String correlationId,
+        boolean sensitive
 ) {
 }
 

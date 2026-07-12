@@ -1,44 +1,37 @@
 package com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web;
 
-import com.fedebacelar.bank.onboarding.application.port.in.AcceptTermsUseCase;
+import com.fedebacelar.bank.onboarding.application.command.SubmitOnboardingCommand;
 import com.fedebacelar.bank.onboarding.application.port.in.ConsumeMagicLinkUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.GetOnboardingApplicationUseCase;
-import com.fedebacelar.bank.onboarding.application.port.in.SaveApplicantDataUseCase;
-import com.fedebacelar.bank.onboarding.application.port.in.SaveDocumentReferenceUseCase;
-import com.fedebacelar.bank.onboarding.application.port.in.StartOnboardingApplicationUseCase;
-import com.fedebacelar.bank.onboarding.application.port.in.SubmitOnboardingUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.ResendCredentialInvitationUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.RetryOnboardingWorkflowUseCase;
-import com.fedebacelar.bank.onboarding.application.command.SubmitOnboardingCommand;
+import com.fedebacelar.bank.onboarding.application.port.in.StartOnboardingApplicationUseCase;
+import com.fedebacelar.bank.onboarding.application.port.in.SubmitOnboardingUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.ValidateContinuationUseCase;
-import com.fedebacelar.bank.onboarding.domain.enums.OnboardingDocumentCategory;
-import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.AcceptTermsRequest;
-import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.ApplicantDataResponse;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.ConsumeMagicLinkRequest;
-import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.DocumentReferenceResponse;
+import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.ContinuationRequest;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.OnboardingApplicationResponse;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.OnboardingContinuationResponse;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.OnboardingSubmissionResponse;
-import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.SaveApplicantDataRequest;
-import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.SaveDocumentReferenceRequest;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.StartOnboardingApplicationRequest;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.SubmitOnboardingRequest;
-import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.TermsAcceptanceResponse;
-import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.ValidateContinuationResponse;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.ValidateContinuationRequest;
+import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.ValidateContinuationResponse;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.mapper.OnboardingWebMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/internal/onboarding")
@@ -47,9 +40,6 @@ public class OnboardingApplicationController {
     private final StartOnboardingApplicationUseCase startOnboardingApplicationUseCase;
     private final ConsumeMagicLinkUseCase consumeMagicLinkUseCase;
     private final ValidateContinuationUseCase validateContinuationUseCase;
-    private final SaveApplicantDataUseCase saveApplicantDataUseCase;
-    private final SaveDocumentReferenceUseCase saveDocumentReferenceUseCase;
-    private final AcceptTermsUseCase acceptTermsUseCase;
     private final GetOnboardingApplicationUseCase getOnboardingApplicationUseCase;
     private final SubmitOnboardingUseCase submitOnboardingUseCase;
     private final ResendCredentialInvitationUseCase resendCredentialInvitationUseCase;
@@ -60,9 +50,6 @@ public class OnboardingApplicationController {
             StartOnboardingApplicationUseCase startOnboardingApplicationUseCase,
             ConsumeMagicLinkUseCase consumeMagicLinkUseCase,
             ValidateContinuationUseCase validateContinuationUseCase,
-            SaveApplicantDataUseCase saveApplicantDataUseCase,
-            SaveDocumentReferenceUseCase saveDocumentReferenceUseCase,
-            AcceptTermsUseCase acceptTermsUseCase,
             GetOnboardingApplicationUseCase getOnboardingApplicationUseCase,
             SubmitOnboardingUseCase submitOnboardingUseCase,
             ResendCredentialInvitationUseCase resendCredentialInvitationUseCase,
@@ -72,9 +59,6 @@ public class OnboardingApplicationController {
         this.startOnboardingApplicationUseCase = startOnboardingApplicationUseCase;
         this.consumeMagicLinkUseCase = consumeMagicLinkUseCase;
         this.validateContinuationUseCase = validateContinuationUseCase;
-        this.saveApplicantDataUseCase = saveApplicantDataUseCase;
-        this.saveDocumentReferenceUseCase = saveDocumentReferenceUseCase;
-        this.acceptTermsUseCase = acceptTermsUseCase;
         this.getOnboardingApplicationUseCase = getOnboardingApplicationUseCase;
         this.submitOnboardingUseCase = submitOnboardingUseCase;
         this.resendCredentialInvitationUseCase = resendCredentialInvitationUseCase;
@@ -107,39 +91,47 @@ public class OnboardingApplicationController {
         return mapper.toValidateContinuationResponse(validateContinuationUseCase.validate(mapper.toCommand(request)));
     }
 
-    @Operation(summary = "Save onboarding applicant data")
-    @PutMapping("/continuations/applicant-data")
-    public ApplicantDataResponse saveApplicantData(@Valid @RequestBody SaveApplicantDataRequest request) {
-        return mapper.toResponse(saveApplicantDataUseCase.save(mapper.toCommand(request)));
-    }
-
-    @Operation(summary = "Save onboarding document reference")
-    @PutMapping("/continuations/documents/{category}")
-    public DocumentReferenceResponse saveDocumentReference(
-            @PathVariable OnboardingDocumentCategory category,
-            @Valid @RequestBody SaveDocumentReferenceRequest request
-    ) {
-        return mapper.toResponse(saveDocumentReferenceUseCase.save(mapper.toCommand(category, request)));
-    }
-
-    @Operation(summary = "Accept onboarding terms")
-    @PutMapping("/continuations/terms")
-    public TermsAcceptanceResponse acceptTerms(@Valid @RequestBody AcceptTermsRequest request) {
-        return mapper.toResponse(acceptTermsUseCase.accept(mapper.toCommand(request)));
-    }
-
-    @Operation(summary = "Submit onboarding application")
-    @PostMapping("/continuations/submissions")
+    @Operation(summary = "Submit the complete onboarding application")
+    @PostMapping(value = "/continuations/submissions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public OnboardingSubmissionResponse submit(@Valid @RequestBody SubmitOnboardingRequest request) {
-        return OnboardingSubmissionResponse.from(submitOnboardingUseCase.submit(new SubmitOnboardingCommand(request.continuationToken())));
+    public OnboardingSubmissionResponse submit(
+            @Valid @RequestPart("submission") SubmitOnboardingRequest request,
+            @RequestPart("dniFront") MultipartFile dniFront,
+            @RequestPart("dniBack") MultipartFile dniBack
+    ) {
+        return OnboardingSubmissionResponse.from(submitOnboardingUseCase.submit(new SubmitOnboardingCommand(
+                request.continuationToken(),
+                request.firstName(),
+                request.middleName(),
+                request.lastName(),
+                request.birthDate(),
+                request.nationality(),
+                request.documentType(),
+                request.documentNumber(),
+                request.documentIssuingCountry(),
+                request.documentExpirationDate(),
+                request.phoneNumber(),
+                request.street(),
+                request.streetNumber(),
+                request.city(),
+                request.province(),
+                request.postalCode(),
+                request.country(),
+                request.termsAccepted(),
+                MultipartDocumentUpload.from(dniFront),
+                MultipartDocumentUpload.from(dniBack)
+        )));
     }
 
     @Operation(summary = "Resend credential setup invitation")
     @PostMapping("/continuations/credential-invitations/resend")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public OnboardingSubmissionResponse resendCredentialInvitation(@Valid @RequestBody SubmitOnboardingRequest request) {
-        return OnboardingSubmissionResponse.from(resendCredentialInvitationUseCase.resend(request.continuationToken()));
+    public OnboardingSubmissionResponse resendCredentialInvitation(
+            @Valid @RequestBody ContinuationRequest request
+    ) {
+        return OnboardingSubmissionResponse.from(
+                resendCredentialInvitationUseCase.resend(request.continuationToken())
+        );
     }
 
     @Operation(summary = "Retry failed AUTO review")

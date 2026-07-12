@@ -9,6 +9,9 @@ import com.fedebacelar.bank.onboarding.application.port.out.OnboardingApplicatio
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingProvisioningStepRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingStatusHistoryRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingWorkItemRepositoryPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingUniquenessReservationPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingProvisioningPolicyPort;
+import com.fedebacelar.bank.onboarding.application.port.out.ProvisioningFailureClassifierPort;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingActorType;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingApplicationStatus;
 import com.fedebacelar.bank.onboarding.domain.enums.ProvisioningStepStatus;
@@ -20,8 +23,6 @@ import com.fedebacelar.bank.onboarding.domain.model.OnboardingApplication;
 import com.fedebacelar.bank.onboarding.domain.model.OnboardingProvisioningStep;
 import com.fedebacelar.bank.onboarding.domain.model.OnboardingStatusHistory;
 import com.fedebacelar.bank.onboarding.domain.model.OnboardingWorkItem;
-import com.fedebacelar.bank.onboarding.infrastructure.config.OnboardingProvisioningProperties;
-import feign.FeignException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -36,9 +37,11 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class ProvisioningCoordinator {
     private static final List<ProvisioningStepType> ORDER = List.of(
-            ProvisioningStepType.CREATE_CUSTOMER, ProvisioningStepType.APPROVE_CUSTOMER_KYC,
-            ProvisioningStepType.OPEN_ACCOUNT, ProvisioningStepType.PRECREATE_KEYCLOAK_USER,
-            ProvisioningStepType.CREATE_IDENTITY_LINK, ProvisioningStepType.ACTIVATE_ACCOUNT,
+            ProvisioningStepType.PRECREATE_KEYCLOAK_USER,
+            ProvisioningStepType.CREATE_CUSTOMER,
+            ProvisioningStepType.APPROVE_CUSTOMER_KYC,
+            ProvisioningStepType.OPEN_ACCOUNT,
+            ProvisioningStepType.CREATE_IDENTITY_LINK,
             ProvisioningStepType.SEND_CREDENTIAL_SETUP_EMAIL
     );
 
@@ -51,7 +54,9 @@ public class ProvisioningCoordinator {
     private final AccountProvisioningPort accountPort;
     private final CredentialProvisioningPort credentialPort;
     private final IdentityProvisioningPort identityPort;
-    private final OnboardingProvisioningProperties properties;
+    private final OnboardingUniquenessReservationPort reservationPort;
+    private final OnboardingProvisioningPolicyPort provisioningPolicy;
+    private final ProvisioningFailureClassifierPort failureClassifier;
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
 
@@ -62,7 +67,10 @@ public class ProvisioningCoordinator {
             OnboardingWorkItemRepositoryPort workItemRepository,
             CustomerProvisioningPort customerPort, AccountProvisioningPort accountPort,
             CredentialProvisioningPort credentialPort, IdentityProvisioningPort identityPort,
-            OnboardingProvisioningProperties properties, TransactionTemplate transactionTemplate, Clock clock) {
+            OnboardingUniquenessReservationPort reservationPort,
+            OnboardingProvisioningPolicyPort provisioningPolicy,
+            ProvisioningFailureClassifierPort failureClassifier,
+            TransactionTemplate transactionTemplate, Clock clock) {
         this.applicationRepository = applicationRepository;
         this.applicantRepository = applicantRepository;
         this.stepRepository = stepRepository;
@@ -72,7 +80,9 @@ public class ProvisioningCoordinator {
         this.accountPort = accountPort;
         this.credentialPort = credentialPort;
         this.identityPort = identityPort;
-        this.properties = properties;
+        this.reservationPort = reservationPort;
+        this.provisioningPolicy = provisioningPolicy;
+        this.failureClassifier = failureClassifier;
         this.transactionTemplate = transactionTemplate;
         this.clock = clock;
     }
@@ -93,21 +103,22 @@ public class ProvisioningCoordinator {
 
     public void handleFailure(OnboardingWorkItem workItem, RuntimeException exception) {
         Instant now = Instant.now(clock);
-        boolean retryable = isRetryable(exception);
+        boolean retryable = failureClassifier.isRetryable(exception);
         transactionTemplate.executeWithoutResult(status -> {
             stepRepository.findByApplicationId(workItem.applicationId()).stream()
                     .filter(step -> step.status() == ProvisioningStepStatus.RUNNING)
                     .findFirst()
-                    .ifPresent(step -> stepRepository.save(retryable && workItem.attempts() < properties.getMaxAttempts()
-                            ? step.retry("PROVISIONING_STEP_ERROR", now.plus(properties.retryDelay(workItem.attempts())), now)
+                    .ifPresent(step -> stepRepository.save(retryable && workItem.attempts() < provisioningPolicy.maxAttempts()
+                            ? step.retry("PROVISIONING_STEP_ERROR", now.plus(provisioningPolicy.retryDelay(workItem.attempts())), now)
                             : step.fail("PROVISIONING_STEP_ERROR", now)));
 
-            if (retryable && workItem.attempts() < properties.getMaxAttempts()) {
-                workItemRepository.save(workItem.retry("PROVISIONING_EXECUTION_ERROR", now.plus(properties.retryDelay(workItem.attempts())), now));
+            if (retryable && workItem.attempts() < provisioningPolicy.maxAttempts()) {
+                workItemRepository.save(workItem.retry("PROVISIONING_EXECUTION_ERROR", now.plus(provisioningPolicy.retryDelay(workItem.attempts())), now));
                 return;
             }
             OnboardingApplication application = requireApplication(workItem.applicationId());
-            if (application.status() == OnboardingApplicationStatus.PROVISIONING) {
+            if (application.status() == OnboardingApplicationStatus.APPROVED
+                    || application.status() == OnboardingApplicationStatus.PROVISIONING) {
                 OnboardingApplication failed = applicationRepository.save(application.markProvisioningFailed(now));
                 saveHistory(application, failed, retryable ? "PROVISIONING_RETRIES_EXHAUSTED" : "PROVISIONING_NON_RETRYABLE_FAILURE", now);
             }
@@ -166,6 +177,7 @@ public class ProvisioningCoordinator {
         OnboardingApplication pending = applicationRepository.save(application.markCredentialSetupPending(now));
         saveHistory(application, pending, "CREDENTIAL_SETUP_INVITATION_SENT", now);
         workItemRepository.save(workItem.succeed(now));
+        reservationPort.convertByApplicationId(application.id(), now);
         workItemRepository.findByApplicationIdAndJobType(application.id(), WorkflowJobType.CREDENTIAL_RECONCILIATION)
                 .orElseGet(() -> workItemRepository.save(OnboardingWorkItem.pending(application.id(), WorkflowJobType.CREDENTIAL_RECONCILIATION, now)));
     }
@@ -182,10 +194,6 @@ public class ProvisioningCoordinator {
     }
     private void saveHistory(OnboardingApplication previous, OnboardingApplication next, String reason, Instant now) {
         historyRepository.save(OnboardingStatusHistory.transition(previous.id(), previous.status(), next.status(), reason, OnboardingActorType.PROVISIONING, now));
-    }
-    private boolean isRetryable(RuntimeException exception) {
-        if (!(exception instanceof FeignException feign)) return !(exception instanceof com.fedebacelar.bank.onboarding.domain.exception.CredentialIdentityConflictException);
-        return feign.status() == 429 || feign.status() < 0 || feign.status() >= 500;
     }
     private String fingerprintFor(OnboardingApplication application, ApplicantData applicant, ProvisioningStepType type) {
         String payload = switch (type) {

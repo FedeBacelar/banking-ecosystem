@@ -1,9 +1,9 @@
 package com.fedebacelar.bank.onboarding.application.usecase;
 
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingWorkItemRepositoryPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingProvisioningPolicyPort;
 import com.fedebacelar.bank.onboarding.domain.enums.WorkflowJobType;
 import com.fedebacelar.bank.onboarding.domain.model.OnboardingWorkItem;
-import com.fedebacelar.bank.onboarding.infrastructure.config.OnboardingProvisioningProperties;
 import java.time.Clock;
 import java.time.Instant;
 import org.slf4j.Logger;
@@ -16,17 +16,17 @@ public class CredentialReconciliationWorker {
     private static final Logger LOGGER = LoggerFactory.getLogger(CredentialReconciliationWorker.class);
     private final OnboardingWorkItemRepositoryPort workItems;
     private final CredentialSetupReconciler reconciler;
-    private final OnboardingProvisioningProperties properties;
+    private final OnboardingProvisioningPolicyPort provisioningPolicy;
     private final Clock clock;
     public CredentialReconciliationWorker(OnboardingWorkItemRepositoryPort workItems, CredentialSetupReconciler reconciler,
-            OnboardingProvisioningProperties properties, Clock clock) {
-        this.workItems = workItems; this.reconciler = reconciler; this.properties = properties; this.clock = clock;
+            OnboardingProvisioningPolicyPort provisioningPolicy, Clock clock) {
+        this.workItems = workItems; this.reconciler = reconciler; this.provisioningPolicy = provisioningPolicy; this.clock = clock;
     }
     @Scheduled(fixedDelayString = "${onboarding.provisioning.credential-reconciliation-delay:PT30S}")
     public void reconcileCredentials() {
-        for (int processed = 0; processed < properties.getWorkerBatchSize(); processed++) {
+        for (int processed = 0; processed < provisioningPolicy.workerBatchSize(); processed++) {
             OnboardingWorkItem item = workItems.claimNext(WorkflowJobType.CREDENTIAL_RECONCILIATION,
-                    Instant.now(clock), properties.getWorkerLease()).orElse(null);
+                    Instant.now(clock), provisioningPolicy.workerLease()).orElse(null);
             if (item == null) return;
             try { reconciler.reconcile(item); }
             catch (RuntimeException exception) {

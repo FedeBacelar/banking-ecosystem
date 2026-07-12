@@ -5,6 +5,7 @@ import com.fedebacelar.bank.customer.domain.model.ContactPoint;
 import com.fedebacelar.bank.customer.domain.model.Customer;
 import com.fedebacelar.bank.customer.domain.model.CustomerStatusHistory;
 import com.fedebacelar.bank.customer.domain.model.IdentificationDocument;
+import com.fedebacelar.bank.customer.domain.model.DocumentNumber;
 import com.fedebacelar.bank.customer.domain.model.KycProfile;
 import com.fedebacelar.bank.customer.domain.model.NaturalPerson;
 import com.fedebacelar.bank.customer.domain.model.Party;
@@ -85,6 +86,7 @@ public class CustomerPersistenceMapper {
         entity.setPartyId(document.partyId().toString());
         entity.setDocumentType(document.type());
         entity.setDocumentNumber(document.number());
+        entity.setDocumentNumberCanonical(DocumentNumber.canonical(document.number()));
         entity.setIssuingCountry(document.issuingCountry());
         entity.setExpirationDate(document.expirationDate());
         entity.setPrimaryDocument(document.primaryDocument());

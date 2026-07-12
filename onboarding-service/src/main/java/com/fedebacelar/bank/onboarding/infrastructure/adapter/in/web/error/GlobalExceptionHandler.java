@@ -7,6 +7,7 @@ import com.fedebacelar.bank.onboarding.domain.exception.InvalidOnboardingStatusT
 import com.fedebacelar.bank.onboarding.domain.exception.NotificationDeliveryException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingApplicationNotFoundException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingContinuationExpiredException;
+import com.fedebacelar.bank.onboarding.domain.exception.OnboardingDocumentUploadException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingMagicLinkAlreadyConsumedException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingMagicLinkExpiredException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingIncompleteException;
@@ -122,6 +123,18 @@ public class GlobalExceptionHandler {
         problem.setType(URI.create("https://bank.fedebacelar.com/problems/onboarding-notification-unavailable"));
         problem.setTitle("Onboarding notification unavailable");
         problem.setProperty("code", "ONBOARDING_NOTIFICATION_UNAVAILABLE");
+        return problem;
+    }
+
+    @ExceptionHandler(OnboardingDocumentUploadException.class)
+    ProblemDetail handleDocumentUpload(OnboardingDocumentUploadException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Onboarding documents could not be stored right now."
+        );
+        problem.setType(URI.create("https://bank.fedebacelar.com/problems/onboarding-document-storage-unavailable"));
+        problem.setTitle("Onboarding document storage unavailable");
+        problem.setProperty("code", "ONBOARDING_DOCUMENT_UPLOAD_UNAVAILABLE");
         return problem;
     }
 

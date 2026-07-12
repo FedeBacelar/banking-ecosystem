@@ -50,7 +50,7 @@ class KeycloakCredentialProvisioningAdapterTest {
         assertThat(userId).isEqualTo("keycloak-user-id");
         verify(client).assignRealmRoles(eq("banking-ecosystem"), eq("keycloak-user-id"),
                 org.mockito.ArgumentMatchers.argThat(roles -> roles.stream().map(KeycloakRoleResponse::name).toList()
-                        .containsAll(List.of("CUSTOMER_READ", "ACCOUNT_READ", "IDENTITY_READ"))));
+                        .equals(List.of("HOME_BANKING_USER"))));
     }
 
     @Test

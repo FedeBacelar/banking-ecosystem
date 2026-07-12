@@ -22,7 +22,13 @@ public class NotificationFeignAdapter implements NotificationPort {
     }
 
     @Override
-    public void sendMagicLink(UUID applicationId, String recipient, String magicLink, Duration expiresIn) {
+    public void sendMagicLink(
+            UUID deliveryId,
+            UUID applicationId,
+            String recipient,
+            String magicLink,
+            Duration expiresIn
+    ) {
         try {
             NotificationResponse response = notificationFeignClient.sendEmail(new SendEmailNotificationRequest(
                     recipient,
@@ -31,7 +37,8 @@ public class NotificationFeignAdapter implements NotificationPort {
                             "magicLink", magicLink,
                             "expiresInMinutes", String.valueOf(expiresIn.toMinutes())
                     ),
-                    applicationId.toString()
+                    deliveryId.toString(),
+                    true
             ));
             if (response == null || !"SENT".equals(response.status())) {
                 throw new NotificationDeliveryException(applicationId, "notification service returned status " + (response == null ? "null" : response.status()));

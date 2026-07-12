@@ -36,23 +36,22 @@ public class IdempotentNaturalPersonCustomerRegistrationService implements Regis
         if (!StringUtils.hasText(key)) {
             return registration.register(command);
         }
-        return idempotencyRepository.findByKey(key)
-                .map(record -> recover(record, requestHash))
-                .orElseGet(() -> create(key, requestHash, command));
-    }
-
-    private CustomerDetails recover(IdempotencyRecord record, String requestHash) {
+        IdempotencyRecord record = idempotencyRepository.acquire(key, requestHash, Instant.now(clock));
         if (!record.requestHash().equals(requestHash)) {
             throw new IdempotencyConflictException();
         }
+        return record.completed() ? recover(record) : create(record, command);
+    }
+
+    private CustomerDetails recover(IdempotencyRecord record) {
         return customerRepository.findByCustomerId(record.resourceId())
                 .map(CustomerDetailsMapper::toDetails)
                 .orElseThrow(() -> new IllegalStateException("Idempotency record references a missing customer."));
     }
 
-    private CustomerDetails create(String key, String requestHash, RegisterNaturalPersonCustomerCommand command) {
+    private CustomerDetails create(IdempotencyRecord record, RegisterNaturalPersonCustomerCommand command) {
         CustomerDetails created = registration.register(command);
-        idempotencyRepository.save(new IdempotencyRecord(key, requestHash, created.customerId(), Instant.now(clock)));
+        idempotencyRepository.save(record.complete(created.customerId()));
         return created;
     }
 }

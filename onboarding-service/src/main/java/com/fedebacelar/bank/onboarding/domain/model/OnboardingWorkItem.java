@@ -41,6 +41,11 @@ public record OnboardingWorkItem(
                 attempts, nextAttemptAt, null, errorCode, createdAt, now, version);
     }
 
+    public OnboardingWorkItem waitUntil(String reasonCode, Instant nextAttemptAt, Instant now) {
+        return new OnboardingWorkItem(id, applicationId, jobType, WorkflowJobStatus.RETRY_WAIT,
+                0, nextAttemptAt, null, reasonCode, createdAt, now, version);
+    }
+
     public OnboardingWorkItem fail(String errorCode, Instant now) {
         return new OnboardingWorkItem(id, applicationId, jobType, WorkflowJobStatus.FAILED,
                 attempts, nextAttemptAt, null, errorCode, createdAt, now, version);

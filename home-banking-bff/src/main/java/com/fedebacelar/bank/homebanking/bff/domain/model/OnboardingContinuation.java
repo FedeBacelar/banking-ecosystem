@@ -5,7 +5,7 @@ import java.util.UUID;
 
 public record OnboardingContinuation(
         UUID applicationId,
-        String status,
+        OnboardingState status,
         String continuationToken,
         Instant continuationExpiresAt
 ) {

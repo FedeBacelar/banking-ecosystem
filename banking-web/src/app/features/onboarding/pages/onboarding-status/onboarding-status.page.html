@@ -20,6 +20,11 @@
         {{ isResending() ? 'Enviando...' : 'Reenviar invitacion' }}
       </button>
     }
+    @if (status()?.nextAction === 'WAIT') {
+      <button class="primary-button" type="button" [disabled]="isLoading()" (click)="loadStatus()">
+        {{ isLoading() ? 'Actualizando...' : 'Actualizar estado' }}
+      </button>
+    }
     @if (status()?.nextAction === 'LOGIN') {
       <a class="primary-link" href="/web/oauth2/authorization/keycloak">Ingresar</a>
     }

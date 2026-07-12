@@ -15,7 +15,7 @@ public class CustomerIdempotencyEntity {
     private String idempotencyKey;
     @Column(nullable = false, length = 64)
     private String requestHash;
-    @Column(nullable = false, length = 36)
+    @Column(length = 36)
     private String resourceId;
     @Column(nullable = false)
     private Instant createdAt;

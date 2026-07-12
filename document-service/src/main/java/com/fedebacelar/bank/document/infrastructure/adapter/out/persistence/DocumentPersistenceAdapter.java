@@ -28,5 +28,10 @@ public class DocumentPersistenceAdapter implements DocumentRepositoryPort {
     public Optional<Document> findById(UUID documentId) {
         return repository.findById(documentId.toString()).map(mapper::toDomain);
     }
+
+    @Override
+    public Optional<Document> findByIdempotencyKey(String idempotencyKey) {
+        return repository.findByIdempotencyKey(idempotencyKey).map(mapper::toDomain);
+    }
 }
 

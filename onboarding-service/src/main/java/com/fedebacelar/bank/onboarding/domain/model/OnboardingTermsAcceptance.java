@@ -22,15 +22,4 @@ public record OnboardingTermsAcceptance(
                 0L
         );
     }
-
-    public OnboardingTermsAcceptance update(String termsVersion, Instant now) {
-        return new OnboardingTermsAcceptance(
-                applicationId,
-                termsVersion,
-                now,
-                createdAt,
-                now,
-                version
-        );
-    }
 }

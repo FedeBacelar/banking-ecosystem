@@ -72,6 +72,50 @@ public record Notification(
         );
     }
 
+    public Notification prepareDelivery(
+            Map<String, String> newVariables,
+            RenderedNotification renderedNotification,
+            Instant now
+    ) {
+        return new Notification(
+                id,
+                channel,
+                recipient,
+                templateCode,
+                Map.copyOf(newVariables),
+                correlationId,
+                renderedNotification.subject(),
+                renderedNotification.body(),
+                NotificationStatus.PENDING,
+                attemptCount,
+                null,
+                sentAt,
+                createdAt,
+                now,
+                version
+        );
+    }
+
+    public Notification redactContent() {
+        return new Notification(
+                id,
+                channel,
+                recipient,
+                templateCode,
+                Map.of(),
+                correlationId,
+                subject,
+                "[REDACTED]",
+                status,
+                attemptCount,
+                lastError,
+                sentAt,
+                createdAt,
+                updatedAt,
+                version
+        );
+    }
+
     public Notification markFailed(String error, Instant now) {
         return new Notification(
                 id,

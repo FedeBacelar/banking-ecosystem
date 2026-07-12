@@ -57,6 +57,8 @@ class DocumentWebAdapterTest {
 
         mockMvc.perform(multipart("/internal/documents")
                         .file(file)
+                        .header("Idempotency-Key", "onboarding:application-1:DNI_FRONT:" + "a".repeat(64))
+                        .header("X-Content-SHA256", "a".repeat(64))
                         .param("businessContext", "ONBOARDING")
                         .param("businessReferenceId", "application-1")
                         .param("category", "DNI_FRONT"))
@@ -77,6 +79,8 @@ class DocumentWebAdapterTest {
 
         mockMvc.perform(multipart("/internal/documents")
                         .file(file)
+                        .header("Idempotency-Key", "onboarding:application-1:DNI_FRONT:" + "a".repeat(64))
+                        .header("X-Content-SHA256", "a".repeat(64))
                         .param("businessContext", "onboarding")
                         .param("businessReferenceId", "application-1")
                         .param("category", "DNI_FRONT"))
@@ -109,6 +113,7 @@ class DocumentWebAdapterTest {
         Instant now = Instant.parse("2026-07-04T21:00:00Z");
         return new DocumentDetails(
                 documentId,
+                "a".repeat(64),
                 "ONBOARDING",
                 "application-1",
                 DocumentCategory.DNI_FRONT,

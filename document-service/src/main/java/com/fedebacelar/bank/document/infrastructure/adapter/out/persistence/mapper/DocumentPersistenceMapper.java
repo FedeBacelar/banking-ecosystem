@@ -11,6 +11,8 @@ public class DocumentPersistenceMapper {
     public DocumentEntity toEntity(Document document) {
         DocumentEntity entity = new DocumentEntity();
         entity.setId(document.id().toString());
+        entity.setIdempotencyKey(document.idempotencyKey());
+        entity.setContentSha256(document.contentSha256());
         entity.setBusinessContext(document.businessContext());
         entity.setBusinessReferenceId(document.businessReferenceId());
         entity.setCategory(document.category());
@@ -30,6 +32,8 @@ public class DocumentPersistenceMapper {
     public Document toDomain(DocumentEntity entity) {
         return new Document(
                 UUID.fromString(entity.getId()),
+                entity.getIdempotencyKey(),
+                entity.getContentSha256(),
                 entity.getBusinessContext(),
                 entity.getBusinessReferenceId(),
                 entity.getCategory(),

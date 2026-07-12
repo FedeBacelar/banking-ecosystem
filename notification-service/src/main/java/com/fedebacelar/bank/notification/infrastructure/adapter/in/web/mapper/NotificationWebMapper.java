@@ -15,7 +15,8 @@ public class NotificationWebMapper {
                 request.recipient(),
                 request.templateCode(),
                 request.variables() == null ? Map.of() : request.variables(),
-                request.correlationId()
+                request.correlationId(),
+                request.sensitive()
         );
     }
 

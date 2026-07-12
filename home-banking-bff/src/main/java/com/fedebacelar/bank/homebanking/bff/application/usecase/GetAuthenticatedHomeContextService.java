@@ -4,6 +4,8 @@ import com.fedebacelar.bank.homebanking.bff.application.port.in.GetAuthenticated
 import com.fedebacelar.bank.homebanking.bff.application.port.out.GetCustomerAccountsPort;
 import com.fedebacelar.bank.homebanking.bff.application.port.out.GetCustomerPort;
 import com.fedebacelar.bank.homebanking.bff.application.port.out.ResolveIdentityLinkPort;
+import com.fedebacelar.bank.homebanking.bff.application.port.out.GetInternalAccessTokenPort;
+import com.fedebacelar.bank.homebanking.bff.application.port.out.InternalAccessPurpose;
 import com.fedebacelar.bank.homebanking.bff.domain.model.AuthenticatedUser;
 import com.fedebacelar.bank.homebanking.bff.domain.model.HomeBankingContext;
 import com.fedebacelar.bank.homebanking.bff.domain.model.IdentityLink;
@@ -15,19 +17,23 @@ public class GetAuthenticatedHomeContextService implements GetAuthenticatedHomeC
     private final ResolveIdentityLinkPort resolveIdentityLinkPort;
     private final GetCustomerPort getCustomerPort;
     private final GetCustomerAccountsPort getCustomerAccountsPort;
+    private final GetInternalAccessTokenPort getInternalAccessTokenPort;
 
     public GetAuthenticatedHomeContextService(
             ResolveIdentityLinkPort resolveIdentityLinkPort,
             GetCustomerPort getCustomerPort,
-            GetCustomerAccountsPort getCustomerAccountsPort
+            GetCustomerAccountsPort getCustomerAccountsPort,
+            GetInternalAccessTokenPort getInternalAccessTokenPort
     ) {
         this.resolveIdentityLinkPort = resolveIdentityLinkPort;
         this.getCustomerPort = getCustomerPort;
         this.getCustomerAccountsPort = getCustomerAccountsPort;
+        this.getInternalAccessTokenPort = getInternalAccessTokenPort;
     }
 
     @Override
-    public HomeBankingContext getHomeContext(AuthenticatedUser user, String accessToken) {
+    public HomeBankingContext getHomeContext(AuthenticatedUser user) {
+        String accessToken = getInternalAccessTokenPort.getAccessToken(InternalAccessPurpose.HOME_BANKING);
         IdentityLink identityLink = resolveIdentityLinkPort.resolveByKeycloakSubject(user.subject(), accessToken);
 
         return new HomeBankingContext(

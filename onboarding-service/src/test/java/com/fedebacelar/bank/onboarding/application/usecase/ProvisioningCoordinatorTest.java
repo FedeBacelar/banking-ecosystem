@@ -17,6 +17,8 @@ import com.fedebacelar.bank.onboarding.application.port.out.OnboardingApplicatio
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingProvisioningStepRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingStatusHistoryRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingWorkItemRepositoryPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingUniquenessReservationPort;
+import com.fedebacelar.bank.onboarding.application.port.out.ProvisioningFailureClassifierPort;
 import com.fedebacelar.bank.onboarding.domain.enums.ApplicantDocumentType;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingApplicationStatus;
 import com.fedebacelar.bank.onboarding.domain.enums.ProvisioningStepStatus;
@@ -56,6 +58,8 @@ class ProvisioningCoordinatorTest {
     private final AccountProvisioningPort accounts = mock(AccountProvisioningPort.class);
     private final CredentialProvisioningPort credentials = mock(CredentialProvisioningPort.class);
     private final IdentityProvisioningPort identities = mock(IdentityProvisioningPort.class);
+    private final OnboardingUniquenessReservationPort reservations = mock(OnboardingUniquenessReservationPort.class);
+    private final ProvisioningFailureClassifierPort failureClassifier = mock(ProvisioningFailureClassifierPort.class);
     private final OnboardingProvisioningProperties properties = new OnboardingProvisioningProperties();
     private final TransactionTemplate transactions = mock(TransactionTemplate.class);
     private final AtomicReference<OnboardingApplication> persistedApplication = new AtomicReference<>();
@@ -111,7 +115,7 @@ class ProvisioningCoordinatorTest {
         when(credentials.precreateUser(any(), any(), any())).thenReturn(userId);
         when(identities.createOrResolve(customerId, userId)).thenReturn(UUID.randomUUID());
         coordinator = new ProvisioningCoordinator(applications, applicants, steps, history, workItems,
-                customers, accounts, credentials, identities, properties, transactions,
+                customers, accounts, credentials, identities, reservations, properties, failureClassifier, transactions,
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
@@ -131,15 +135,16 @@ class ProvisioningCoordinatorTest {
         verify(accounts, never()).openDefaultAccount(any(), any());
         verify(credentials).precreateUser(any(), any(), any());
         verify(identities).createOrResolve(customerId, userId);
-        verify(accounts).activate(accountId);
+        verify(accounts, never()).activate(any());
         verify(credentials).sendCredentialSetupEmail(userId);
         assertThat(persistedSteps.values())
-                .hasSize(7)
+                .hasSize(6)
                 .allSatisfy(step -> assertThat(step.status()).isEqualTo(ProvisioningStepStatus.SUCCEEDED));
         assertThat(persistedApplication.get().status())
                 .isEqualTo(OnboardingApplicationStatus.CREDENTIAL_SETUP_PENDING);
         verify(workItems).save(org.mockito.ArgumentMatchers.argThat(
                 work -> work.jobType() == WorkflowJobType.CREDENTIAL_RECONCILIATION));
+        verify(reservations).convertByApplicationId(applicationId, NOW);
     }
 
     private void succeeded(UUID applicationId, ProvisioningStepType type, String reference) {

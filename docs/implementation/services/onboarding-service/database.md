@@ -14,20 +14,26 @@ onboarding_review_check
 onboarding_work_item
 onboarding_provisioning_step
 onboarding_uniqueness_reservation
+onboarding_magic_link_delivery
+onboarding_email_request_guard
 ```
 
-`onboarding_application` stores current state, `review_mode`, policy version, submit/decision timestamps, token hashes, expirations, and optimistic-lock version.
+`onboarding_application` stores the current state, review mode and policy snapshot, submit/decision timestamps, secret hashes, expirations, and optimistic-lock version.
 
-`onboarding_status_history` is the append-only audit of every state transition, including actor type and reason code.
+`onboarding_status_history` is the append-only transition audit with actor type and reason code.
 
-`onboarding_review_check` keeps one result per application/control with separate execution mode, execution status, business outcome, provider, policy, and attempts. Simulations are persisted as simulations rather than indistinguishable approvals.
+`onboarding_review_check` separates execution status from business outcome and records mode/provider/policy. Simulated approvals remain explicitly marked `SIMULATED` and `SIMULATOR`.
 
-`onboarding_work_item` is the durable queue for `AUTO_REVIEW`, `PROVISIONING`, and `CREDENTIAL_RECONCILIATION`. Its unique application/job constraint prevents duplicate work. Due work uses `next_attempt_at`, lease timestamps, and optimistic locking.
+`onboarding_work_item` is the durable queue for magic-link delivery, AUTO review, provisioning, and credential reconciliation. Due work is claimed under a database lock with a lease; optimistic versioning fences a stale lease owner.
 
-`onboarding_provisioning_step` records each downstream step, request hash, external reference, attempts, next retry, sanitized error, and timestamps. Successful steps are skipped on retry.
+`onboarding_provisioning_step` records request hash, external reference, attempts, retry time, sanitized error, and timestamps. A retry with a changed request hash is rejected, and successful steps are skipped.
 
-`onboarding_uniqueness_reservation` has a unique `(reservation_type, normalized_value)` key. It serializes email/document ownership across concurrent application workers. Reservations become `RELEASED` on rejection/expiration and `CONVERTED` on completion.
+`onboarding_uniqueness_reservation` serializes normalized email/document ownership across applications. Reservations are released on functional termination and converted after provisioning.
 
-The document table stores only document-service UUIDs. File bytes remain in MinIO under document-service ownership. Raw magic-link and continuation tokens are never stored.
+`onboarding_magic_link_delivery` is the transactional outbox for email access links. Only encrypted pending payload is stored, and the ciphertext is discarded after terminal handling.
 
-Flyway migrations `V1` through `V6` create the current schema. The editable ecosystem model is [schema.dbml](../../../database/schema.dbml).
+`onboarding_email_request_guard` serializes application starts per normalized email and enforces cooldown without exposing account existence.
+
+Document rows contain document-service UUIDs only; bytes remain under document-service/MinIO ownership.
+
+Flyway migrations `V1` through `V8` create the current schema. The editable ecosystem model is [schema.dbml](../../../database/schema.dbml).

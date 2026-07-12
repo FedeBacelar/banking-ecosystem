@@ -10,6 +10,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -115,6 +118,52 @@ class CustomerApiE2ETest {
         assertThatThrownBy(() -> postIdempotent(client, key, request.replace("Customer", "Changed")))
                 .isInstanceOfSatisfying(HttpClientErrorException.Conflict.class, exception ->
                         assertThat(exception.getResponseBodyAsString()).contains("IDEMPOTENCY_CONFLICT"));
+    }
+
+    @Test
+    void serializesConcurrentRequestsUsingTheSameIdempotencyKey() throws Exception {
+        String token = tokenWithRoles("CUSTOMER_READ", "CUSTOMER_WRITE");
+        RestClient client = RestClient.builder()
+                .baseUrl("http://localhost:" + port)
+                .defaultHeader("Authorization", "Bearer " + token)
+                .build();
+        String key = "onboarding:00000000-0000-0000-0000-000000000002:CREATE_CUSTOMER";
+        String request = """
+                {
+                  "firstName": "Concurrent",
+                  "lastName": "Customer",
+                  "birthDate": "1990-01-15",
+                  "nationality": "AR",
+                  "documentType": "DNI",
+                  "documentNumber": "E2E-IDEMPOTENT-2",
+                  "issuingCountry": "AR"
+                }
+                """;
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var first = executor.submit(() -> {
+                ready.countDown();
+                start.await();
+                return postIdempotent(client, key, request);
+            });
+            var second = executor.submit(() -> {
+                ready.countDown();
+                start.await();
+                return postIdempotent(client, key, request);
+            });
+
+            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+            JsonNode firstResult = first.get(30, TimeUnit.SECONDS);
+            JsonNode secondResult = second.get(30, TimeUnit.SECONDS);
+
+            assertThat(secondResult.get("customerId").asText())
+                    .isEqualTo(firstResult.get("customerId").asText());
+            assertThat(get(client, "/customers/by-document?type=DNI&number=E2E-IDEMPOTENT-2&country=AR")
+                    .get("customerId").asText()).isEqualTo(firstResult.get("customerId").asText());
+        }
     }
 
     private JsonNode get(RestClient client, String path) throws Exception {

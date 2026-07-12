@@ -20,11 +20,12 @@ export class OnboardingContinuePage {
   readonly errorMessage = signal<string | null>(null);
 
   constructor() {
-    const token = this.route.snapshot.queryParamMap.get('token');
+    const token = new URLSearchParams(this.route.snapshot.fragment ?? '').get('token');
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
 
     if (!token) {
       this.isLoading.set(false);
-      this.errorMessage.set('El enlace no contiene un token válido.');
+      this.errorMessage.set('El enlace no es válido o está incompleto.');
       return;
     }
 
@@ -32,7 +33,12 @@ export class OnboardingContinuePage {
       .consumeMagicLink(token)
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
-        next: () => void this.router.navigate(['/onboarding/session']),
+        next: (access) => {
+          const destination = access.nextAction === 'CONTINUE_APPLICATION'
+            ? '/onboarding/applicant-data'
+            : '/onboarding/status';
+          void this.router.navigate([destination]);
+        },
         error: (error: unknown) => this.errorMessage.set(httpErrorMessage(error))
       });
   }

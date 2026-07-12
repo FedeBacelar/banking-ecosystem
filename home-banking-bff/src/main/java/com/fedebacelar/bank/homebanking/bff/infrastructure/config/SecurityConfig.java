@@ -3,6 +3,7 @@ package com.fedebacelar.bank.homebanking.bff.infrastructure.config;
 import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -28,25 +29,29 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             LogoutSuccessHandler logoutSuccessHandler,
-            CookieCsrfTokenRepository csrfTokenRepository
+            CookieCsrfTokenRepository csrfTokenRepository,
+            @Value("${home-banking-bff.frontend.home-url:http://localhost:4200}") String frontendHomeUrl
     ) throws Exception {
         AuthenticationEntryPoint loginEntryPoint = new LoginUrlAuthenticationEntryPoint("/oauth2/authorization/keycloak");
         return http
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository)
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                        .ignoringRequestMatchers(
+                                request -> HttpMethod.POST.matches(request.getMethod())
+                                        && "/onboarding/applications".equals(request.getServletPath()),
+                                request -> HttpMethod.POST.matches(request.getMethod())
+                                        && "/onboarding/magic-links/consume".equals(request.getServletPath())
+                        )
                 )
                 .authorizeHttpRequests(authorize -> authorize
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
-                                "/actuator/health",
+                                "/actuator/health/**",
                                 "/actuator/info",
                                 "/error",
-                                "/csrf",
-                                "/session",
-                                "/onboarding/**",
-                                "/web/onboarding/**"
+                                "/onboarding/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
@@ -57,7 +62,7 @@ public class SecurityConfig {
                         )
                 )
                 .oauth2Login(oauth2 -> oauth2
-                        .defaultSuccessUrl("/me", true)
+                        .defaultSuccessUrl(frontendHomeUrl, true)
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
@@ -78,10 +83,13 @@ public class SecurityConfig {
     }
 
     @Bean
-    LogoutSuccessHandler logoutSuccessHandler(ClientRegistrationRepository clientRegistrationRepository) {
+    LogoutSuccessHandler logoutSuccessHandler(
+            ClientRegistrationRepository clientRegistrationRepository,
+            @Value("${home-banking-bff.frontend.logout-url:http://localhost:4200}") String logoutUrl
+    ) {
         OidcClientInitiatedLogoutSuccessHandler logoutSuccessHandler =
                 new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
-        logoutSuccessHandler.setPostLogoutRedirectUri("{baseUrl}/session");
+        logoutSuccessHandler.setPostLogoutRedirectUri(logoutUrl);
         return logoutSuccessHandler;
     }
 

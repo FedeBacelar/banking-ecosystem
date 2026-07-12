@@ -9,5 +9,7 @@ public interface DocumentRepositoryPort {
     Document save(Document document);
 
     Optional<Document> findById(UUID documentId);
+
+    Optional<Document> findByIdempotencyKey(String idempotencyKey);
 }
 

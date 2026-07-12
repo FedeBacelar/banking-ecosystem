@@ -44,8 +44,19 @@ class IdempotentAccountOpeningServiceTest {
                 bankAccount.account().customerId(), AccountType.SAVINGS, CurrencyCode.ARS, null
         );
         when(opening.open(command)).thenReturn(AccountDetailsMapper.toDetails(bankAccount));
-        when(idempotency.findByKey("onboarding:application:OPEN_ACCOUNT"))
-                .thenAnswer(invocation -> Optional.ofNullable(record.get()));
+        when(idempotency.acquire(org.mockito.ArgumentMatchers.eq("onboarding:application:OPEN_ACCOUNT"),
+                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any()))
+                .thenAnswer(invocation -> {
+                    IdempotencyRecord existing = record.get();
+                    if (existing != null) {
+                        return existing;
+                    }
+                    IdempotencyRecord pending = IdempotencyRecord.pending(
+                            invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2)
+                    );
+                    record.compareAndSet(null, pending);
+                    return record.get();
+                });
         when(idempotency.save(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> {
             IdempotencyRecord saved = invocation.getArgument(0);
             record.set(saved);

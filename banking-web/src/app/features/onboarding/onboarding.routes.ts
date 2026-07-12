@@ -26,11 +26,6 @@ export const onboardingRoutes: Routes = [
       )
   },
   {
-    path: 'session',
-    loadComponent: () =>
-      import('./pages/onboarding-session/onboarding-session.page').then((m) => m.OnboardingSessionPage)
-  },
-  {
     path: 'applicant-data',
     loadComponent: () =>
       import('./pages/onboarding-applicant-data/onboarding-applicant-data.page').then(

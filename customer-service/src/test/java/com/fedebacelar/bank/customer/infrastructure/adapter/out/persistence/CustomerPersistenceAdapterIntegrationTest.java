@@ -70,6 +70,7 @@ class CustomerPersistenceAdapterIntegrationTest {
         adapter.save(customer);
 
         assertThat(adapter.existsDocument(DocumentType.DNI, "30111222", "AR")).isTrue();
+        assertThat(adapter.existsDocument(DocumentType.DNI, "30-111-222", "AR")).isTrue();
         var found = adapter.findByDocument(DocumentType.DNI, "30111222", "AR");
 
         assertThat(found).isPresent();
@@ -94,7 +95,7 @@ class CustomerPersistenceAdapterIntegrationTest {
                 new Party(partyId, PartyType.NATURAL_PERSON, PartyLifecycleStatus.REGISTERED, now, now),
                 new NaturalPerson(partyId, "Federico", null, "Bacelar", LocalDate.of(1990, 1, 15), "AR"),
                 new Customer(customerId, partyId, "CUS-2026-000001", CustomerStatus.PENDING_KYC, LocalDate.now(), null, now, now, null),
-                new IdentificationDocument(UUID.randomUUID(), partyId, DocumentType.DNI, "30111222", "AR", null, true),
+                new IdentificationDocument(UUID.randomUUID(), partyId, DocumentType.DNI, "30.111.222", "AR", null, true),
                 List.of(),
                 List.of(),
                 new KycProfile(UUID.randomUUID(), customerId, RiskLevel.LOW, KycStatus.PENDING_REVIEW, null, null),

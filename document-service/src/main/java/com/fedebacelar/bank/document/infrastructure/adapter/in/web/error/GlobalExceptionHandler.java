@@ -2,6 +2,9 @@ package com.fedebacelar.bank.document.infrastructure.adapter.in.web.error;
 
 import com.fedebacelar.bank.document.domain.exception.DocumentNotFoundException;
 import com.fedebacelar.bank.document.domain.exception.DocumentStorageException;
+import com.fedebacelar.bank.document.domain.exception.DocumentIdempotencyConflictException;
+import com.fedebacelar.bank.document.domain.exception.InvalidDocumentHashException;
+import com.fedebacelar.bank.document.domain.exception.InvalidDocumentContentException;
 import com.fedebacelar.bank.document.domain.exception.InvalidDocumentContentTypeException;
 import com.fedebacelar.bank.document.domain.exception.InvalidDocumentSizeException;
 import jakarta.validation.ConstraintViolationException;
@@ -28,11 +31,24 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
-    @ExceptionHandler({InvalidDocumentContentTypeException.class, InvalidDocumentSizeException.class})
+    @ExceptionHandler({
+            InvalidDocumentContentTypeException.class,
+            InvalidDocumentSizeException.class,
+            InvalidDocumentHashException.class,
+            InvalidDocumentContentException.class
+    })
     ProblemDetail handleInvalidDocument(RuntimeException exception) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
         problem.setType(URI.create("https://bank.fedebacelar.com/problems/invalid-document"));
         problem.setTitle("Invalid document");
+        return problem;
+    }
+
+    @ExceptionHandler(DocumentIdempotencyConflictException.class)
+    ProblemDetail handleIdempotencyConflict(DocumentIdempotencyConflictException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
+        problem.setType(URI.create("https://bank.fedebacelar.com/problems/idempotency-conflict"));
+        problem.setTitle("Idempotency conflict");
         return problem;
     }
 

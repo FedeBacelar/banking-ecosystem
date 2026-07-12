@@ -30,6 +30,8 @@ V4__add_customer_optimistic_lock_version.sql
 V5__add_customer_email_lookup_index.sql
 V6__create_customer_idempotency.sql
 V7__add_customer_status_actor.sql
+V8__add_canonical_document_number.sql
+V9__reserve_customer_idempotency_before_creation.sql
 ```
 
 ## Tables
@@ -132,7 +134,7 @@ Stores the sequence used to generate bank customer numbers.
 
 ### customer_idempotency
 
-Stores idempotency key, request hash, created customer, and timestamp in the same transaction as customer creation.
+Reserves the idempotency key and request hash before customer creation, then assigns the created customer in the same transaction. A row-level lock serializes concurrent requests using the same key; payload drift returns a conflict.
 
 ## Ownership Rule
 

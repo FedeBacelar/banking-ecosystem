@@ -122,6 +122,8 @@ Enum onboarding_application_status {
   APPROVED
   PROVISIONING
   CREDENTIAL_SETUP_PENDING
+  CREDENTIAL_SETUP_EXPIRED
+  CREDENTIAL_SETUP_FAILED
   COMPLETED
   REJECTED
   EXPIRED
@@ -247,10 +249,10 @@ Table customer_db.customer_number_sequence {
 Table customer_db.customer_idempotency {
   idempotency_key varchar(160) [pk, not null]
   request_hash char(64) [not null]
-  resource_id char(36) [not null]
+  resource_id char(36)
   created_at timestamp(6) [not null]
 
-  Note: 'Durable customer creation idempotency record.'
+  Note: 'Durable customer creation idempotency reservation. resource_id is assigned atomically after creation.'
 }
 
 Table account_db.account {
@@ -318,10 +320,10 @@ Table account_db.account_number_sequence {
 Table account_db.account_idempotency {
   idempotency_key varchar(160) [pk, not null]
   request_hash char(64) [not null]
-  resource_id char(36) [not null]
+  resource_id char(36)
   created_at timestamp(6) [not null]
 
-  Note: 'Durable account opening idempotency record.'
+  Note: 'Durable account opening idempotency reservation. resource_id is assigned atomically after creation.'
 }
 
 Table identity_db.identity_link {
@@ -573,6 +575,33 @@ Table onboarding_db.onboarding_uniqueness_reservation {
   }
 }
 
+Table onboarding_db.onboarding_magic_link_delivery {
+  application_id char(36) [pk, not null]
+  delivery_id char(36) [not null, unique]
+  recipient varchar(255) [not null]
+  encrypted_magic_link text
+  expires_at timestamp(6) [not null]
+  sent_at timestamp(6)
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+  version bigint [not null, default: 0]
+
+  indexes {
+    (sent_at, expires_at) [name: 'idx_magic_link_delivery_pending']
+  }
+
+  Note: 'Transactional outbox payload. Ciphertext is cleared after terminal delivery handling.'
+}
+
+Table onboarding_db.onboarding_email_request_guard {
+  email varchar(255) [pk, not null]
+  last_requested_at timestamp(6)
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+
+  Note: 'Serializes application starts and enforces the enumeration-safe email cooldown.'
+}
+
 Ref: customer_db.natural_person.party_id > customer_db.party.id
 Ref: customer_db.customer.party_id > customer_db.party.id
 Ref: customer_db.identification_document.party_id > customer_db.party.id
@@ -592,3 +621,4 @@ Ref: onboarding_db.onboarding_review_check.application_id > onboarding_db.onboar
 Ref: onboarding_db.onboarding_work_item.application_id > onboarding_db.onboarding_application.id
 Ref: onboarding_db.onboarding_provisioning_step.application_id > onboarding_db.onboarding_application.id
 Ref: onboarding_db.onboarding_uniqueness_reservation.application_id > onboarding_db.onboarding_application.id
+Ref: onboarding_db.onboarding_magic_link_delivery.application_id > onboarding_db.onboarding_application.id

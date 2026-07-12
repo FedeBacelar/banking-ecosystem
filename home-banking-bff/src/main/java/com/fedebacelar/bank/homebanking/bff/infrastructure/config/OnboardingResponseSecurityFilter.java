@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
+import org.slf4j.MDC;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
@@ -19,7 +20,16 @@ public class OnboardingResponseSecurityFilter extends OncePerRequestFilter {
         if (request.getRequestURI().contains("/onboarding")) {
             response.setHeader("Cache-Control", "no-store, max-age=0");
             String supplied = request.getHeader(CORRELATION_HEADER);
-            response.setHeader(CORRELATION_HEADER, validCorrelationId(supplied) ? supplied : UUID.randomUUID().toString());
+            String correlationId = validCorrelationId(supplied) ? supplied : UUID.randomUUID().toString();
+            response.setHeader(CORRELATION_HEADER, correlationId);
+            request.setAttribute(CORRELATION_HEADER, correlationId);
+            MDC.put("correlationId", correlationId);
+            try {
+                filterChain.doFilter(request, response);
+            } finally {
+                MDC.remove("correlationId");
+            }
+            return;
         }
         filterChain.doFilter(request, response);
     }

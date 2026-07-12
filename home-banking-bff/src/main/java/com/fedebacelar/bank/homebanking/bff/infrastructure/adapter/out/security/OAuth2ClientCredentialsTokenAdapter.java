@@ -1,6 +1,7 @@
 package com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.security;
 
 import com.fedebacelar.bank.homebanking.bff.application.port.out.GetInternalAccessTokenPort;
+import com.fedebacelar.bank.homebanking.bff.application.port.out.InternalAccessPurpose;
 import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
@@ -9,9 +10,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class OAuth2ClientCredentialsTokenAdapter implements GetInternalAccessTokenPort {
 
-    private static final String INTERNAL_CLIENT_REGISTRATION_ID = "keycloak-service";
-    private static final String INTERNAL_PRINCIPAL_NAME = "home-banking-bff";
-
     private final OAuth2AuthorizedClientManager authorizedClientManager;
 
     public OAuth2ClientCredentialsTokenAdapter(OAuth2AuthorizedClientManager authorizedClientManager) {
@@ -19,10 +17,10 @@ public class OAuth2ClientCredentialsTokenAdapter implements GetInternalAccessTok
     }
 
     @Override
-    public String getAccessToken() {
+    public String getAccessToken(InternalAccessPurpose purpose) {
         OAuth2AuthorizeRequest request = OAuth2AuthorizeRequest
-                .withClientRegistrationId(INTERNAL_CLIENT_REGISTRATION_ID)
-                .principal(INTERNAL_PRINCIPAL_NAME)
+                .withClientRegistrationId(registrationId(purpose))
+                .principal("home-banking-bff:" + purpose.name().toLowerCase())
                 .build();
 
         OAuth2AuthorizedClient authorizedClient = authorizedClientManager.authorize(request);
@@ -31,5 +29,12 @@ public class OAuth2ClientCredentialsTokenAdapter implements GetInternalAccessTok
         }
 
         return authorizedClient.getAccessToken().getTokenValue();
+    }
+
+    private String registrationId(InternalAccessPurpose purpose) {
+        return switch (purpose) {
+            case ONBOARDING -> "onboarding-service";
+            case HOME_BANKING -> "home-banking-service";
+        };
     }
 }

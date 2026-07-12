@@ -12,6 +12,7 @@ import com.fedebacelar.bank.onboarding.infrastructure.adapter.out.notification.d
 import java.time.Duration;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 class NotificationFeignAdapterTest {
 
@@ -21,19 +22,24 @@ class NotificationFeignAdapterTest {
     @Test
     void sendsMagicLinkWhenNotificationIsSent() {
         UUID applicationId = UUID.randomUUID();
+        UUID deliveryId = UUID.randomUUID();
         when(notificationFeignClient.sendEmail(any())).thenReturn(new NotificationResponse("SENT"));
 
-        adapter.sendMagicLink(applicationId, "person@example.com", "http://localhost/link", Duration.ofMinutes(30));
+        adapter.sendMagicLink(deliveryId, applicationId, "person@example.com", "http://localhost/link", Duration.ofMinutes(30));
 
-        verify(notificationFeignClient).sendEmail(any(SendEmailNotificationRequest.class));
+        ArgumentCaptor<SendEmailNotificationRequest> request = ArgumentCaptor.forClass(SendEmailNotificationRequest.class);
+        verify(notificationFeignClient).sendEmail(request.capture());
+        org.assertj.core.api.Assertions.assertThat(request.getValue().correlationId()).isEqualTo(deliveryId.toString());
+        org.assertj.core.api.Assertions.assertThat(request.getValue().sensitive()).isTrue();
     }
 
     @Test
     void rejectsFailedNotificationDelivery() {
         UUID applicationId = UUID.randomUUID();
+        UUID deliveryId = UUID.randomUUID();
         when(notificationFeignClient.sendEmail(any())).thenReturn(new NotificationResponse("FAILED"));
 
-        assertThatThrownBy(() -> adapter.sendMagicLink(applicationId, "person@example.com", "http://localhost/link", Duration.ofMinutes(30)))
+        assertThatThrownBy(() -> adapter.sendMagicLink(deliveryId, applicationId, "person@example.com", "http://localhost/link", Duration.ofMinutes(30)))
                 .isInstanceOf(NotificationDeliveryException.class);
     }
 }

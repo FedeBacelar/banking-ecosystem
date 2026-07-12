@@ -27,6 +27,7 @@ V1__create_account_schema.sql
 V2__add_account_lookup_indexes.sql
 V3__create_account_number_sequence.sql
 V4__create_account_idempotency.sql
+V5__reserve_account_idempotency_before_creation.sql
 ```
 
 ## Tables
@@ -80,7 +81,7 @@ Stores the sequence used to generate account numbers.
 
 ### account_idempotency
 
-Stores idempotency key, request hash, created account, and timestamp in the account-opening transaction.
+Reserves the idempotency key and request hash before account creation, then assigns the created account in the same transaction. A row-level lock prevents concurrent requests from opening duplicate accounts under one key.
 
 ## Ownership Rule
 

@@ -26,7 +26,7 @@ With custom local variables:
 docker compose --env-file infra/keycloak/.env -f infra/keycloak/docker-compose.yml up -d
 ```
 
-Create the ignored `.env` from `.env.example` to configure Keycloak SMTP and the local onboarding-orchestrator secret. Realm JSON keeps placeholders only; real SMTP credentials are never versioned.
+Create the ignored `.env` from `.env.example` to configure Keycloak SMTP and override the local machine-client secrets. The development defaults match the service configuration; any override must also be supplied to the corresponding Java process. Realm JSON keeps placeholders only, and the one-shot initializer reconciles client secrets on every infrastructure start so existing volumes can receive rotations safely.
 
 The one-shot `banking-keycloak-realm-init` container applies the restricted banking User Profile after the realm becomes healthy. Its expected steady state is `Exited (0)`.
 
@@ -96,20 +96,17 @@ Role summary:
 
 ```txt
 banking-admin     -> all current API capability roles, used for local operational/API testing
-home-banking-user -> CUSTOMER_READ, ACCOUNT_READ, IDENTITY_READ, used as the browser customer user
+home-banking-user -> HOME_BANKING_USER, used only through the browser/BFF login flow
 ```
 
-The `home-banking-bff` confidential client also has a service account for backend-to-backend onboarding calls with:
+The interactive `home-banking-bff` client has no service account. Backend calls use separate confidential clients:
 
 ```txt
-DOCUMENT_READ
-DOCUMENT_WRITE
-NOTIFICATION_WRITE
-ONBOARDING_READ
-ONBOARDING_WRITE
+onboarding-bff-service   -> ONBOARDING_READ, ONBOARDING_WRITE
+home-banking-bff-service -> CUSTOMER_READ, ACCOUNT_READ, IDENTITY_READ
 ```
 
-This service account is not a human login user.
+These service accounts are not human login users and are not shared between purposes.
 
 The dedicated `onboarding-orchestrator` confidential client is used by `onboarding-service` for customer, account, identity, document, notification and Keycloak user-administration calls. It does not reuse the browser token or a human test user.
 
@@ -117,38 +114,7 @@ The dedicated `onboarding-orchestrator` confidential client is used by `onboardi
 
 `home-banking-user` represents the typical browser user. It must access banking data through `home-banking-bff`, which resolves the linked `customerId` from the authenticated Keycloak subject.
 
-## Local Token Request
-
-After Keycloak starts, a local access token can be requested for manual API checks:
-
-```powershell
-function Get-BankingAccessToken {
-  param(
-    [string] $Username,
-    [string] $Password
-  )
-
-  $response = Invoke-RestMethod `
-    -Method Post `
-    -Uri "http://localhost:8090/realms/banking-ecosystem/protocol/openid-connect/token" `
-    -ContentType "application/x-www-form-urlencoded" `
-    -Body @{
-      grant_type = "password"
-      client_id = "banking-api"
-      username = $Username
-      password = $Password
-    }
-
-  $response.access_token
-}
-
-$adminToken = Get-BankingAccessToken "banking-admin" "banking-admin-password"
-$homeBankingToken = Get-BankingAccessToken "home-banking-user" "home-banking-user-password"
-```
-
-This password grant is enabled only for local API testing. Production user-facing applications should use Authorization Code Flow with PKCE.
-
-Do not use password grant to simulate home banking browser login. Use `http://localhost:8085/web/me` and login with `home-banking-user`.
+Direct Access Grants are disabled. Browser login uses Authorization Code Flow through `http://localhost:8085/web/oauth2/authorization/keycloak`; machine access uses client credentials and injected secrets.
 
 ## BFF Login Client
 
@@ -163,7 +129,7 @@ http://localhost:8085/web/login/oauth2/code/keycloak
 Local post logout redirect URLs:
 
 ```txt
-http://localhost:8085/web/session
+http://localhost:4200/*
 ```
 
 Use the gateway URL on port `8085` for browser login. Port `8086` is the BFF service port and is reserved for diagnostics, not the normal browser callback.
@@ -217,20 +183,11 @@ Manual admin path:
 Realm settings -> Themes -> Login theme -> banking
 ```
 
-## Gateway Authorization Checks
+## Public Boundary Check
 
-After the full local ecosystem is running, use the generated tokens to verify gateway authorization:
+The gateway exposes only `/web/**`. A direct request such as `/api/customers/{id}` must be denied; authenticated customer data is composed by `home-banking-bff` after resolving the Keycloak subject.
 
-```powershell
-Invoke-RestMethod `
-  -Method Get `
-  -Uri "http://localhost:8085/api/customers/{customerId}" `
-  -Headers @{ Authorization = "Bearer $homeBankingToken" }
-```
-
-Expected: `200 OK` when the customer exists.
-
-For negative authorization checks, create temporary local users manually with narrower roles instead of keeping extra users in the imported realm.
+Internal authorization is verified at each service with the dedicated machine clients imported in this realm. Do not create one shared human-style service user.
 
 ## Realm Import Behavior
 

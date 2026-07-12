@@ -16,7 +16,11 @@ public interface OnboardingApplicationRepositoryPort {
 
     Optional<OnboardingApplication> findByMagicLinkTokenHash(String tokenHash);
 
+    Optional<OnboardingApplication> findByMagicLinkTokenHashForUpdate(String tokenHash);
+
     Optional<OnboardingApplication> findByContinuationTokenHash(String tokenHash);
+
+    Optional<OnboardingApplication> findByContinuationTokenHashForUpdate(String tokenHash);
 
     Optional<OnboardingApplication> findFirstByEmailAndStatusInOrderByCreatedAtDesc(String email, Set<OnboardingApplicationStatus> statuses);
 

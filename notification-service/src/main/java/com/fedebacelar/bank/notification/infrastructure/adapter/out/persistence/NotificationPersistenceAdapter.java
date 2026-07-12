@@ -2,6 +2,7 @@ package com.fedebacelar.bank.notification.infrastructure.adapter.out.persistence
 
 import com.fedebacelar.bank.notification.application.port.out.NotificationRepositoryPort;
 import com.fedebacelar.bank.notification.domain.model.Notification;
+import com.fedebacelar.bank.notification.domain.enums.NotificationTemplateCode;
 import com.fedebacelar.bank.notification.infrastructure.adapter.out.persistence.mapper.NotificationPersistenceMapper;
 import com.fedebacelar.bank.notification.infrastructure.adapter.out.persistence.repository.NotificationJpaRepository;
 import java.util.Optional;
@@ -27,5 +28,13 @@ public class NotificationPersistenceAdapter implements NotificationRepositoryPor
     @Override
     public Optional<Notification> findById(UUID notificationId) {
         return repository.findById(notificationId.toString()).map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<Notification> findByTemplateCodeAndCorrelationId(
+            NotificationTemplateCode templateCode,
+            String correlationId
+    ) {
+        return repository.findByTemplateCodeAndCorrelationId(templateCode, correlationId).map(mapper::toDomain);
     }
 }

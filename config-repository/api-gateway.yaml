@@ -7,30 +7,12 @@ spring:
       server:
         webflux:
           routes:
-            - id: customer-service
-              uri: lb://customer-service
-              predicates:
-                - Path=/api/customers/**
-              filters:
-                - StripPrefix=1
-            - id: account-service
-              uri: lb://account-service
-              predicates:
-                - Path=/api/accounts/**
-              filters:
-                - StripPrefix=1
             - id: home-banking-bff
               uri: lb://home-banking-bff
               predicates:
                 - Path=/web/**
               filters:
                 - PreserveHostHeader
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/banking-ecosystem}
-
 eureka:
   client:
     enabled: ${EUREKA_CLIENT_ENABLED:true}

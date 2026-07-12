@@ -1,29 +1,25 @@
 package com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding;
 
 import com.fedebacelar.bank.homebanking.bff.application.port.out.OnboardingServicePort;
-import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingApplication;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingApplicantData;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingContinuation;
-import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingDocumentReference;
+import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingFile;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingSession;
-import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingTermsAcceptance;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingSubmission;
-import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.ApplicantDataResponse;
-import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.AcceptTermsRequest;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.ConsumeMagicLinkRequest;
-import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.DocumentReferenceResponse;
-import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.OnboardingApplicationResponse;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.OnboardingContinuationResponse;
-import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.SaveApplicantDataRequest;
-import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.SaveDocumentReferenceRequest;
-import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.StartOnboardingApplicationRequest;
-import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.TermsAcceptanceResponse;
-import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.SubmitOnboardingRequest;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.OnboardingSubmissionResponse;
-import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.ValidateContinuationResponse;
+import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.StartOnboardingApplicationRequest;
+import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.SubmitOnboardingRequest;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.ValidateContinuationRequest;
-import java.util.UUID;
+import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.ValidateContinuationResponse;
+import java.io.IOException;
+import java.io.InputStream;
+import org.springframework.core.io.AbstractResource;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Component
@@ -36,16 +32,14 @@ public class OnboardingServiceAdapter implements OnboardingServicePort {
     }
 
     @Override
-    public OnboardingApplication startApplication(String email, String accessToken) {
-        OnboardingApplicationResponse response = webClient.post()
+    public void startApplication(String email, String accessToken) {
+        webClient.post()
                 .uri("http://onboarding-service/internal/onboarding/applications")
                 .headers(headers -> headers.setBearerAuth(accessToken))
                 .bodyValue(new StartOnboardingApplicationRequest(email))
                 .retrieve()
-                .bodyToMono(OnboardingApplicationResponse.class)
+                .toBodilessEntity()
                 .block();
-
-        return response.toDomain();
     }
 
     @Override
@@ -57,7 +51,6 @@ public class OnboardingServiceAdapter implements OnboardingServicePort {
                 .retrieve()
                 .bodyToMono(OnboardingContinuationResponse.class)
                 .block();
-
         return response.toContinuation();
     }
 
@@ -70,55 +63,29 @@ public class OnboardingServiceAdapter implements OnboardingServicePort {
                 .retrieve()
                 .bodyToMono(ValidateContinuationResponse.class)
                 .block();
-
         return response.toSession();
     }
 
     @Override
-    public OnboardingApplicantData saveApplicantData(String continuationToken, OnboardingApplicantData applicantData, String accessToken) {
-        ApplicantDataResponse response = webClient.put()
-                .uri("http://onboarding-service/internal/onboarding/continuations/applicant-data")
-                .headers(headers -> headers.setBearerAuth(accessToken))
-                .bodyValue(SaveApplicantDataRequest.from(continuationToken, applicantData))
-                .retrieve()
-                .bodyToMono(ApplicantDataResponse.class)
-                .block();
+    public OnboardingSubmission submit(
+            String continuationToken,
+            OnboardingApplicantData applicantData,
+            boolean termsAccepted,
+            OnboardingFile dniFront,
+            OnboardingFile dniBack,
+            String accessToken
+    ) {
+        MultipartBodyBuilder body = new MultipartBodyBuilder();
+        body.part("submission", SubmitOnboardingRequest.from(continuationToken, applicantData, termsAccepted))
+                .contentType(MediaType.APPLICATION_JSON);
+        addFile(body, "dniFront", dniFront);
+        addFile(body, "dniBack", dniBack);
 
-        return response.toDomain();
-    }
-
-    @Override
-    public OnboardingDocumentReference saveDocumentReference(String continuationToken, String category, UUID documentId, String accessToken) {
-        DocumentReferenceResponse response = webClient.put()
-                .uri("http://onboarding-service/internal/onboarding/continuations/documents/{category}", category)
-                .headers(headers -> headers.setBearerAuth(accessToken))
-                .bodyValue(new SaveDocumentReferenceRequest(continuationToken, documentId))
-                .retrieve()
-                .bodyToMono(DocumentReferenceResponse.class)
-                .block();
-
-        return response.toDomain();
-    }
-
-    @Override
-    public OnboardingTermsAcceptance acceptTerms(String continuationToken, boolean accepted, String termsVersion, String accessToken) {
-        TermsAcceptanceResponse response = webClient.put()
-                .uri("http://onboarding-service/internal/onboarding/continuations/terms")
-                .headers(headers -> headers.setBearerAuth(accessToken))
-                .bodyValue(new AcceptTermsRequest(continuationToken, accepted, termsVersion))
-                .retrieve()
-                .bodyToMono(TermsAcceptanceResponse.class)
-                .block();
-
-        return response.toDomain();
-    }
-
-    @Override
-    public OnboardingSubmission submit(String continuationToken, String accessToken) {
         OnboardingSubmissionResponse response = webClient.post()
                 .uri("http://onboarding-service/internal/onboarding/continuations/submissions")
                 .headers(headers -> headers.setBearerAuth(accessToken))
-                .bodyValue(new SubmitOnboardingRequest(continuationToken))
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(body.build()))
                 .retrieve()
                 .bodyToMono(OnboardingSubmissionResponse.class)
                 .block();
@@ -130,10 +97,47 @@ public class OnboardingServiceAdapter implements OnboardingServicePort {
         OnboardingSubmissionResponse response = webClient.post()
                 .uri("http://onboarding-service/internal/onboarding/continuations/credential-invitations/resend")
                 .headers(headers -> headers.setBearerAuth(accessToken))
-                .bodyValue(new SubmitOnboardingRequest(continuationToken))
+                .bodyValue(new com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.ContinuationRequest(
+                        continuationToken
+                ))
                 .retrieve()
                 .bodyToMono(OnboardingSubmissionResponse.class)
                 .block();
         return response.toDomain();
+    }
+
+    private void addFile(MultipartBodyBuilder body, String partName, OnboardingFile file) {
+        body.part(partName, new OnboardingFileResource(file))
+                .filename(file.originalFilename())
+                .contentType(MediaType.parseMediaType(file.contentType()));
+    }
+
+    private static final class OnboardingFileResource extends AbstractResource {
+
+        private final OnboardingFile file;
+
+        private OnboardingFileResource(OnboardingFile file) {
+            this.file = file;
+        }
+
+        @Override
+        public String getDescription() {
+            return "onboarding file " + file.originalFilename();
+        }
+
+        @Override
+        public String getFilename() {
+            return file.originalFilename();
+        }
+
+        @Override
+        public long contentLength() {
+            return file.size();
+        }
+
+        @Override
+        public InputStream getInputStream() throws IOException {
+            return file.openStream();
+        }
     }
 }

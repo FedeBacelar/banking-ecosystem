@@ -2,6 +2,7 @@ package com.fedebacelar.bank.onboarding.domain.model;
 
 import com.fedebacelar.bank.onboarding.domain.enums.ProvisioningStepStatus;
 import com.fedebacelar.bank.onboarding.domain.enums.ProvisioningStepType;
+import com.fedebacelar.bank.onboarding.domain.exception.ProvisioningRequestMismatchException;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -27,6 +28,9 @@ public record OnboardingProvisioningStep(
     }
 
     public OnboardingProvisioningStep start(String newRequestHash, Instant now) {
+        if (requestHash != null && !requestHash.equals(newRequestHash)) {
+            throw new ProvisioningRequestMismatchException(stepType);
+        }
         return new OnboardingProvisioningStep(id, applicationId, stepType, ProvisioningStepStatus.RUNNING,
                 newRequestHash, externalReference, attempts + 1, nextAttemptAt, null,
                 startedAt == null ? now : startedAt, null, createdAt, now, version);

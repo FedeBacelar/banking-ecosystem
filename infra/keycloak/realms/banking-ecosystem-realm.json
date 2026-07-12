@@ -30,6 +30,10 @@
   "roles": {
     "realm": [
       {
+        "name": "HOME_BANKING_USER",
+        "description": "Identifies a customer allowed to start a home banking session."
+      },
+      {
         "name": "CUSTOMER_READ",
         "description": "Allows reading customer information."
       },
@@ -84,7 +88,7 @@
       "protocol": "openid-connect",
       "publicClient": true,
       "standardFlowEnabled": true,
-      "directAccessGrantsEnabled": true,
+      "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
       "redirectUris": [
         "http://localhost:*"
@@ -130,10 +134,10 @@
       "enabled": true,
       "protocol": "openid-connect",
       "publicClient": false,
-      "secret": "local-bff-secret",
+      "secret": "${HOME_BANKING_BFF_OAUTH_CLIENT_SECRET}",
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
-      "serviceAccountsEnabled": true,
+      "serviceAccountsEnabled": false,
       "redirectUris": [
         "http://localhost:8085/web/login/oauth2/code/keycloak",
         "http://localhost:4200/onboarding/credentials-complete"
@@ -143,8 +147,32 @@
         "http://localhost:4200"
       ],
       "attributes": {
-        "post.logout.redirect.uris": "http://localhost:8085/web/session"
+        "post.logout.redirect.uris": "http://localhost:4200/*"
       }
+    },
+    {
+      "clientId": "onboarding-bff-service",
+      "name": "Onboarding BFF Service",
+      "description": "Machine client used only by the browser BFF onboarding facade.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "${ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
+    },
+    {
+      "clientId": "home-banking-bff-service",
+      "name": "Home Banking BFF Service",
+      "description": "Machine client used for subject-resolved home banking reads.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "${HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
     },
     {
       "clientId": "onboarding-orchestrator",
@@ -161,15 +189,22 @@
   ],
   "users": [
     {
-      "username": "service-account-home-banking-bff",
+      "username": "service-account-onboarding-bff-service",
       "enabled": true,
-      "serviceAccountClientId": "home-banking-bff",
+      "serviceAccountClientId": "onboarding-bff-service",
       "realmRoles": [
-        "DOCUMENT_READ",
-        "DOCUMENT_WRITE",
-        "NOTIFICATION_WRITE",
         "ONBOARDING_READ",
         "ONBOARDING_WRITE"
+      ]
+    },
+    {
+      "username": "service-account-home-banking-bff-service",
+      "enabled": true,
+      "serviceAccountClientId": "home-banking-bff-service",
+      "realmRoles": [
+        "CUSTOMER_READ",
+        "ACCOUNT_READ",
+        "IDENTITY_READ"
       ]
     },
     {
@@ -184,6 +219,7 @@
         "IDENTITY_READ",
         "IDENTITY_WRITE",
         "DOCUMENT_READ",
+        "DOCUMENT_WRITE",
         "NOTIFICATION_WRITE"
       ],
       "clientRoles": {
@@ -238,9 +274,7 @@
         }
       ],
       "realmRoles": [
-        "CUSTOMER_READ",
-        "ACCOUNT_READ",
-        "IDENTITY_READ"
+        "HOME_BANKING_USER"
       ]
     }
   ]

@@ -11,6 +11,7 @@ public final class DocumentDetailsMapper {
     public static DocumentDetails toDetails(Document document) {
         return new DocumentDetails(
                 document.id(),
+                document.contentSha256(),
                 document.businessContext(),
                 document.businessReferenceId(),
                 document.category(),

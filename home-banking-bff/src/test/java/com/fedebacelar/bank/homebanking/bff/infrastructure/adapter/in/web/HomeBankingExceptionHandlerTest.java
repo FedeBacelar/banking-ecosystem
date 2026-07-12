@@ -52,4 +52,24 @@ class HomeBankingExceptionHandlerTest {
                 .containsEntry("code", "ONBOARDING_INCOMPLETE")
                 .doesNotContainKey("downstreamStatus");
     }
+
+    @Test
+    void shouldPreserveTheStableDocumentStorageFailureCode() {
+        WebClientResponseException exception = WebClientResponseException.create(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                "Service unavailable",
+                HttpHeaders.EMPTY,
+                """
+                {
+                  "code": "ONBOARDING_DOCUMENT_UPLOAD_UNAVAILABLE"
+                }
+                """.getBytes(),
+                null
+        );
+
+        ProblemDetail problem = handler.handleDownstreamError(exception);
+
+        assertThat(problem.getStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE.value());
+        assertThat(problem.getProperties()).containsEntry("code", "ONBOARDING_DOCUMENT_UPLOAD_UNAVAILABLE");
+    }
 }

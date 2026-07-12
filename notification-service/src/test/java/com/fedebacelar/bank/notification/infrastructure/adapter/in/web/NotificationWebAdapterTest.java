@@ -48,10 +48,11 @@ class NotificationWebAdapterTest {
                                   "recipient": "person@example.com",
                                   "templateCode": "ONBOARDING_EMAIL_MAGIC_LINK",
                                   "variables": {
-                                    "magicLink": "http://localhost:4200/onboarding/continue?token=abc",
+                                    "magicLink": "http://localhost:4200/onboarding/continue#token=abc",
                                     "expiresInMinutes": "30"
                                   },
-                                  "correlationId": "application-1"
+                                  "correlationId": "application-1",
+                                  "sensitive": true
                                 }
                                 """))
                 .andExpect(status().isCreated())
@@ -70,7 +71,8 @@ class NotificationWebAdapterTest {
                                   "variables": {
                                     "magicLink": "http://localhost",
                                     "expiresInMinutes": "30"
-                                  }
+                                  },
+                                  "sensitive": false
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
@@ -90,7 +92,8 @@ class NotificationWebAdapterTest {
                                   "templateCode": "ONBOARDING_EMAIL_MAGIC_LINK",
                                   "variables": {
                                     "magicLink": "http://localhost"
-                                  }
+                                  },
+                                  "sensitive": true
                                 }
                                 """))
                 .andExpect(status().isBadRequest())

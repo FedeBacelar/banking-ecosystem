@@ -43,8 +43,18 @@ public class OnboardingApplicationPersistenceAdapter implements OnboardingApplic
     }
 
     @Override
+    public Optional<OnboardingApplication> findByMagicLinkTokenHashForUpdate(String tokenHash) {
+        return repository.findByMagicLinkTokenHashForUpdate(tokenHash).map(mapper::toDomain);
+    }
+
+    @Override
     public Optional<OnboardingApplication> findByContinuationTokenHash(String tokenHash) {
         return repository.findByContinuationTokenHash(tokenHash).map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<OnboardingApplication> findByContinuationTokenHashForUpdate(String tokenHash) {
+        return repository.findByContinuationTokenHashForUpdate(tokenHash).map(mapper::toDomain);
     }
 
     @Override

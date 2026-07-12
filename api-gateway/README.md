@@ -1,118 +1,53 @@
 # api-gateway
 
-API Gateway for the banking ecosystem.
+Edge gateway for the banking ecosystem. It owns no banking data or business rules.
 
-This is a platform service. It does not own banking data and does not implement customer or account business rules.
+## Public Boundary
 
-## Responsibility
-
-`api-gateway` is the HTTP entry point for external clients.
-
-Current responsibilities:
-
-- Route external HTTP requests to internal services.
-- Keep public API paths centralized.
-- Resolve service destinations through Eureka using logical service names.
-- Validate JWT access tokens issued by Keycloak.
-- Enforce route-level authorization rules for customer and account APIs.
-- Forward browser session routes to `home-banking-bff`.
-
-## Local Runtime
-
-Default port:
+The current browser boundary is intentionally narrow:
 
 ```txt
-8085
+browser -> http://localhost:8085/web/** -> lb://home-banking-bff
 ```
 
-Base URL:
+`api-gateway` does not publish customer, account, identity, document, notification, or onboarding services directly. Service-to-service traffic uses Eureka and OAuth2 client credentials inside the trusted topology.
 
-```txt
-http://localhost:8085
-```
-
-## Current Routes
-
-```txt
-/api/customers/** -> lb://customer-service
-/api/accounts/**  -> lb://account-service
-/web/**           -> lb://home-banking-bff
-```
-
-The `lb://` prefix means the gateway resolves the target service through Eureka instead of using a fixed host and port.
-
-The `/api` prefix is stripped before forwarding requests to business services.
+This prevents a browser from choosing internal resources or bypassing the BFF's session, CSRF, DTO, and composition policies.
 
 ## Security
 
-`api-gateway` is configured as an OAuth2 Resource Server.
+The gateway permits `/web/**` and the configured health/info endpoints, then denies every other route. Browser authentication is owned by `home-banking-bff` through OIDC and server-side sessions.
 
-Token issuer:
-
-```txt
-http://localhost:8090/realms/banking-ecosystem
-```
-
-Current authorization rules:
-
-```txt
-GET   /api/customers/** -> CUSTOMER_READ
-POST  /api/customers/** -> CUSTOMER_WRITE
-PATCH /api/customers/** -> CUSTOMER_WRITE
-
-GET   /api/accounts/**  -> ACCOUNT_READ
-POST  /api/accounts/**  -> ACCOUNT_WRITE
-PATCH /api/accounts/**  -> ACCOUNT_WRITE
-
-/web/** -> allowed through to home-banking-bff
-```
-
-Other HTTP methods for `/api/customers/**` and `/api/accounts/**` are denied by default.
-
-The gateway reads Keycloak realm roles from the JWT `realm_access.roles` claim.
-
-`/web/**` is passed through without a Bearer token because `home-banking-bff` owns browser login and session cookies.
+The gateway is not the authorization owner for internal service APIs. Each internal service remains a resource server and validates the least-privilege machine token used by its caller.
 
 ## Configuration
 
-The service reads operational configuration from Config Server.
-
-Config source:
+Operational configuration comes from Config Server:
 
 ```txt
 ../config-repository/api-gateway.yaml
 ```
 
-Local bootstrap config remains in:
+Local bootstrap configuration remains in `src/main/resources/application.yaml`.
+
+## Local Runtime
+
+Default URL:
 
 ```txt
-src/main/resources/application.yaml
+http://localhost:8085
 ```
 
-## Run
-
-Recommended local startup order:
-
-```txt
-1. MySQL containers
-2. keycloak
-3. config-server
-4. eureka-server
-5. customer-service
-6. account-service
-7. identity-service
-8. home-banking-bff
-9. api-gateway
-```
-
-From this directory:
+Run:
 
 ```powershell
 .\mvnw.cmd spring-boot:run
 ```
 
-## Test
+Test:
 
 ```powershell
 .\mvnw.cmd test
 ```
+
+The security suite verifies that `/web/**` is admitted and direct `/api/**` or internal service paths are denied.

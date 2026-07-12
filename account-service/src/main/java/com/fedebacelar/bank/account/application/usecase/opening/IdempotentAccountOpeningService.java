@@ -36,23 +36,22 @@ public class IdempotentAccountOpeningService implements OpenAccountIdempotentlyU
         if (!StringUtils.hasText(key)) {
             return opening.open(command);
         }
-        return idempotencyRepository.findByKey(key)
-                .map(record -> recover(record, requestHash))
-                .orElseGet(() -> create(key, requestHash, command));
-    }
-
-    private AccountDetails recover(IdempotencyRecord record, String requestHash) {
+        IdempotencyRecord record = idempotencyRepository.acquire(key, requestHash, Instant.now(clock));
         if (!record.requestHash().equals(requestHash)) {
             throw new IdempotencyConflictException();
         }
+        return record.completed() ? recover(record) : create(record, command);
+    }
+
+    private AccountDetails recover(IdempotencyRecord record) {
         return accountRepository.findByAccountId(record.resourceId())
                 .map(AccountDetailsMapper::toDetails)
                 .orElseThrow(() -> new IllegalStateException("Idempotency record references a missing account."));
     }
 
-    private AccountDetails create(String key, String requestHash, OpenAccountCommand command) {
+    private AccountDetails create(IdempotencyRecord record, OpenAccountCommand command) {
         AccountDetails created = opening.open(command);
-        idempotencyRepository.save(new IdempotencyRecord(key, requestHash, created.accountId(), Instant.now(clock)));
+        idempotencyRepository.save(record.complete(created.accountId()));
         return created;
     }
 }

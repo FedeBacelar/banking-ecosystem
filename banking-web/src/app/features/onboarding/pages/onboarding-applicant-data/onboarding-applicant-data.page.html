@@ -1,13 +1,7 @@
 <app-onboarding-shell
   title="Datos personales"
   subtitle="Completa la informacion inicial para continuar con la apertura.">
-  @if (isLoadingSession()) {
-    <div class="status-panel">
-      <strong>Consultando estado</strong>
-      <span>Estamos preparando tu solicitud.</span>
-    </div>
-  } @else {
-    <form class="form-stack" [formGroup]="form" (ngSubmit)="submit()">
+  <form class="form-stack" [formGroup]="form" (ngSubmit)="submit()">
       <div class="field-grid">
         <label class="field">
           <span>Nombre</span>
@@ -129,11 +123,9 @@
       }
 
       <div class="button-row">
-        <a class="ghost-button" routerLink="/onboarding/session">Volver</a>
         <button class="primary-button" type="submit" [disabled]="isSubmitting()">
           {{ isSubmitting() ? 'Enviando...' : 'Enviar solicitud' }}
         </button>
       </div>
-    </form>
-  }
+  </form>
 </app-onboarding-shell>

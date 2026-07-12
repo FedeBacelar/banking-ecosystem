@@ -2,12 +2,13 @@ package com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboardi
 
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingContinuation;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingSession;
+import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingState;
 import java.time.Instant;
 import java.util.UUID;
 
 public record OnboardingContinuationResponse(
         UUID applicationId,
-        String status,
+        OnboardingState status,
         String continuationToken,
         Instant continuationExpiresAt
 ) {

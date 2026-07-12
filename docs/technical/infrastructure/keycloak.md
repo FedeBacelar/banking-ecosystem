@@ -78,19 +78,23 @@ Current clients:
 banking-api
 banking-swagger
 home-banking-bff
+onboarding-bff-service
+home-banking-bff-service
+onboarding-orchestrator
 ```
 
-`banking-api` is used to request local access tokens for API testing.
+`banking-api` is a local Authorization Code client. Direct Access Grants are disabled.
 
 `banking-swagger` is used by service Swagger UIs with Authorization Code and PKCE.
 
-`home-banking-bff` is a confidential client used by the browser-facing backend with Authorization Code Flow.
+`home-banking-bff` is a confidential client used by the browser-facing backend with Authorization Code Flow. Its service account is disabled.
 
-The same confidential client is also allowed to use client credentials for internal onboarding calls from the BFF to `onboarding-service`.
+`onboarding-bff-service` and `home-banking-bff-service` separate the BFF's machine permissions by purpose. `onboarding-orchestrator` belongs exclusively to `onboarding-service`.
 
 Current realm roles:
 
 ```txt
+HOME_BANKING_USER
 CUSTOMER_READ
 CUSTOMER_WRITE
 ACCOUNT_READ
@@ -125,18 +129,17 @@ home-banking-user  -> browser login through home-banking-bff
 Current request flow:
 
 ```txt
-client -> Keycloak -> access token
-client -> api-gateway with Bearer token
-api-gateway -> validates token
-api-gateway -> routes to business services
-business service -> validates token again
+browser -> api-gateway /web/** -> home-banking-bff
+home-banking-bff -> Keycloak Authorization Code flow
+home-banking-bff -> internal services with purpose-specific client credentials
+onboarding-service -> owned dependencies with onboarding-orchestrator credentials
 ```
 
-`api-gateway`, `customer-service`, `account-service`, `identity-service`, `notification-service`, `document-service`, and `onboarding-service` are configured as OAuth2 Resource Servers.
+`customer-service`, `account-service`, `identity-service`, `notification-service`, `document-service`, and `onboarding-service` are configured as OAuth2 Resource Servers.
 
-The gateway owns the external API access rules. Business services also validate tokens directly so direct service access is not trusted by default.
+The gateway owns the external route boundary and publishes only the BFF. Business services validate machine tokens directly; network placement is not authorization.
 
-`home-banking-bff` is configured as an OAuth2 Client. It creates a browser session and uses the user's access token when calling protected internal services.
+`home-banking-bff` is configured as an OAuth2 Client. It creates the browser session, keeps the user's OIDC token server-side, and uses dedicated client-credentials registrations for internal calls.
 
 ## Swagger Client
 
@@ -157,7 +160,7 @@ If Keycloak already has an existing Docker volume, the realm import file may not
 
 ## BFF Client
 
-`home-banking-bff` is a confidential local client.
+`home-banking-bff` is the confidential client used only for the browser's Authorization Code flow. Its service account is disabled.
 
 Local redirect URLs:
 
@@ -169,18 +172,14 @@ The browser-facing local flow must use the gateway URL on port `8085`. Direct BF
 
 The local client secret is a development default only. Real secrets must come from outside the repository.
 
-The BFF service account has the minimum roles required by the current applicant flow:
+Internal BFF calls use purpose-specific confidential clients with client credentials:
 
 ```txt
-DOCUMENT_READ
-DOCUMENT_WRITE
-NOTIFICATION_WRITE
-ONBOARDING_READ
-ONBOARDING_WRITE
+onboarding-bff-service    -> ONBOARDING_READ, ONBOARDING_WRITE
+home-banking-bff-service  -> CUSTOMER_READ, ACCOUNT_READ, IDENTITY_READ
 ```
 
-`NOTIFICATION_WRITE` is required by the current magic-link path because `onboarding-service` requests email delivery through `notification-service`.
-`DOCUMENT_WRITE` is required by the current applicant-data path because `home-banking-bff` uploads onboarding evidence to `document-service`.
+The BFF never forwards the browser token to internal services. Applicant data and evidence reach `onboarding-service` through one composite submission; that service owns document and notification orchestration through the dedicated `onboarding-orchestrator` client.
 
 ## Login Theme
 

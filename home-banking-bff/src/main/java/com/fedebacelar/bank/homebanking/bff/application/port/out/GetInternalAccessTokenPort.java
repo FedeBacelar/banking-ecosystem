@@ -2,5 +2,5 @@ package com.fedebacelar.bank.homebanking.bff.application.port.out;
 
 public interface GetInternalAccessTokenPort {
 
-    String getAccessToken();
+    String getAccessToken(InternalAccessPurpose purpose);
 }

@@ -6,6 +6,9 @@ services:
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      HOME_BANKING_BFF_OAUTH_CLIENT_SECRET: ${HOME_BANKING_BFF_OAUTH_CLIENT_SECRET:-local-bff-secret}
+      ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET: ${ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET:-local-onboarding-bff-secret}
+      HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET: ${HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET:-local-home-banking-service-secret}
       ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET: ${ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET:-local-onboarding-secret}
       KEYCLOAK_SMTP_HOST: ${KEYCLOAK_SMTP_HOST:-smtp.gmail.com}
       KEYCLOAK_SMTP_PORT: ${KEYCLOAK_SMTP_PORT:-587}
@@ -44,9 +47,34 @@ services:
         /opt/keycloak/bin/kcadm.sh update \
           realms/banking-ecosystem/users/profile \
           -f /config/banking-user-profile.json
+
+        reconcile_client_secret() {
+          local client_id="$$1"
+          local client_secret="$$2"
+          local client_uuid
+          client_uuid=$$(/opt/keycloak/bin/kcadm.sh get clients \
+            -r banking-ecosystem \
+            -q clientId="$$client_id" \
+            --fields id \
+            --format csv \
+            --noquotes)
+          test -n "$$client_uuid"
+          /opt/keycloak/bin/kcadm.sh update "clients/$$client_uuid" \
+            -r banking-ecosystem \
+            -s "secret=$$client_secret"
+        }
+
+        reconcile_client_secret home-banking-bff "$$HOME_BANKING_BFF_OAUTH_CLIENT_SECRET"
+        reconcile_client_secret onboarding-bff-service "$$ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET"
+        reconcile_client_secret home-banking-bff-service "$$HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET"
+        reconcile_client_secret onboarding-orchestrator "$$ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET"
     environment:
       KEYCLOAK_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      HOME_BANKING_BFF_OAUTH_CLIENT_SECRET: ${HOME_BANKING_BFF_OAUTH_CLIENT_SECRET:-local-bff-secret}
+      ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET: ${ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET:-local-onboarding-bff-secret}
+      HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET: ${HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET:-local-home-banking-service-secret}
+      ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET: ${ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET:-local-onboarding-secret}
     volumes:
       - ./realms/banking-user-profile.json:/config/banking-user-profile.json:ro
     restart: "no"

@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class KeycloakCredentialProvisioningAdapter implements CredentialProvisioningPort {
     private static final List<String> REQUIRED_ACTIONS = List.of("UPDATE_PROFILE", "UPDATE_PASSWORD");
-    private static final List<String> CUSTOMER_ROLES = List.of("CUSTOMER_READ", "ACCOUNT_READ", "IDENTITY_READ");
+    private static final List<String> CUSTOMER_ROLES = List.of("HOME_BANKING_USER");
     private final KeycloakAdminFeignClient client;
     private final String realm;
     private final String actionClientId;

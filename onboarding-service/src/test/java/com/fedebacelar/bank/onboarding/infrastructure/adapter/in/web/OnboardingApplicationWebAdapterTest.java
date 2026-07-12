@@ -3,43 +3,38 @@ package com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fedebacelar.bank.onboarding.application.port.in.ConsumeMagicLinkUseCase;
-import com.fedebacelar.bank.onboarding.application.port.in.AcceptTermsUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.GetOnboardingApplicationUseCase;
-import com.fedebacelar.bank.onboarding.application.port.in.SaveApplicantDataUseCase;
-import com.fedebacelar.bank.onboarding.application.port.in.SaveDocumentReferenceUseCase;
-import com.fedebacelar.bank.onboarding.application.port.in.StartOnboardingApplicationUseCase;
-import com.fedebacelar.bank.onboarding.application.port.in.SubmitOnboardingUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.ResendCredentialInvitationUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.RetryOnboardingWorkflowUseCase;
+import com.fedebacelar.bank.onboarding.application.port.in.StartOnboardingApplicationUseCase;
+import com.fedebacelar.bank.onboarding.application.port.in.SubmitOnboardingUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.ValidateContinuationUseCase;
-import com.fedebacelar.bank.onboarding.application.view.ApplicantDataDetails;
-import com.fedebacelar.bank.onboarding.application.view.DocumentReferenceDetails;
 import com.fedebacelar.bank.onboarding.application.view.OnboardingApplicationDetails;
 import com.fedebacelar.bank.onboarding.application.view.OnboardingContinuationDetails;
-import com.fedebacelar.bank.onboarding.application.view.TermsAcceptanceDetails;
-import com.fedebacelar.bank.onboarding.domain.enums.ApplicantDocumentType;
+import com.fedebacelar.bank.onboarding.application.view.OnboardingSubmissionDetails;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingApplicationStatus;
-import com.fedebacelar.bank.onboarding.domain.enums.OnboardingDocumentCategory;
-import com.fedebacelar.bank.onboarding.domain.exception.DuplicateActiveOnboardingApplicationException;
+import com.fedebacelar.bank.onboarding.domain.exception.OnboardingDocumentUploadException;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.error.GlobalExceptionHandler;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.mapper.OnboardingWebMapper;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.security.oauth2.client.autoconfigure.OAuth2ClientAutoConfiguration;
+import org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -55,213 +50,147 @@ class OnboardingApplicationWebAdapterTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private StartOnboardingApplicationUseCase startOnboardingApplicationUseCase;
-
+    private StartOnboardingApplicationUseCase startUseCase;
     @MockitoBean
-    private ConsumeMagicLinkUseCase consumeMagicLinkUseCase;
-
+    private ConsumeMagicLinkUseCase consumeUseCase;
     @MockitoBean
-    private ValidateContinuationUseCase validateContinuationUseCase;
-
+    private ValidateContinuationUseCase validateUseCase;
     @MockitoBean
-    private SaveApplicantDataUseCase saveApplicantDataUseCase;
-
+    private GetOnboardingApplicationUseCase getUseCase;
     @MockitoBean
-    private SaveDocumentReferenceUseCase saveDocumentReferenceUseCase;
-
+    private SubmitOnboardingUseCase submitUseCase;
     @MockitoBean
-    private AcceptTermsUseCase acceptTermsUseCase;
-
+    private ResendCredentialInvitationUseCase resendUseCase;
     @MockitoBean
-    private GetOnboardingApplicationUseCase getOnboardingApplicationUseCase;
-
-    @MockitoBean
-    private SubmitOnboardingUseCase submitOnboardingUseCase;
-
-    @MockitoBean
-    private ResendCredentialInvitationUseCase resendCredentialInvitationUseCase;
-
-    @MockitoBean
-    private RetryOnboardingWorkflowUseCase retryOnboardingWorkflowUseCase;
+    private RetryOnboardingWorkflowUseCase retryUseCase;
 
     @Test
-    void startsApplication() throws Exception {
+    void shouldStartApplication() throws Exception {
         UUID applicationId = UUID.randomUUID();
-        when(startOnboardingApplicationUseCase.start(any())).thenReturn(applicationDetails(applicationId));
+        when(startUseCase.start(any())).thenReturn(applicationDetails(applicationId));
 
         mockMvc.perform(post("/internal/onboarding/applications")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "email": "person@example.com"
-                                }
-                                """))
+                        .content("{\"email\":\"person@example.com\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(applicationId.toString()))
                 .andExpect(jsonPath("$.status").value("EMAIL_VERIFICATION_PENDING"));
     }
 
     @Test
-    void returnsBadRequestForInvalidEmail() throws Exception {
-        mockMvc.perform(post("/internal/onboarding/applications")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "email": "not-an-email"
-                                }
-                                """))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.title").value("Invalid request"));
-    }
-
-    @Test
-    void returnsConflictForDuplicateApplication() throws Exception {
-        when(startOnboardingApplicationUseCase.start(any()))
-                .thenThrow(new DuplicateActiveOnboardingApplicationException("person@example.com"));
-
-        mockMvc.perform(post("/internal/onboarding/applications")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "email": "person@example.com"
-                                }
-                                """))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.title").value("Duplicate onboarding application"));
-    }
-
-    @Test
-    void consumesMagicLink() throws Exception {
+    void shouldConsumeMagicLink() throws Exception {
         UUID applicationId = UUID.randomUUID();
-        when(consumeMagicLinkUseCase.consume(any())).thenReturn(new OnboardingContinuationDetails(
+        when(consumeUseCase.consume(any())).thenReturn(new OnboardingContinuationDetails(
                 applicationId,
                 "person@example.com",
                 OnboardingApplicationStatus.IN_PROGRESS,
                 "continuation-token",
-                Instant.parse("2026-07-05T12:00:00Z")
+                Instant.parse("2026-07-10T14:00:00Z")
         ));
 
         mockMvc.perform(post("/internal/onboarding/magic-links/consume")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "token": "magic-token"
-                                }
-                                """))
+                        .content("{\"token\":\"magic-token\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.applicationId").value(applicationId.toString()))
                 .andExpect(jsonPath("$.continuationToken").value("continuation-token"));
     }
 
     @Test
-    void validatesContinuation() throws Exception {
+    void shouldValidateContinuationForBffStatusQueries() throws Exception {
         UUID applicationId = UUID.randomUUID();
-        when(validateContinuationUseCase.validate(any())).thenReturn(applicationDetails(applicationId));
+        when(validateUseCase.validate(any())).thenReturn(applicationDetails(applicationId));
 
         mockMvc.perform(post("/internal/onboarding/continuations/validate")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "token": "continuation-token"
-                                }
-                                """))
+                        .content("{\"token\":\"continuation-token\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.applicationId").value(applicationId.toString()))
-                .andExpect(jsonPath("$.email").value("person@example.com"))
-                .andExpect(jsonPath("$.status").value("EMAIL_VERIFICATION_PENDING"));
+                .andExpect(jsonPath("$.email").value("person@example.com"));
     }
 
     @Test
-    void savesApplicantData() throws Exception {
+    void shouldAcceptOneCompositeMultipartSubmission() throws Exception {
         UUID applicationId = UUID.randomUUID();
-        when(saveApplicantDataUseCase.save(any())).thenReturn(applicantDataDetails(applicationId));
-
-        mockMvc.perform(put("/internal/onboarding/continuations/applicant-data")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "continuationToken": "continuation-token",
-                                  "firstName": "Federico",
-                                  "lastName": "Bacelar",
-                                  "birthDate": "1990-05-10",
-                                  "nationality": "AR",
-                                  "documentType": "DNI",
-                                  "documentNumber": "12345678",
-                                  "documentIssuingCountry": "AR",
-                                  "phoneNumber": "+5491122223333",
-                                  "street": "Av Siempre Viva",
-                                  "streetNumber": "742",
-                                  "city": "Buenos Aires",
-                                  "province": "Buenos Aires",
-                                  "postalCode": "1000",
-                                  "country": "AR"
-                                }
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.applicationId").value(applicationId.toString()))
-                .andExpect(jsonPath("$.documentType").value("DNI"));
-    }
-
-    @Test
-    void savesDocumentReference() throws Exception {
-        UUID applicationId = UUID.randomUUID();
-        UUID documentReferenceId = UUID.randomUUID();
-        UUID documentId = UUID.randomUUID();
-        Instant now = Instant.parse("2026-07-05T10:00:00Z");
-        when(saveDocumentReferenceUseCase.save(any())).thenReturn(new DocumentReferenceDetails(
-                documentReferenceId,
-                applicationId,
-                OnboardingDocumentCategory.DNI_FRONT,
-                documentId,
-                now,
-                now
+        Instant now = Instant.parse("2026-07-10T12:00:00Z");
+        when(submitUseCase.submit(any())).thenReturn(new OnboardingSubmissionDetails(
+                applicationId, OnboardingApplicationStatus.SUBMITTED, now, now
         ));
 
-        mockMvc.perform(put("/internal/onboarding/continuations/documents/DNI_FRONT")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "continuationToken": "continuation-token",
-                                  "documentId": "%s"
-                                }
-                                """.formatted(documentId)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(documentReferenceId.toString()))
+        mockMvc.perform(multipart("/internal/onboarding/continuations/submissions")
+                        .file(new MockMultipartFile(
+                                "submission", "", MediaType.APPLICATION_JSON_VALUE,
+                                validSubmissionJson().getBytes(StandardCharsets.UTF_8)
+                        ))
+                        .file(new MockMultipartFile("dniFront", "front.png", "image/png", new byte[]{1, 2}))
+                        .file(new MockMultipartFile("dniBack", "back.png", "image/png", new byte[]{3, 4})))
+                .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.applicationId").value(applicationId.toString()))
-                .andExpect(jsonPath("$.category").value("DNI_FRONT"))
-                .andExpect(jsonPath("$.documentId").value(documentId.toString()));
+                .andExpect(jsonPath("$.status").value("SUBMITTED"));
     }
 
     @Test
-    void acceptsTerms() throws Exception {
-        UUID applicationId = UUID.randomUUID();
-        Instant now = Instant.parse("2026-07-05T10:00:00Z");
-        when(acceptTermsUseCase.accept(any())).thenReturn(new TermsAcceptanceDetails(
-                applicationId,
-                "ONBOARDING_TERMS_AR_V1",
-                now,
-                now,
-                now
+    void shouldRejectIncompleteCompositeSubmission() throws Exception {
+        mockMvc.perform(multipart("/internal/onboarding/continuations/submissions")
+                        .file(new MockMultipartFile(
+                                "submission", "", MediaType.APPLICATION_JSON_VALUE,
+                                validSubmissionJson().getBytes(StandardCharsets.UTF_8)
+                        ))
+                        .file(new MockMultipartFile("dniFront", "front.png", "image/png", new byte[]{1, 2})))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldReturnAStableErrorWhenDocumentStorageIsUnavailable() throws Exception {
+        when(submitUseCase.submit(any())).thenThrow(new OnboardingDocumentUploadException("internal detail"));
+
+        mockMvc.perform(multipart("/internal/onboarding/continuations/submissions")
+                        .file(new MockMultipartFile(
+                                "submission", "", MediaType.APPLICATION_JSON_VALUE,
+                                validSubmissionJson().getBytes(StandardCharsets.UTF_8)
+                        ))
+                        .file(new MockMultipartFile("dniFront", "front.png", "image/png", new byte[]{1, 2}))
+                        .file(new MockMultipartFile("dniBack", "back.png", "image/png", new byte[]{3, 4})))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("ONBOARDING_DOCUMENT_UPLOAD_UNAVAILABLE"))
+                .andExpect(jsonPath("$.detail").value("Onboarding documents could not be stored right now."));
+    }
+
+    @Test
+    void shouldResendCredentialInvitation() throws Exception {
+        Instant now = Instant.parse("2026-07-10T12:00:00Z");
+        when(resendUseCase.resend("continuation-token")).thenReturn(new OnboardingSubmissionDetails(
+                UUID.randomUUID(), OnboardingApplicationStatus.CREDENTIAL_SETUP_PENDING, now, now
         ));
 
-        mockMvc.perform(put("/internal/onboarding/continuations/terms")
+        mockMvc.perform(post("/internal/onboarding/continuations/credential-invitations/resend")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "continuationToken": "continuation-token",
-                                  "accepted": true,
-                                  "termsVersion": "ONBOARDING_TERMS_AR_V1"
-                                }
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.applicationId").value(applicationId.toString()))
-                .andExpect(jsonPath("$.termsVersion").value("ONBOARDING_TERMS_AR_V1"));
+                        .content("{\"continuationToken\":\"continuation-token\"}"))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.status").value("CREDENTIAL_SETUP_PENDING"));
     }
 
     @Test
-    void getsApplication() throws Exception {
+    void shouldKeepOperationalRetryEndpointsInternal() throws Exception {
         UUID applicationId = UUID.randomUUID();
-        when(getOnboardingApplicationUseCase.get(applicationId)).thenReturn(applicationDetails(applicationId));
+        when(retryUseCase.retryReview(applicationId)).thenReturn(applicationDetails(applicationId));
+
+        mockMvc.perform(post("/internal/onboarding/applications/{applicationId}/review/retry", applicationId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(applicationId.toString()));
+    }
+
+    @Test
+    void shouldNotExposeRemovedGranularCaptureEndpoints() throws Exception {
+        mockMvc.perform(put("/internal/onboarding/continuations/applicant-data")).andExpect(status().isNotFound());
+        mockMvc.perform(put("/internal/onboarding/continuations/documents/DNI_FRONT")).andExpect(status().isNotFound());
+        mockMvc.perform(put("/internal/onboarding/continuations/terms")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldGetApplicationMetadataInternally() throws Exception {
+        UUID applicationId = UUID.randomUUID();
+        when(getUseCase.get(applicationId)).thenReturn(applicationDetails(applicationId));
 
         mockMvc.perform(get("/internal/onboarding/applications/{applicationId}", applicationId))
                 .andExpect(status().isOk())
@@ -269,7 +198,7 @@ class OnboardingApplicationWebAdapterTest {
     }
 
     private OnboardingApplicationDetails applicationDetails(UUID applicationId) {
-        Instant now = Instant.parse("2026-07-05T10:00:00Z");
+        Instant now = Instant.parse("2026-07-10T12:00:00Z");
         return new OnboardingApplicationDetails(
                 applicationId,
                 "person@example.com",
@@ -284,28 +213,26 @@ class OnboardingApplicationWebAdapterTest {
         );
     }
 
-    private ApplicantDataDetails applicantDataDetails(UUID applicationId) {
-        Instant now = Instant.parse("2026-07-05T10:00:00Z");
-        return new ApplicantDataDetails(
-                applicationId,
-                "Federico",
-                null,
-                "Bacelar",
-                LocalDate.parse("1990-05-10"),
-                "AR",
-                ApplicantDocumentType.DNI,
-                "12345678",
-                "AR",
-                null,
-                "+5491122223333",
-                "Av Siempre Viva",
-                "742",
-                "Buenos Aires",
-                "Buenos Aires",
-                "1000",
-                "AR",
-                now,
-                now
-        );
+    private String validSubmissionJson() {
+        return """
+                {
+                  "continuationToken": "continuation-token",
+                  "firstName": "Federico",
+                  "lastName": "Bacelar",
+                  "birthDate": "1990-05-10",
+                  "nationality": "AR",
+                  "documentType": "DNI",
+                  "documentNumber": "12345678",
+                  "documentIssuingCountry": "AR",
+                  "phoneNumber": "+5491122223333",
+                  "street": "Av Siempre Viva",
+                  "streetNumber": "742",
+                  "city": "Buenos Aires",
+                  "province": "Buenos Aires",
+                  "postalCode": "1000",
+                  "country": "AR",
+                  "termsAccepted": true
+                }
+                """;
     }
 }

@@ -7,7 +7,8 @@ public record SendEmailNotificationCommand(
         String recipient,
         NotificationTemplateCode templateCode,
         Map<String, String> variables,
-        String correlationId
+        String correlationId,
+        boolean sensitive
 ) {
 }
 

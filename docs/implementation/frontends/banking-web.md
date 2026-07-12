@@ -1,53 +1,44 @@
 # banking-web
 
-`banking-web` is an Angular 22 standalone application. Its current onboarding UI is a functional verification client, not the final guided banking experience.
+`banking-web` is an Angular standalone verification client. Its current onboarding UI is deliberately disposable; process rules and orchestration live behind the BFF.
 
-## Implemented Demo Flow
-
-```txt
-email -> check email -> consume magic link -> applicant data
-      -> DNI front/back -> terms -> submit -> status
-      -> credential invitation -> Keycloak actions -> completion page
-```
-
-The applicant page chains the BFF operations in order and submits only after every required call succeeds. The status page polls the safe BFF status contract and supports invitation resend when credentials are pending.
-
-## Architecture
+## Current Flow
 
 ```txt
-src/app/core/api
-src/app/shared/ui
-src/app/features/onboarding
+email -> check email -> consume fragment token -> composite submit
+      -> backend status -> Keycloak credential actions -> completion
 ```
 
-Routes are lazy loaded. Browser code calls only relative `/web/**` URLs. The BFF owns the continuation token as an HttpOnly cookie; Angular obtains a CSRF cookie before each mutation and does not store access tokens.
-
-## Routes
+Public routes:
 
 ```txt
 /onboarding/start
 /onboarding/check-email
-/onboarding/continue?token=...
-/onboarding/session
+/onboarding/continue#token=...
 /onboarding/applicant-data
 /onboarding/status
 /onboarding/credentials-complete
 ```
 
-## Local Runtime
+The magic token uses the URL fragment so it is not sent in the initial HTTP request or normal referrer data. The continuation token remains in an HttpOnly BFF cookie.
+
+## Browser Responsibilities
+
+- Collect and locally validate presentation-level input.
+- Send one start request and one magic-link exchange request.
+- Send one multipart submission with data, terms, and DNI front/back.
+- Render the backend-provided `nextAction` and read status for the asynchronous process.
+- Let Angular attach the XSRF header automatically.
+
+The browser does not coordinate document-service, decide review/provisioning transitions, select customer IDs, persist tokens, fetch session metadata, or bootstrap CSRF explicitly.
+
+## Local Verification
 
 ```powershell
 cd banking-web
-npm start
+npm.cmd start
+npm.cmd test -- --watch=false
+npm.cmd run build
 ```
 
-Open `http://localhost:4200/onboarding/start`. The dev proxy sends `/web` to `http://localhost:8085` (api-gateway).
-
-## Verification
-
-```powershell
-npm test -- --watch=false
-npm run build
-```
-
-The final guided form, banking-grade visual system, and authenticated home-banking UI remain a separate frontend feature. The current BFF contracts are intended to support that replacement without changing the process owner.
+The proxy routes `/web` to `http://localhost:8085`. The final onboarding and home-banking frontend design is a separate feature built on these contracts.

@@ -10,6 +10,7 @@ import com.fedebacelar.bank.onboarding.application.port.out.OnboardingStatusHist
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTermsAcceptanceRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingWorkItemRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingUniquenessReservationPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingReviewPolicyPort;
 import com.fedebacelar.bank.onboarding.domain.enums.ApplicantDocumentType;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingActorType;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingApplicationStatus;
@@ -27,7 +28,6 @@ import com.fedebacelar.bank.onboarding.domain.model.OnboardingReviewCheck;
 import com.fedebacelar.bank.onboarding.domain.model.OnboardingStatusHistory;
 import com.fedebacelar.bank.onboarding.domain.model.OnboardingTermsAcceptance;
 import com.fedebacelar.bank.onboarding.domain.model.OnboardingWorkItem;
-import com.fedebacelar.bank.onboarding.infrastructure.config.OnboardingReviewProperties;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -59,7 +59,7 @@ public class AutoReviewService {
     private final CustomerDuplicateLookupPort customerLookup;
     private final DocumentValidationPort documentValidation;
     private final OnboardingUniquenessReservationPort reservationPort;
-    private final OnboardingReviewProperties properties;
+    private final OnboardingReviewPolicyPort reviewPolicy;
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
 
@@ -74,7 +74,7 @@ public class AutoReviewService {
             CustomerDuplicateLookupPort customerLookup,
             DocumentValidationPort documentValidation,
             OnboardingUniquenessReservationPort reservationPort,
-            OnboardingReviewProperties properties,
+            OnboardingReviewPolicyPort reviewPolicy,
             TransactionTemplate transactionTemplate,
             Clock clock
     ) {
@@ -88,7 +88,7 @@ public class AutoReviewService {
         this.customerLookup = customerLookup;
         this.documentValidation = documentValidation;
         this.reservationPort = reservationPort;
-        this.properties = properties;
+        this.reviewPolicy = reviewPolicy;
         this.transactionTemplate = transactionTemplate;
         this.clock = clock;
     }
@@ -109,16 +109,17 @@ public class AutoReviewService {
     public void handleTechnicalFailure(OnboardingWorkItem workItem, String errorCode) {
         Instant now = Instant.now(clock);
         transactionTemplate.executeWithoutResult(status -> {
-            if (workItem.attempts() >= properties.getMaxAttempts()) {
+            if (workItem.attempts() >= reviewPolicy.maxAttempts()) {
                 OnboardingApplication application = requireApplication(workItem.applicationId());
-                if (application.status() == OnboardingApplicationStatus.UNDER_AUTOMATED_REVIEW) {
+                if (application.status() == OnboardingApplicationStatus.SUBMITTED
+                        || application.status() == OnboardingApplicationStatus.UNDER_AUTOMATED_REVIEW) {
                     OnboardingApplication failed = applicationRepository.save(application.failReview(now));
                     saveHistory(application, failed, "AUTO_REVIEW_TECHNICAL_FAILURE", OnboardingActorType.AUTO_REVIEW, now);
                 }
                 workItemRepository.save(workItem.fail(errorCode, now));
                 return;
             }
-            workItemRepository.save(workItem.retry(errorCode, now.plus(properties.retryDelay(workItem.attempts())), now));
+            workItemRepository.save(workItem.retry(errorCode, now.plus(reviewPolicy.retryDelay(workItem.attempts())), now));
         });
     }
 
@@ -142,7 +143,8 @@ public class AutoReviewService {
                 .orElseThrow(() -> new IllegalStateException("DNI back reference disappeared after submission."));
         OnboardingTermsAcceptance terms = termsRepository.findByApplicationId(applicationId)
                 .orElseThrow(() -> new IllegalStateException("Terms acceptance disappeared after submission."));
-        return new ReviewContext(application, applicant, front, back, terms);
+        OnboardingReviewPolicyPort.ReviewPolicy policy = reviewPolicy.policy(application.reviewPolicyVersion());
+        return new ReviewContext(application, applicant, front, back, terms, policy);
     }
 
     private List<OnboardingReviewCheck> evaluate(ReviewContext context, Instant now) {
@@ -164,10 +166,10 @@ public class AutoReviewService {
                 && documentValidation.isStoredOnboardingDocument(context.back().documentId(), context.application().id(), OnboardingDocumentCategory.DNI_BACK);
         checks.add(local(context, ReviewCheckType.DOCUMENTS_PRESENT, documentsValid, documentsValid ? "REQUIRED_DOCUMENTS_PRESENT" : "DOCUMENT_REFERENCE_INVALID", now));
 
-        boolean termsValid = properties.getRequiredTermsVersion().equals(context.terms().termsVersion());
+        boolean termsValid = context.policy().requiredTermsVersion().equals(context.terms().termsVersion());
         checks.add(local(context, ReviewCheckType.TERMS_ACCEPTED, termsValid, termsValid ? "TERMS_VERSION_ACCEPTED" : "TERMS_VERSION_INVALID", now));
 
-        boolean eligible = basicEligibility(context.applicant(), LocalDate.ofInstant(now, clock.getZone()));
+        boolean eligible = basicEligibility(context.applicant(), LocalDate.ofInstant(now, reviewPolicy.businessZone()));
         checks.add(local(context, ReviewCheckType.BASIC_ELIGIBILITY, eligible, eligible ? "BASIC_ELIGIBILITY_PASSED" : "BASIC_ELIGIBILITY_FAILED", now));
 
         checks.add(configuredIntegrationCheck(context, ReviewCheckType.DOCUMENT_PROOFING, now));
@@ -185,7 +187,7 @@ public class AutoReviewService {
     }
 
     private OnboardingReviewCheck local(ReviewContext context, ReviewCheckType type, boolean passed, String reason, Instant now) {
-        requireMode(type, ReviewCheckExecutionMode.LOCAL);
+        requireMode(context, type, ReviewCheckExecutionMode.LOCAL);
         return OnboardingReviewCheck.completed(context.application().id(), type, ReviewCheckExecutionMode.LOCAL,
                 passed ? ReviewCheckOutcome.PASSED : ReviewCheckOutcome.FAILED, true,
                 context.application().reviewPolicyVersion(), "LOCAL_RULES", reason, now);
@@ -198,7 +200,7 @@ public class AutoReviewService {
     }
 
     private OnboardingReviewCheck configuredIntegrationCheck(ReviewContext context, ReviewCheckType type, Instant now) {
-        return switch (properties.getChecks().get(type)) {
+        return switch (context.policy().modeFor(type)) {
             case SIMULATED -> simulated(context, type, now);
             case DISABLED -> OnboardingReviewCheck.completed(
                     context.application().id(), type, ReviewCheckExecutionMode.DISABLED,
@@ -206,14 +208,17 @@ public class AutoReviewService {
                     "CONFIGURATION", "CHECK_DISABLED", now
             );
             case LOCAL, EXTERNAL -> throw new IllegalStateException(
-                    "No review strategy is available for " + type + " in mode " + properties.getChecks().get(type)
+                    "No review strategy is available for " + type + " in mode " + context.policy().modeFor(type)
             );
         };
     }
 
-    private void requireMode(ReviewCheckType type, ReviewCheckExecutionMode expected) {
-        if (properties.getChecks().get(type) != expected) {
-            throw new IllegalStateException("No review strategy is available for " + type + " in mode " + properties.getChecks().get(type));
+    private void requireMode(ReviewContext context, ReviewCheckType type, ReviewCheckExecutionMode expected) {
+        if (context.policy().modeFor(type) != expected) {
+            throw new IllegalStateException(
+                    "No review strategy is available for " + type + " in mode "
+                            + context.policy().modeFor(type)
+            );
         }
     }
 
@@ -248,6 +253,7 @@ public class AutoReviewService {
             ApplicantData applicant,
             OnboardingDocumentReference front,
             OnboardingDocumentReference back,
-            OnboardingTermsAcceptance terms
+            OnboardingTermsAcceptance terms,
+            OnboardingReviewPolicyPort.ReviewPolicy policy
     ) {}
 }

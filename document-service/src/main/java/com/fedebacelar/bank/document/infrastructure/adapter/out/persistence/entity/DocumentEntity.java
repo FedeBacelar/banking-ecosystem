@@ -20,6 +20,12 @@ public class DocumentEntity {
     @Column(nullable = false, updatable = false, length = 36)
     private String id;
 
+    @Column(unique = true, length = 200)
+    private String idempotencyKey;
+
+    @Column(length = 64)
+    private String contentSha256;
+
     @Column(nullable = false, length = 80)
     private String businessContext;
 
@@ -68,6 +74,22 @@ public class DocumentEntity {
 
     public String getId() {
         return id;
+    }
+
+    public String getIdempotencyKey() {
+        return idempotencyKey;
+    }
+
+    public void setIdempotencyKey(String idempotencyKey) {
+        this.idempotencyKey = idempotencyKey;
+    }
+
+    public String getContentSha256() {
+        return contentSha256;
+    }
+
+    public void setContentSha256(String contentSha256) {
+        this.contentSha256 = contentSha256;
     }
 
     public void setId(String id) {

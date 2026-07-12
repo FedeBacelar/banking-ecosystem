@@ -1,0 +1,14 @@
+onboarding:
+  runtime-mode: LOCAL
+  security:
+    payload-encryption-key: bG9jYWwtb25ib2FyZGluZy1wYXlsb2FkLWtleS0wMDE=
+  notification:
+    worker-batch-size: 0
+  review:
+    worker-batch-size: 0
+  provisioning:
+    worker-batch-size: 0
+
+eureka:
+  client:
+    enabled: false

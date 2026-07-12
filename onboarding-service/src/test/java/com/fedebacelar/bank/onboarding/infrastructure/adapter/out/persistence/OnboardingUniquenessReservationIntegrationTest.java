@@ -1,6 +1,7 @@
 package com.fedebacelar.bank.onboarding.infrastructure.adapter.out.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fedebacelar.bank.onboarding.TestcontainersConfiguration;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingApplicationRepositoryPort;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 @SpringBootTest(properties = {
         "onboarding.review.worker-batch-size=0",
@@ -91,6 +93,27 @@ class OnboardingUniquenessReservationIntegrationTest {
             assertThat(workItems.save(claimed.succeed(now.plusSeconds(1))).status())
                     .isEqualTo(WorkflowJobStatus.SUCCEEDED);
         }
+    }
+
+    @Test
+    void aStaleLeaseOwnerCannotOverwriteAReclaimedWorkItem() {
+        Instant now = Instant.parse("2026-07-10T12:00:00Z");
+        OnboardingApplication application = applications.save(OnboardingApplication.start(
+                "worker-fencing@example.com", "magic-fencing", now.plusSeconds(1800), now.plusSeconds(86400), now));
+        workItems.save(OnboardingWorkItem.pending(application.id(), WorkflowJobType.PROVISIONING, now));
+
+        OnboardingWorkItem firstOwner = workItems.claimNext(
+                WorkflowJobType.PROVISIONING, now, Duration.ofMinutes(1)
+        ).orElseThrow();
+        OnboardingWorkItem secondOwner = workItems.claimNext(
+                WorkflowJobType.PROVISIONING, now.plus(Duration.ofMinutes(2)), Duration.ofMinutes(5)
+        ).orElseThrow();
+
+        assertThat(secondOwner.version()).isGreaterThan(firstOwner.version());
+        assertThatThrownBy(() -> workItems.save(firstOwner.succeed(now.plusSeconds(121))))
+                .isInstanceOf(ObjectOptimisticLockingFailureException.class);
+        assertThat(workItems.save(secondOwner.succeed(now.plusSeconds(122))).status())
+                .isEqualTo(WorkflowJobStatus.SUCCEEDED);
     }
 
     private Callable<Boolean> attempt(CountDownLatch ready, CountDownLatch start,

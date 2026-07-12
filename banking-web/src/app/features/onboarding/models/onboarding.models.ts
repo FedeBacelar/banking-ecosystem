@@ -1,34 +1,44 @@
-export interface OnboardingApplication {
-  id: string;
-  email: string;
-  status: string;
-  magicLinkExpiresAt: string;
-  emailVerifiedAt: string | null;
-  continuationExpiresAt: string | null;
-  expiresAt: string;
-  createdAt: string;
-  updatedAt: string;
-}
+export type OnboardingState =
+  | 'EMAIL_VERIFICATION_PENDING'
+  | 'IN_PROGRESS'
+  | 'SUBMITTED'
+  | 'UNDER_AUTOMATED_REVIEW'
+  | 'REVIEW_FAILED'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'PROVISIONING'
+  | 'PROVISIONING_FAILED'
+  | 'CREDENTIAL_SETUP_PENDING'
+  | 'CREDENTIAL_SETUP_EXPIRED'
+  | 'CREDENTIAL_SETUP_FAILED'
+  | 'COMPLETED'
+  | 'EXPIRED'
+  | 'CANCELLED';
 
-export interface OnboardingSession {
-  active: boolean;
-  applicationId: string | null;
-  status: string | null;
-  continuationExpiresAt: string | null;
-  updatedAt: string | null;
+export type OnboardingNextAction =
+  | 'CONTINUE_APPLICATION'
+  | 'WAIT'
+  | 'CHECK_EMAIL'
+  | 'LOGIN'
+  | 'CONTACT_SUPPORT'
+  | 'START_NEW_APPLICATION';
+
+export interface OnboardingAccess {
+  status: OnboardingState;
+  nextAction: OnboardingNextAction;
 }
 
 export interface OnboardingSubmission {
   applicationId: string;
-  status: string;
+  status: OnboardingState;
   submittedAt: string;
   updatedAt: string;
 }
 
 export interface OnboardingStatus {
   applicationId: string;
-  status: string;
-  nextAction: 'CONTINUE_APPLICATION' | 'WAIT' | 'CHECK_EMAIL' | 'LOGIN' | 'CONTACT_SUPPORT' | 'START_NEW_APPLICATION' | 'NONE';
+  status: OnboardingState;
+  nextAction: OnboardingNextAction;
   updatedAt: string;
 }
 
@@ -38,7 +48,7 @@ export interface OnboardingApplicantDataRequest {
   lastName: string;
   birthDate: string;
   nationality: string;
-  documentType: string;
+  documentType: 'DNI';
   documentNumber: string;
   documentIssuingCountry: string;
   documentExpirationDate?: string | null;
@@ -51,30 +61,11 @@ export interface OnboardingApplicantDataRequest {
   country: string;
 }
 
-export interface OnboardingApplicantData extends OnboardingApplicantDataRequest {
-  applicationId: string;
-  createdAt: string;
-  updatedAt: string;
+export interface OnboardingSubmissionRequest extends OnboardingApplicantDataRequest {
+  termsAccepted: boolean;
 }
 
 export type OnboardingDocumentCategory = 'DNI_FRONT' | 'DNI_BACK';
-
-export interface OnboardingDocumentReference {
-  id: string;
-  applicationId: string;
-  category: OnboardingDocumentCategory;
-  documentId: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface OnboardingTermsAcceptance {
-  applicationId: string;
-  termsVersion: string;
-  acceptedAt: string;
-  createdAt: string;
-  updatedAt: string;
-}
 
 export interface ProblemDetail {
   type?: string;
