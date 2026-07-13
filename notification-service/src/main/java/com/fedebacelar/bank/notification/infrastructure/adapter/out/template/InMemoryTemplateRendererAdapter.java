@@ -14,17 +14,20 @@ public class InMemoryTemplateRendererAdapter implements TemplateRendererPort {
     private static final Map<NotificationTemplateCode, TemplateDefinition> TEMPLATES = Map.of(
             NotificationTemplateCode.ONBOARDING_EMAIL_MAGIC_LINK,
             new TemplateDefinition(
-                    "Continua tu solicitud en Nerva Banking",
+                    "Continuá tu solicitud en Nerva Banking",
                     """
                             Hola,
 
-                            Para continuar tu solicitud de apertura de cuenta, usa este enlace:
+                            Usá este enlace para confirmar tu correo y completar la solicitud:
 
                             {{magicLink}}
 
                             El enlace vence en {{expiresInMinutes}} minutos.
 
-                            Si no iniciaste esta solicitud, podes ignorar este email.
+                            Si no pediste este correo, podés ignorarlo.
+
+                            Nerva Banking es un proyecto académico: no abre una cuenta real.
+                            Usá únicamente datos y documentos de prueba.
                             """,
                     Set.of("magicLink", "expiresInMinutes")
             ),

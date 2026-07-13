@@ -5,10 +5,12 @@ public journeys and the authenticated home-banking branch.
 
 ## Current scope
 
-Step 1 implements the complete access journey:
+The application currently implements both the access journey and the complete
+application-capture journey:
 
 ```txt
 / -> /web/auth/login/home -> Keycloak -> /app/inicio -> /web/logout
+/ -> /onboarding -> Mailpit -> magic link -> five-step application -> confirmation
 ```
 
 Public routes:
@@ -18,21 +20,35 @@ Public routes:
 /error
 /sesion-expirada
 /sesion-cerrada
+/onboarding
+/onboarding/correo-enviado
+/onboarding/continue
+/onboarding/continuar
+/onboarding/solicitud
+/onboarding/solicitud-enviada
+/legales/terminos
+/legales/privacidad
 ```
 
 `/app/inicio` is lazy-loaded, requires `GET /web/me`, and intentionally shows
-only the "En construcción" state. The guided onboarding journey will be added
-in a later construction step.
+only the "En construcción" state.
 
-The landing page exposes one real action: sign in. Angular and Keycloak show a
-visible academic disclaimer and explicitly ask visitors not to enter real
-personal, banking, or password data. Access error, inactive-session, and
-post-logout routes use a minimal shell without duplicated sign-in actions.
+The onboarding feature starts with an enumeration-safe email request, consumes
+the magic-link secret from the URL fragment, and removes that fragment before
+calling the BFF. Its five-step wizard uses Angular Signal Forms and translates
+human-facing Argentina values to the current multipart API contract. Draft PII,
+the magic-link token, and both document files remain in memory only. No draft is
+written to URLs, browser storage, or application logs.
+
+The landing page exposes only implemented actions: open an account or sign in.
+Angular, email, and Keycloak show a visible academic disclaimer and explicitly
+ask visitors not to enter real personal, banking, password, or document data.
 
 ## Architecture
 
 - Angular 22 standalone, strict, and zoneless.
-- Feature-first routes under `features/public` and `features/home-banking`.
+- Feature-first routes under `features/public`, `features/onboarding`,
+  `features/legal`, and `features/home-banking`.
 - Shared shells and brand primitives under `shared`.
 - Session and browser-security concerns under `core`.
 - Tailwind CSS 4, selective Angular CDK, Lucide icons, and Angular Signal Forms.
@@ -68,7 +84,15 @@ npm.cmd start
 ```
 
 Open `http://localhost:4200/`. The BFF, gateway, Keycloak, and subject-linked
-local customer seed must be available for the authenticated route.
+local customer seed must be available for the authenticated route. For the
+application journey, start Mailpit and the notification, onboarding, and
+document services as well:
+
+```powershell
+docker compose -f ..\infra\mailpit\docker-compose.yml up -d
+```
+
+Mailpit is available at `http://localhost:8025`.
 
 ## Verification
 

@@ -20,8 +20,11 @@ class InMemoryTemplateRendererAdapterTest {
         ));
 
         assertThat(rendered.subject()).contains("Nerva Banking");
+        assertThat(rendered.subject()).startsWith("Continuá");
         assertThat(rendered.body()).contains("http://localhost:4200/onboarding/continue#token=abc");
         assertThat(rendered.body()).contains("30");
+        assertThat(rendered.body()).contains("proyecto académico");
+        assertThat(rendered.body()).contains("datos y documentos de prueba");
     }
 
     @Test

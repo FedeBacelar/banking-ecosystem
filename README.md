@@ -21,6 +21,7 @@ The repository is organized as a monorepo. Each service owns its code, configura
 - `infra/mysql`: local MySQL containers, one database per business service.
 - `infra/keycloak`: local OAuth2/OpenID Connect identity provider, service clients, and banking login theme.
 - `infra/minio`: local S3-compatible object storage for banking documents.
+- `infra/mailpit`: local SMTP capture server and email inspection UI.
 - `docs`: centralized business, technical, implementation, and database documentation.
 
 ## Local Infrastructure
@@ -79,6 +80,19 @@ MinIO console:
 
 ```txt
 http://localhost:9001
+```
+
+Start Mailpit for local email delivery:
+
+```powershell
+docker compose -f infra/mailpit/docker-compose.yml up -d
+```
+
+Mailpit captures messages instead of sending them to Internet recipients:
+
+```txt
+SMTP: localhost:1025
+Inbox: http://localhost:8025
 ```
 
 ## Run Locally
@@ -162,7 +176,11 @@ cd ..\notification-service
 .\mvnw.cmd spring-boot:run
 ```
 
-For local SMTP delivery, create the ignored `notification-service/.env` from `.env.example`. The service loads it automatically when started from its directory; operating-system environment variables still take precedence.
+The local defaults send email to Mailpit without credentials or TLS. An
+optional ignored `notification-service/.env` can override them; operating-system
+environment variables still take precedence. Real SMTP environments must
+explicitly provide the provider host, port, credentials, authentication,
+STARTTLS, and sender.
 
 Notification Swagger:
 

@@ -8,7 +8,9 @@ import static org.mockito.Mockito.when;
 
 import com.fedebacelar.bank.onboarding.application.command.OnboardingDocumentUpload;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingDocumentCategory;
+import com.fedebacelar.bank.onboarding.domain.exception.InvalidOnboardingDocumentException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingDocumentUploadException;
+import com.fedebacelar.bank.onboarding.domain.exception.OnboardingDocumentTooLargeException;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.out.document.dto.DocumentMetadataResponse;
 import feign.FeignException;
 import feign.Request;
@@ -94,6 +96,64 @@ class OnboardingDocumentUploadAdapterTest {
         assertThatThrownBy(() -> adapter.upload(
                 applicationId, OnboardingDocumentCategory.DNI_FRONT, upload, "a".repeat(64)
         )).isInstanceOf(OnboardingDocumentUploadException.class)
+                .hasCause(remoteFailure);
+    }
+
+    @Test
+    void translatesDocumentServiceBadRequestsToTheInvalidDocumentException() {
+        UUID applicationId = UUID.randomUUID();
+        OnboardingDocumentUpload upload = new OnboardingDocumentUpload(
+                "dni-front.png", "image/png", 4, () -> new ByteArrayInputStream(new byte[]{1, 2, 3, 4})
+        );
+        FeignException remoteFailure = FeignException.errorStatus(
+                "upload",
+                Response.builder()
+                        .status(400)
+                        .reason("Bad Request")
+                        .request(Request.create(
+                                Request.HttpMethod.POST,
+                                "http://document-service/internal/documents",
+                                Map.of(),
+                                null,
+                                StandardCharsets.UTF_8,
+                                null
+                        ))
+                        .build()
+        );
+        when(client.upload(any(), any(), any(), any(), any(), any())).thenThrow(remoteFailure);
+
+        assertThatThrownBy(() -> adapter.upload(
+                applicationId, OnboardingDocumentCategory.DNI_FRONT, upload, "a".repeat(64)
+        )).isInstanceOf(InvalidOnboardingDocumentException.class)
+                .hasCause(remoteFailure);
+    }
+
+    @Test
+    void preservesDocumentServicePayloadTooLargeAsASeparateContract() {
+        UUID applicationId = UUID.randomUUID();
+        OnboardingDocumentUpload upload = new OnboardingDocumentUpload(
+                "dni-front.png", "image/png", 4, () -> new ByteArrayInputStream(new byte[]{1, 2, 3, 4})
+        );
+        FeignException remoteFailure = FeignException.errorStatus(
+                "upload",
+                Response.builder()
+                        .status(413)
+                        .reason("Payload Too Large")
+                        .request(Request.create(
+                                Request.HttpMethod.POST,
+                                "http://document-service/internal/documents",
+                                Map.of(),
+                                null,
+                                StandardCharsets.UTF_8,
+                                null
+                        ))
+                        .build()
+        );
+        when(client.upload(any(), any(), any(), any(), any(), any())).thenThrow(remoteFailure);
+
+        assertThatThrownBy(() -> adapter.upload(
+                applicationId, OnboardingDocumentCategory.DNI_FRONT, upload, "a".repeat(64)
+        )).isInstanceOf(OnboardingDocumentTooLargeException.class)
                 .hasCause(remoteFailure);
     }
 }

@@ -78,6 +78,18 @@ class OnboardingControllerTest {
     }
 
     @Test
+    void shouldRejectAnEmailThatExceedsTheInternalContractLimit() throws Exception {
+        String oversizedEmail = "a".repeat(250) + "@example.com";
+
+        mockMvc.perform(post("/onboarding/applications")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + oversizedEmail + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
     void shouldConsumeMagicLinkAndReturnOnlyRoutingInformation() throws Exception {
         Instant expiresAt = Instant.now().plusSeconds(7200);
         when(onboardingFlowService.consumeMagicLink("magic-token")).thenReturn(new OnboardingContinuation(
@@ -117,6 +129,17 @@ class OnboardingControllerTest {
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.applicationId").value(applicationId.toString()))
                 .andExpect(jsonPath("$.status").value("SUBMITTED"));
+    }
+
+    @Test
+    void shouldReturnAStableErrorWhenMultipartSubmissionIsIncomplete() throws Exception {
+        mockMvc.perform(multipart("/onboarding/submissions")
+                        .file(jsonPart("submission", validSubmissionJson()))
+                        .file(filePart("dniFront", "dni-front.png"))
+                        .cookie(new Cookie(CONTINUATION_COOKIE, "continuation-token"))
+                        .with(csrf()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_ONBOARDING_MULTIPART"));
     }
 
     @Test

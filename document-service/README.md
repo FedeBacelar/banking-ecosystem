@@ -67,6 +67,10 @@ Required form fields:
 - `category`: `DNI_FRONT` or `DNI_BACK`.
 - `file`: JPG, PNG, or PDF up to 10 MB by default.
 
+`DOCUMENT_UPLOAD_MAX_REQUEST_SIZE_BYTES` defaults to 11 MB so multipart
+overhead does not reject a valid 10 MB file. The domain file limit remains
+`DOCUMENT_UPLOAD_MAX_SIZE_BYTES=10485760`.
+
 Metadata:
 
 ```http

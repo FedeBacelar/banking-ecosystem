@@ -83,6 +83,68 @@ button {
   background: color-mix(in srgb, var(--nerva-color-accent) 22%, white);
 }
 
+.nb-label {
+  display: block;
+  color: var(--nerva-color-text);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.nb-input {
+  margin-top: 0.5rem;
+  min-height: 3rem;
+  width: 100%;
+  border: 1px solid var(--nerva-color-border);
+  border-radius: 0.75rem;
+  background: var(--nerva-color-surface);
+  color: var(--nerva-color-text);
+  padding: 0.625rem 1rem;
+  outline: none;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+}
+
+.nb-input:focus {
+  border-color: var(--nerva-color-accent);
+}
+
+.nb-field-error {
+  margin-top: 0.5rem;
+  color: var(--nerva-color-danger);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.nb-choice {
+  min-height: 3rem;
+  border: 1px solid var(--nerva-color-border);
+  border-radius: 0.75rem;
+  background: var(--nerva-color-surface);
+  color: var(--nerva-color-text);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.nb-choice[aria-pressed='true'] {
+  border-color: var(--nerva-color-accent);
+  background: var(--nerva-color-accent-soft);
+  color: var(--nerva-color-accent);
+}
+
+.nb-spinner {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  animation: nb-spin 650ms linear infinite;
+}
+
+@keyframes nb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .skip-link {
   position: fixed;
   top: 0.75rem;

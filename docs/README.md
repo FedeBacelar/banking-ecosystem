@@ -76,5 +76,6 @@ Eureka Server for service discovery.
 API Gateway for external HTTP routing.
 Keycloak for human and machine identity in the local environment.
 MinIO for document object storage.
+Mailpit for local SMTP capture and email inspection.
 Home Banking BFF for browser sessions and public web contracts through the gateway.
 ```

@@ -3,6 +3,8 @@ package com.fedebacelar.bank.onboarding.infrastructure.adapter.out.document;
 import com.fedebacelar.bank.onboarding.application.command.OnboardingDocumentUpload;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingDocumentUploadPort;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingDocumentCategory;
+import com.fedebacelar.bank.onboarding.domain.exception.InvalidOnboardingDocumentException;
+import com.fedebacelar.bank.onboarding.domain.exception.OnboardingDocumentTooLargeException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingDocumentUploadException;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.out.document.dto.DocumentMetadataResponse;
 import feign.FeignException;
@@ -39,6 +41,12 @@ public class OnboardingDocumentUploadAdapter implements OnboardingDocumentUpload
                     new OnboardingMultipartFile(document)
             );
         } catch (FeignException exception) {
+            if (exception.status() == 400) {
+                throw new InvalidOnboardingDocumentException(exception);
+            }
+            if (exception.status() == 413) {
+                throw new OnboardingDocumentTooLargeException(exception);
+            }
             throw new OnboardingDocumentUploadException("Document storage is unavailable.", exception);
         }
         if (response == null || !"STORED".equals(response.status())) {

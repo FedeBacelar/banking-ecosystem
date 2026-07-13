@@ -1,10 +1,24 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 
 import { LandingPage } from './landing.page';
 
 describe('LandingPage', () => {
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [LandingPage] }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [LandingPage],
+      providers: [provideRouter([])]
+    }).compileComponents();
+  });
+
+  it('offers the real account application journey', () => {
+    const fixture = TestBed.createComponent(LandingPage);
+    fixture.detectChanges();
+
+    const applicationLink = (fixture.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>(
+      'a[href="/onboarding"]'
+    );
+    expect(applicationLink?.textContent).toContain('Abrir una cuenta');
   });
 
   it('offers a top-level navigation to the BFF login endpoint', () => {

@@ -44,15 +44,23 @@ notification_password
 SMTP is configured through environment variables:
 
 ```txt
-NOTIFICATION_SMTP_HOST=smtp.gmail.com
-NOTIFICATION_SMTP_PORT=587
+NOTIFICATION_SMTP_HOST=localhost
+NOTIFICATION_SMTP_PORT=1025
 NOTIFICATION_SMTP_USERNAME=
 NOTIFICATION_SMTP_PASSWORD=
 NOTIFICATION_SMTP_FROM=no-reply@nerva.local
-NOTIFICATION_SMTP_STARTTLS=true
+NOTIFICATION_SMTP_AUTH=false
+NOTIFICATION_SMTP_STARTTLS=false
 ```
 
-Do not commit real SMTP credentials.
+These defaults target the local Mailpit server. Start it from the repository
+root before running an email journey:
+
+```powershell
+docker compose -f infra/mailpit/docker-compose.yml up -d
+```
+
+Captured messages are available at `http://localhost:8025`.
 
 For local development, create a local `.env` file from `.env.example`:
 
@@ -60,11 +68,18 @@ For local development, create a local `.env` file from `.env.example`:
 Copy-Item .env.example .env
 ```
 
-Then edit `.env` with your local SMTP credentials. The real `.env` file is ignored by Git.
+The default file works with Mailpit and contains no credential. To use a real
+SMTP provider, override host, port, username, password, sender,
+`NOTIFICATION_SMTP_AUTH=true`, and the provider's STARTTLS setting. The real
+`.env` file is ignored by Git. Do not commit real SMTP credentials.
 
 The service still reads its shared configuration through Config Server. For local development it also imports the ignored `.env` file from its working directory using Spring Config Data. Operating-system environment variables keep their higher precedence, so deployed environments can inject secrets normally without a local file.
 
-The config file in `config-repository/notification-service.yaml` contains environment-variable placeholders. SMTP secrets therefore belong in `notification-service/.env`, process environment variables, or a production secrets manager; never in `config-repository` or the Config Server process.
+The config file in `config-repository/notification-service.yaml` contains safe
+Mailpit defaults and environment-variable placeholders. SMTP secrets therefore
+belong in `notification-service/.env`, process environment variables, or a
+production secrets manager; never in `config-repository` or the Config Server
+process.
 
 ## Run
 

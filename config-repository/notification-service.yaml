@@ -13,16 +13,16 @@ spring:
   flyway:
     enabled: true
   mail:
-    host: ${NOTIFICATION_SMTP_HOST:smtp.gmail.com}
-    port: ${NOTIFICATION_SMTP_PORT:587}
+    host: ${NOTIFICATION_SMTP_HOST:localhost}
+    port: ${NOTIFICATION_SMTP_PORT:1025}
     username: ${NOTIFICATION_SMTP_USERNAME:}
     password: ${NOTIFICATION_SMTP_PASSWORD:}
     properties:
       mail:
         smtp:
-          auth: true
+          auth: ${NOTIFICATION_SMTP_AUTH:false}
           starttls:
-            enable: ${NOTIFICATION_SMTP_STARTTLS:true}
+            enable: ${NOTIFICATION_SMTP_STARTTLS:false}
   security:
     oauth2:
       resourceserver:

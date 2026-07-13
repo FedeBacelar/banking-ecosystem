@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -19,15 +21,18 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 public class HomeBankingExceptionHandler {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final Map<String, HttpStatus> PUBLIC_ONBOARDING_ERRORS = Map.of(
-            "INVALID_MAGIC_LINK_TOKEN", HttpStatus.BAD_REQUEST,
-            "INVALID_CONTINUATION_TOKEN", HttpStatus.UNAUTHORIZED,
-            "ONBOARDING_MAGIC_LINK_EXPIRED", HttpStatus.GONE,
-            "ONBOARDING_CONTINUATION_EXPIRED", HttpStatus.UNAUTHORIZED,
-            "ONBOARDING_MAGIC_LINK_ALREADY_CONSUMED", HttpStatus.CONFLICT,
-            "ONBOARDING_INCOMPLETE", HttpStatus.UNPROCESSABLE_ENTITY,
-            "ONBOARDING_DOCUMENT_UPLOAD_UNAVAILABLE", HttpStatus.SERVICE_UNAVAILABLE,
-            "CREDENTIAL_INVITATION_COOLDOWN", HttpStatus.TOO_MANY_REQUESTS
+    private static final Map<String, HttpStatus> PUBLIC_ONBOARDING_ERRORS = Map.ofEntries(
+            Map.entry("INVALID_MAGIC_LINK_TOKEN", HttpStatus.BAD_REQUEST),
+            Map.entry("INVALID_CONTINUATION_TOKEN", HttpStatus.UNAUTHORIZED),
+            Map.entry("ONBOARDING_MAGIC_LINK_EXPIRED", HttpStatus.GONE),
+            Map.entry("ONBOARDING_CONTINUATION_EXPIRED", HttpStatus.UNAUTHORIZED),
+            Map.entry("ONBOARDING_MAGIC_LINK_ALREADY_CONSUMED", HttpStatus.CONFLICT),
+            Map.entry("ONBOARDING_INCOMPLETE", HttpStatus.UNPROCESSABLE_ENTITY),
+            Map.entry("INVALID_ONBOARDING_DOCUMENT", HttpStatus.BAD_REQUEST),
+            Map.entry("INVALID_ONBOARDING_MULTIPART", HttpStatus.BAD_REQUEST),
+            Map.entry("ONBOARDING_DOCUMENT_TOO_LARGE", HttpStatus.PAYLOAD_TOO_LARGE),
+            Map.entry("ONBOARDING_DOCUMENT_UPLOAD_UNAVAILABLE", HttpStatus.SERVICE_UNAVAILABLE),
+            Map.entry("CREDENTIAL_INVITATION_COOLDOWN", HttpStatus.TOO_MANY_REQUESTS)
     );
 
     @ExceptionHandler(IdentityNotLinkedException.class)
@@ -63,6 +68,24 @@ public class HomeBankingExceptionHandler {
         problem.setTitle("Invalid request");
         problem.setDetail("The submitted data is invalid.");
         problem.setProperty("code", "INVALID_REQUEST_BODY");
+        return problem;
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    ProblemDetail handleMissingMultipartPart(MissingServletRequestPartException exception) {
+        ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        problem.setTitle("Invalid onboarding submission");
+        problem.setDetail("The onboarding submission is missing required information.");
+        problem.setProperty("code", "INVALID_ONBOARDING_MULTIPART");
+        return problem;
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ProblemDetail handleMaxUploadSizeExceeded(MaxUploadSizeExceededException exception) {
+        ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.PAYLOAD_TOO_LARGE);
+        problem.setTitle("Onboarding document too large");
+        problem.setDetail("Each document must be no larger than 10 MB.");
+        problem.setProperty("code", "ONBOARDING_DOCUMENT_TOO_LARGE");
         return problem;
     }
 

@@ -9,6 +9,20 @@ export const routes: Routes = [
       )
   },
   {
+    path: 'onboarding',
+    loadChildren: () =>
+      import('./features/onboarding/onboarding.routes').then(
+        (module) => module.onboardingRoutes
+      )
+  },
+  {
+    path: 'legales',
+    loadChildren: () =>
+      import('./features/legal/legal.routes').then(
+        (module) => module.legalRoutes
+      )
+  },
+  {
     path: '',
     loadChildren: () =>
       import('./features/public/public.routes').then(

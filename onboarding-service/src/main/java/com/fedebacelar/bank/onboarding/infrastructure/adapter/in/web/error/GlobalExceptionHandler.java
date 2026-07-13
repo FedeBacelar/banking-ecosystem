@@ -2,12 +2,14 @@ package com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.error;
 
 import com.fedebacelar.bank.onboarding.domain.exception.DuplicateActiveOnboardingApplicationException;
 import com.fedebacelar.bank.onboarding.domain.exception.InvalidContinuationTokenException;
+import com.fedebacelar.bank.onboarding.domain.exception.InvalidOnboardingDocumentException;
 import com.fedebacelar.bank.onboarding.domain.exception.InvalidMagicLinkTokenException;
 import com.fedebacelar.bank.onboarding.domain.exception.InvalidOnboardingStatusTransitionException;
 import com.fedebacelar.bank.onboarding.domain.exception.NotificationDeliveryException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingApplicationNotFoundException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingContinuationExpiredException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingDocumentUploadException;
+import com.fedebacelar.bank.onboarding.domain.exception.OnboardingDocumentTooLargeException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingMagicLinkAlreadyConsumedException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingMagicLinkExpiredException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingIncompleteException;
@@ -20,6 +22,8 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -135,6 +139,51 @@ public class GlobalExceptionHandler {
         problem.setType(URI.create("https://bank.fedebacelar.com/problems/onboarding-document-storage-unavailable"));
         problem.setTitle("Onboarding document storage unavailable");
         problem.setProperty("code", "ONBOARDING_DOCUMENT_UPLOAD_UNAVAILABLE");
+        return problem;
+    }
+
+    @ExceptionHandler(InvalidOnboardingDocumentException.class)
+    ProblemDetail handleInvalidOnboardingDocument(InvalidOnboardingDocumentException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST,
+                "The document must be a valid JPG, PNG, or PDF file of up to 10 MB."
+        );
+        problem.setType(URI.create("https://bank.fedebacelar.com/problems/invalid-onboarding-document"));
+        problem.setTitle("Invalid onboarding document");
+        problem.setProperty("code", "INVALID_ONBOARDING_DOCUMENT");
+        return problem;
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    ProblemDetail handleMissingMultipartPart(MissingServletRequestPartException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST,
+                "The onboarding submission is missing required information."
+        );
+        problem.setType(URI.create("https://bank.fedebacelar.com/problems/invalid-onboarding-multipart"));
+        problem.setTitle("Invalid onboarding submission");
+        problem.setProperty("code", "INVALID_ONBOARDING_MULTIPART");
+        return problem;
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ProblemDetail handleMaxUploadSizeExceeded(MaxUploadSizeExceededException exception) {
+        return documentTooLargeProblem();
+    }
+
+    @ExceptionHandler(OnboardingDocumentTooLargeException.class)
+    ProblemDetail handleDocumentTooLarge(OnboardingDocumentTooLargeException exception) {
+        return documentTooLargeProblem();
+    }
+
+    private ProblemDetail documentTooLargeProblem() {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.PAYLOAD_TOO_LARGE,
+                "Each document must be no larger than 10 MB."
+        );
+        problem.setType(URI.create("https://bank.fedebacelar.com/problems/onboarding-document-too-large"));
+        problem.setTitle("Onboarding document too large");
+        problem.setProperty("code", "ONBOARDING_DOCUMENT_TOO_LARGE");
         return problem;
     }
 

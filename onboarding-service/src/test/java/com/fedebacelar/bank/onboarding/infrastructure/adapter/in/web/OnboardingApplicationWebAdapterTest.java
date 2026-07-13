@@ -20,6 +20,7 @@ import com.fedebacelar.bank.onboarding.application.view.OnboardingApplicationDet
 import com.fedebacelar.bank.onboarding.application.view.OnboardingContinuationDetails;
 import com.fedebacelar.bank.onboarding.application.view.OnboardingSubmissionDetails;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingApplicationStatus;
+import com.fedebacelar.bank.onboarding.domain.exception.InvalidOnboardingDocumentException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingDocumentUploadException;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.error.GlobalExceptionHandler;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.mapper.OnboardingWebMapper;
@@ -137,7 +138,29 @@ class OnboardingApplicationWebAdapterTest {
                                 validSubmissionJson().getBytes(StandardCharsets.UTF_8)
                         ))
                         .file(new MockMultipartFile("dniFront", "front.png", "image/png", new byte[]{1, 2})))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_ONBOARDING_MULTIPART"))
+                .andExpect(jsonPath("$.detail").value("The onboarding submission is missing required information."));
+    }
+
+    @Test
+    void shouldReturnAStableErrorWhenAnOnboardingDocumentIsInvalid() throws Exception {
+        when(submitUseCase.submit(any())).thenThrow(new InvalidOnboardingDocumentException(
+                new IllegalArgumentException("remote detail")
+        ));
+
+        mockMvc.perform(multipart("/internal/onboarding/continuations/submissions")
+                        .file(new MockMultipartFile(
+                                "submission", "", MediaType.APPLICATION_JSON_VALUE,
+                                validSubmissionJson().getBytes(StandardCharsets.UTF_8)
+                        ))
+                        .file(new MockMultipartFile("dniFront", "front.png", "image/png", new byte[]{1, 2}))
+                        .file(new MockMultipartFile("dniBack", "back.png", "image/png", new byte[]{3, 4})))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_ONBOARDING_DOCUMENT"))
+                .andExpect(jsonPath("$.detail").value(
+                        "The document must be a valid JPG, PNG, or PDF file of up to 10 MB."
+                ));
     }
 
     @Test
