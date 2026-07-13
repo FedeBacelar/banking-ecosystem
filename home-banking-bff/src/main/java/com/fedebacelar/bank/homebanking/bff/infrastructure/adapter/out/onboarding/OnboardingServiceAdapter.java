@@ -93,10 +93,17 @@ public class OnboardingServiceAdapter implements OnboardingServicePort {
     }
 
     @Override
-    public OnboardingSubmission resendCredentialInvitation(String continuationToken, String accessToken) {
+    public OnboardingSubmission resendCredentialInvitation(
+            String continuationToken,
+            String idempotencyKey,
+            String accessToken
+    ) {
         OnboardingSubmissionResponse response = webClient.post()
                 .uri("http://onboarding-service/internal/onboarding/continuations/credential-invitations/resend")
-                .headers(headers -> headers.setBearerAuth(accessToken))
+                .headers(headers -> {
+                    headers.setBearerAuth(accessToken);
+                    headers.set("Idempotency-Key", idempotencyKey);
+                })
                 .bodyValue(new com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.ContinuationRequest(
                         continuationToken
                 ))

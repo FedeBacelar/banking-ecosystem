@@ -62,6 +62,7 @@ onboarding:
     credential-reconciliation-delay: PT30S
     credential-setup-timeout: P7D
     credential-invitation-cooldown: PT1M
+    credential-invitation-worker-delay: PT1S
     retry-backoff:
       - PT5S
       - PT30S

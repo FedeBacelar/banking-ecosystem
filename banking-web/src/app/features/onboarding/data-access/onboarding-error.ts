@@ -32,6 +32,29 @@ export function isOnboardingSessionError(error: unknown): boolean {
   );
 }
 
+export function isCredentialInvitationCooldown(error: unknown): boolean {
+  return error instanceof HttpErrorResponse
+    && (error.status === 429 || problemCode(error) === 'CREDENTIAL_INVITATION_COOLDOWN');
+}
+
+export function retryAfterSeconds(error: unknown, now = Date.now()): number | null {
+  if (!(error instanceof HttpErrorResponse)) {
+    return null;
+  }
+  const value = error.headers.get('Retry-After')?.trim();
+  if (!value) {
+    return null;
+  }
+  if (/^\d+$/.test(value)) {
+    return Number(value);
+  }
+  const retryAt = Date.parse(value);
+  if (Number.isNaN(retryAt)) {
+    return null;
+  }
+  return Math.max(0, Math.ceil((retryAt - now) / 1000));
+}
+
 function problemCode(error: unknown): string | undefined {
   if (!(error instanceof HttpErrorResponse)) {
     return undefined;

@@ -51,4 +51,33 @@ describe('OnboardingApiService', () => {
     expect(body.get('dniBack')).toBe(back);
     request.flush({ applicationId: 'id', status: 'SUBMITTED', submittedAt: '', updatedAt: '' });
   });
+
+  it('gets the public status without putting an application identifier in the URL', () => {
+    service.getStatus().subscribe((status) => expect(status.status).toBe('PROVISIONING'));
+
+    const request = http.expectOne('/web/onboarding/status');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.keys()).toEqual([]);
+    request.flush({
+      applicationId: 'private-id',
+      status: 'PROVISIONING',
+      nextAction: 'WAIT',
+      updatedAt: '2026-07-13T00:00:00Z'
+    });
+  });
+
+  it('sends one explicit idempotency key when requesting another credential email', () => {
+    service.resendCredentialInvitation('status-page:request-1').subscribe((response) => {
+      expect(response.status).toBe(202);
+    });
+
+    const request = http.expectOne('/web/onboarding/credential-invitations/resend');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toBeNull();
+    expect(request.request.headers.get('Idempotency-Key')).toBe('status-page:request-1');
+    request.flush(
+      { applicationId: 'id', status: 'CREDENTIAL_SETUP_PENDING', submittedAt: '', updatedAt: '' },
+      { status: 202, statusText: 'Accepted' }
+    );
+  });
 });

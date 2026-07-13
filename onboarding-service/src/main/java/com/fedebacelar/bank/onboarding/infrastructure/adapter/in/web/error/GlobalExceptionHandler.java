@@ -2,6 +2,7 @@ package com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.error;
 
 import com.fedebacelar.bank.onboarding.domain.exception.DuplicateActiveOnboardingApplicationException;
 import com.fedebacelar.bank.onboarding.domain.exception.InvalidContinuationTokenException;
+import com.fedebacelar.bank.onboarding.domain.exception.InvalidIdempotencyKeyException;
 import com.fedebacelar.bank.onboarding.domain.exception.InvalidOnboardingDocumentException;
 import com.fedebacelar.bank.onboarding.domain.exception.InvalidMagicLinkTokenException;
 import com.fedebacelar.bank.onboarding.domain.exception.InvalidOnboardingStatusTransitionException;
@@ -18,7 +19,9 @@ import com.fedebacelar.bank.onboarding.domain.exception.TermsAcceptanceRequiredE
 import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -98,10 +101,22 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(CredentialInvitationCooldownException.class)
-    ProblemDetail handleCredentialInvitationCooldown(CredentialInvitationCooldownException exception) {
+    ResponseEntity<ProblemDetail> handleCredentialInvitationCooldown(CredentialInvitationCooldownException exception) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, "Please wait before requesting another invitation.");
         problem.setTitle("Credential invitation cooldown");
         problem.setProperty("code", "CREDENTIAL_INVITATION_COOLDOWN");
+        problem.setProperty("retryAfterSeconds", exception.retryAfterSeconds());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, Long.toString(exception.retryAfterSeconds()))
+                .body(problem);
+    }
+
+    @ExceptionHandler(InvalidIdempotencyKeyException.class)
+    ProblemDetail handleInvalidIdempotencyKey(InvalidIdempotencyKeyException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
+        problem.setType(URI.create("https://bank.fedebacelar.com/problems/invalid-idempotency-key"));
+        problem.setTitle("Invalid idempotency key");
+        problem.setProperty("code", "INVALID_IDEMPOTENCY_KEY");
         return problem;
     }
 

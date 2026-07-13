@@ -1,9 +1,10 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import {
   OnboardingAccess,
+  OnboardingStatus,
   OnboardingSubmission,
   OnboardingSubmissionRequest
 } from '../models/onboarding.models';
@@ -34,5 +35,20 @@ export class OnboardingApiService {
     body.append('dniFront', dniFront);
     body.append('dniBack', dniBack);
     return this.http.post<OnboardingSubmission>(`${this.baseUrl}/submissions`, body);
+  }
+
+  getStatus(): Observable<OnboardingStatus> {
+    return this.http.get<OnboardingStatus>(`${this.baseUrl}/status`);
+  }
+
+  resendCredentialInvitation(idempotencyKey: string): Observable<HttpResponse<OnboardingSubmission>> {
+    return this.http.post<OnboardingSubmission>(
+      `${this.baseUrl}/credential-invitations/resend`,
+      null,
+      {
+        headers: new HttpHeaders({ 'Idempotency-Key': idempotencyKey }),
+        observe: 'response'
+      }
+    );
   }
 }

@@ -168,7 +168,7 @@ class OnboardingControllerTest {
     void shouldResendCredentialInvitationFromContinuationCookie() throws Exception {
         UUID applicationId = UUID.randomUUID();
         Instant now = Instant.parse("2026-07-10T12:00:00Z");
-        when(onboardingFlowService.resendCredentialInvitation("continuation-token"))
+        when(onboardingFlowService.resendCredentialInvitation("continuation-token", "onboarding-resend-01"))
                 .thenReturn(new OnboardingSubmission(
                         applicationId,
                         OnboardingState.CREDENTIAL_SETUP_PENDING,
@@ -178,9 +178,25 @@ class OnboardingControllerTest {
 
         mockMvc.perform(post("/onboarding/credential-invitations/resend")
                         .cookie(new Cookie(CONTINUATION_COOKIE, "continuation-token"))
+                        .header("Idempotency-Key", "onboarding-resend-01")
                         .with(csrf()))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.status").value("CREDENTIAL_SETUP_PENDING"));
+
+        verify(onboardingFlowService).resendCredentialInvitation(
+                "continuation-token",
+                "onboarding-resend-01"
+        );
+    }
+
+    @Test
+    void shouldRequireAValidIdempotencyKeyForCredentialInvitationResend() throws Exception {
+        mockMvc.perform(post("/onboarding/credential-invitations/resend")
+                        .cookie(new Cookie(CONTINUATION_COOKIE, "continuation-token"))
+                        .header("Idempotency-Key", "invalid key")
+                        .with(csrf()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
 
     @Test

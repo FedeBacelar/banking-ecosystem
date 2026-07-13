@@ -118,7 +118,7 @@ describe('OnboardingApplicationPage', () => {
     (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('button[type="submit"]')!.click();
     const acceptedRequest = http.expectOne('/web/onboarding/submissions');
     acceptedRequest.flush({ applicationId: 'id', status: 'SUBMITTED', submittedAt: '', updatedAt: '' });
-    expect(navigate).toHaveBeenCalledWith(['/onboarding/solicitud-enviada']);
+    expect(navigate).toHaveBeenCalledWith(['/onboarding/estado']);
     expect(store.dniFront()).toBeNull();
     expect(store.dniBack()).toBeNull();
     http.verify();

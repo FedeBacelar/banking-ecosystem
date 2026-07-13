@@ -14,6 +14,9 @@ import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web.dto.On
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web.dto.StartOnboardingRequest;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web.dto.SubmitOnboardingApplicationRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import jakarta.validation.Valid;
 import java.time.Duration;
 import java.time.Instant;
@@ -27,13 +30,16 @@ import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.validation.annotation.Validated;
 
 @RestController
 @RequestMapping("/onboarding")
+@Validated
 public class OnboardingController {
 
     private static final String CONTINUATION_COOKIE_NAME = "NB_ONBOARDING_CONTINUATION";
@@ -108,10 +114,15 @@ public class OnboardingController {
 
     @PostMapping("/credential-invitations/resend")
     public ResponseEntity<OnboardingSubmissionResponse> resendCredentialInvitation(
-            @CookieValue(name = CONTINUATION_COOKIE_NAME, required = false) String continuationToken
+            @CookieValue(name = CONTINUATION_COOKIE_NAME, required = false) String continuationToken,
+            @RequestHeader("Idempotency-Key")
+            @NotBlank
+            @Size(max = 128)
+            @Pattern(regexp = "^[A-Za-z0-9:._-]+$")
+            String idempotencyKey
     ) {
         return ResponseEntity.accepted().body(OnboardingSubmissionResponse.from(
-                resendCredentialInvitationUseCase.resendCredentialInvitation(continuationToken)
+                resendCredentialInvitationUseCase.resendCredentialInvitation(continuationToken, idempotencyKey)
         ));
     }
 

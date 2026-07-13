@@ -576,7 +576,7 @@ export class OnboardingApplicationPage {
       .subscribe({
         next: () => {
           this.store.clearAll();
-          void this.router.navigate(['/onboarding/solicitud-enviada']);
+          void this.router.navigate(['/onboarding/estado']);
         },
         error: (error: unknown) => {
           if (isInvalidDocumentError(error)) {

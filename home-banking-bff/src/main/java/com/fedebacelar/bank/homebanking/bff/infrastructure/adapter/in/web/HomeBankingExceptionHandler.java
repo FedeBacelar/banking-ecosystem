@@ -4,11 +4,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fedebacelar.bank.homebanking.bff.application.exception.IdentityNotLinkedException;
 import com.fedebacelar.bank.homebanking.bff.application.exception.OnboardingSessionRequiredException;
+import jakarta.validation.ConstraintViolationException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
@@ -21,6 +25,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 public class HomeBankingExceptionHandler {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final Pattern RETRY_AFTER_SECONDS = Pattern.compile("[1-9][0-9]*");
     private static final Map<String, HttpStatus> PUBLIC_ONBOARDING_ERRORS = Map.ofEntries(
             Map.entry("INVALID_MAGIC_LINK_TOKEN", HttpStatus.BAD_REQUEST),
             Map.entry("INVALID_CONTINUATION_TOKEN", HttpStatus.UNAUTHORIZED),
@@ -32,7 +37,8 @@ public class HomeBankingExceptionHandler {
             Map.entry("INVALID_ONBOARDING_MULTIPART", HttpStatus.BAD_REQUEST),
             Map.entry("ONBOARDING_DOCUMENT_TOO_LARGE", HttpStatus.PAYLOAD_TOO_LARGE),
             Map.entry("ONBOARDING_DOCUMENT_UPLOAD_UNAVAILABLE", HttpStatus.SERVICE_UNAVAILABLE),
-            Map.entry("CREDENTIAL_INVITATION_COOLDOWN", HttpStatus.TOO_MANY_REQUESTS)
+            Map.entry("CREDENTIAL_INVITATION_COOLDOWN", HttpStatus.TOO_MANY_REQUESTS),
+            Map.entry("IDEMPOTENCY_CONFLICT", HttpStatus.CONFLICT)
     );
 
     @ExceptionHandler(IdentityNotLinkedException.class)
@@ -89,8 +95,17 @@ public class HomeBankingExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(ConstraintViolationException.class)
+    ProblemDetail handleConstraintViolation(ConstraintViolationException exception) {
+        ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        problem.setTitle("Invalid request");
+        problem.setDetail("The submitted data is invalid.");
+        problem.setProperty("code", "VALIDATION_ERROR");
+        return problem;
+    }
+
     @ExceptionHandler(WebClientResponseException.class)
-    ProblemDetail handleDownstreamError(WebClientResponseException exception) {
+    ResponseEntity<ProblemDetail> handleDownstreamError(WebClientResponseException exception) {
         Optional<String> downstreamCode = downstreamCode(exception)
                 .filter(PUBLIC_ONBOARDING_ERRORS::containsKey);
         HttpStatus publicStatus = downstreamCode
@@ -100,7 +115,17 @@ public class HomeBankingExceptionHandler {
         problem.setTitle("Request could not be completed");
         problem.setDetail("We could not complete the operation right now. Try again later.");
         problem.setProperty("code", downstreamCode.orElse("ONBOARDING_SERVICE_UNAVAILABLE"));
-        return problem;
+        ResponseEntity.BodyBuilder response = ResponseEntity.status(publicStatus);
+        if (downstreamCode.filter("CREDENTIAL_INVITATION_COOLDOWN"::equals).isPresent()) {
+            sanitizedRetryAfter(exception).ifPresent(value -> response.header(HttpHeaders.RETRY_AFTER, value));
+        }
+        return response.body(problem);
+    }
+
+    private Optional<String> sanitizedRetryAfter(WebClientResponseException exception) {
+        return Optional.ofNullable(exception.getHeaders().getFirst(HttpHeaders.RETRY_AFTER))
+                .map(String::trim)
+                .filter(value -> RETRY_AFTER_SECONDS.matcher(value).matches());
     }
 
     private Optional<String> downstreamCode(WebClientResponseException exception) {

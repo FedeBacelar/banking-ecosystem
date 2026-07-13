@@ -11,11 +11,14 @@ services:
       HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET: ${HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET:-local-home-banking-service-secret}
       ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET: ${ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET:-local-onboarding-secret}
       BANKING_FRONTEND_URL: ${BANKING_FRONTEND_URL:-http://localhost:4200}
-      KEYCLOAK_SMTP_HOST: ${KEYCLOAK_SMTP_HOST:-smtp.gmail.com}
-      KEYCLOAK_SMTP_PORT: ${KEYCLOAK_SMTP_PORT:-587}
-      KEYCLOAK_SMTP_FROM: ${KEYCLOAK_SMTP_FROM:-no-reply@nerva.local}
-      KEYCLOAK_SMTP_USERNAME: ${KEYCLOAK_SMTP_USERNAME:-}
-      KEYCLOAK_SMTP_PASSWORD: ${KEYCLOAK_SMTP_PASSWORD:-}
+      KEYCLOAK_SMTP_HOST: ${KEYCLOAK_LOCAL_SMTP_HOST:-host.docker.internal}
+      KEYCLOAK_SMTP_PORT: ${KEYCLOAK_LOCAL_SMTP_PORT:-1025}
+      KEYCLOAK_SMTP_FROM: ${KEYCLOAK_LOCAL_SMTP_FROM:-no-reply@nerva.local}
+      KEYCLOAK_SMTP_USERNAME: ${KEYCLOAK_LOCAL_SMTP_USERNAME:-}
+      KEYCLOAK_SMTP_PASSWORD: ${KEYCLOAK_LOCAL_SMTP_PASSWORD:-}
+      KEYCLOAK_SMTP_AUTH: ${KEYCLOAK_LOCAL_SMTP_AUTH:-false}
+      KEYCLOAK_SMTP_STARTTLS: ${KEYCLOAK_LOCAL_SMTP_STARTTLS:-false}
+      KEYCLOAK_SMTP_SSL: ${KEYCLOAK_LOCAL_SMTP_SSL:-false}
       KC_SPI_THEME_CACHE_THEMES: "false"
       KC_SPI_THEME_CACHE_TEMPLATES: "false"
       KC_SPI_THEME_STATIC_MAX_AGE: "-1"
@@ -50,13 +53,19 @@ services:
           -f /config/banking-user-profile.json
 
         FRONTEND_URL="$${BANKING_FRONTEND_URL%/}"
+        SMTP_CONFIG="{\"host\":\"$${KEYCLOAK_SMTP_HOST}\",\"port\":\"$${KEYCLOAK_SMTP_PORT}\",\"from\":\"$${KEYCLOAK_SMTP_FROM}\",\"auth\":\"$${KEYCLOAK_SMTP_AUTH}\",\"starttls\":\"$${KEYCLOAK_SMTP_STARTTLS}\",\"ssl\":\"$${KEYCLOAK_SMTP_SSL}\""
+        if test -n "$${KEYCLOAK_SMTP_USERNAME}"; then
+          SMTP_CONFIG="$$SMTP_CONFIG,\"user\":\"$${KEYCLOAK_SMTP_USERNAME}\",\"password\":\"$${KEYCLOAK_SMTP_PASSWORD}\""
+        fi
+        SMTP_CONFIG="$$SMTP_CONFIG}"
 
         /opt/keycloak/bin/kcadm.sh update realms/banking-ecosystem \
           -s 'displayName=Nerva Banking' \
           -s 'loginTheme=banking' \
           -s 'internationalizationEnabled=true' \
           -s 'defaultLocale=es' \
-          -s 'supportedLocales=["es"]'
+          -s 'supportedLocales=["es"]' \
+          -s "smtpServer=$$SMTP_CONFIG"
 
         reconcile_client_secret() {
           local client_id="$$1"
@@ -105,6 +114,14 @@ services:
       HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET: ${HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET:-local-home-banking-service-secret}
       ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET: ${ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET:-local-onboarding-secret}
       BANKING_FRONTEND_URL: ${BANKING_FRONTEND_URL:-http://localhost:4200}
+      KEYCLOAK_SMTP_HOST: ${KEYCLOAK_LOCAL_SMTP_HOST:-host.docker.internal}
+      KEYCLOAK_SMTP_PORT: ${KEYCLOAK_LOCAL_SMTP_PORT:-1025}
+      KEYCLOAK_SMTP_FROM: ${KEYCLOAK_LOCAL_SMTP_FROM:-no-reply@nerva.local}
+      KEYCLOAK_SMTP_USERNAME: ${KEYCLOAK_LOCAL_SMTP_USERNAME:-}
+      KEYCLOAK_SMTP_PASSWORD: ${KEYCLOAK_LOCAL_SMTP_PASSWORD:-}
+      KEYCLOAK_SMTP_AUTH: ${KEYCLOAK_LOCAL_SMTP_AUTH:-false}
+      KEYCLOAK_SMTP_STARTTLS: ${KEYCLOAK_LOCAL_SMTP_STARTTLS:-false}
+      KEYCLOAK_SMTP_SSL: ${KEYCLOAK_LOCAL_SMTP_SSL:-false}
     volumes:
       - ./realms/banking-user-profile.json:/config/banking-user-profile.json:ro
     restart: "no"

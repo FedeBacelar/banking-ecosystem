@@ -28,6 +28,13 @@ export interface OnboardingAccess {
   nextAction: OnboardingNextAction;
 }
 
+export interface OnboardingStatus {
+  applicationId: string;
+  status: OnboardingState;
+  nextAction: OnboardingNextAction;
+  updatedAt: string;
+}
+
 export interface OnboardingSubmission {
   applicationId: string;
   status: OnboardingState;

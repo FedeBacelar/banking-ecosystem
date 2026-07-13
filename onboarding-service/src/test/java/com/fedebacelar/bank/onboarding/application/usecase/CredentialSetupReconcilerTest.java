@@ -89,6 +89,11 @@ class CredentialSetupReconcilerTest {
         });
         when(steps.findByApplicationIdAndStepType(any(), any())).thenAnswer(invocation ->
                 Optional.ofNullable(persistedSteps.get(invocation.getArgument(1))));
+        when(steps.save(any())).thenAnswer(invocation -> {
+            OnboardingProvisioningStep saved = invocation.getArgument(0);
+            persistedSteps.put(saved.stepType(), saved);
+            return saved;
+        });
         when(workItems.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         customerId = UUID.randomUUID();
@@ -135,10 +140,53 @@ class CredentialSetupReconcilerTest {
         reconciler.reconcile(item);
 
         verify(accounts).activate(accountId);
+        assertThat(persistedSteps.get(ProvisioningStepType.ACTIVATE_ACCOUNT).status())
+                .isEqualTo(com.fedebacelar.bank.onboarding.domain.enums.ProvisioningStepStatus.SUCCEEDED);
+        assertThat(persistedSteps.get(ProvisioningStepType.ACTIVATE_ACCOUNT).externalReference())
+                .isEqualTo(accountId.toString());
         assertThat(persistedApplication.get().status()).isEqualTo(OnboardingApplicationStatus.COMPLETED);
         verify(history).save(any());
         verify(workItems).save(org.mockito.ArgumentMatchers.argThat(
                 saved -> saved.status() == WorkflowJobStatus.SUCCEEDED
+        ));
+    }
+
+    @Test
+    void recoversAfterTheAccountWasActivatedBeforeTheStepCouldBeCompleted() {
+        when(credentials.getCredentialSetupState(userId))
+                .thenReturn(new CredentialSetupState(true, "federico"));
+        when(customers.isActive(customerId)).thenReturn(true);
+        when(identities.isActive(userId, customerId)).thenReturn(true);
+        when(accounts.isActive(accountId)).thenReturn(true);
+        persistedSteps.put(ProvisioningStepType.ACTIVATE_ACCOUNT,
+                OnboardingProvisioningStep.pending(item.applicationId(), ProvisioningStepType.ACTIVATE_ACCOUNT,
+                                NOW.minusSeconds(20))
+                        .start(activationFingerprint(accountId), NOW.minusSeconds(10)));
+
+        reconciler.reconcile(item);
+
+        verify(accounts, never()).activate(accountId);
+        assertThat(persistedSteps.get(ProvisioningStepType.ACTIVATE_ACCOUNT).status())
+                .isEqualTo(com.fedebacelar.bank.onboarding.domain.enums.ProvisioningStepStatus.SUCCEEDED);
+        assertThat(persistedApplication.get().status()).isEqualTo(OnboardingApplicationStatus.COMPLETED);
+    }
+
+    @Test
+    void keepsTheActivationStepRetryableAfterATechnicalFailure() {
+        persistedSteps.put(ProvisioningStepType.ACTIVATE_ACCOUNT,
+                OnboardingProvisioningStep.pending(item.applicationId(), ProvisioningStepType.ACTIVATE_ACCOUNT,
+                                NOW.minusSeconds(20))
+                        .start(activationFingerprint(accountId), NOW.minusSeconds(10)));
+
+        reconciler.handleTechnicalFailure(item);
+
+        assertThat(persistedSteps.get(ProvisioningStepType.ACTIVATE_ACCOUNT).status())
+                .isEqualTo(com.fedebacelar.bank.onboarding.domain.enums.ProvisioningStepStatus.RETRY_WAIT);
+        assertThat(persistedSteps.get(ProvisioningStepType.ACTIVATE_ACCOUNT).lastErrorCode())
+                .isEqualTo("ACCOUNT_ACTIVATION_ERROR");
+        verify(workItems).save(org.mockito.ArgumentMatchers.argThat(saved ->
+                saved.status() == WorkflowJobStatus.RETRY_WAIT
+                        && "CREDENTIAL_RECONCILIATION_ERROR".equals(saved.lastErrorCode())
         ));
     }
 
@@ -180,5 +228,15 @@ class CredentialSetupReconcilerTest {
                 applicationId, type, completedAt.minusSeconds(10)
         ).start("request-hash", completedAt.minusSeconds(5)).succeed(reference, completedAt);
         persistedSteps.put(type, step);
+    }
+
+    private String activationFingerprint(UUID id) {
+        try {
+            String request = id + "|AUTO_ONBOARDING_APPROVED|onboarding-service";
+            return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(request.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException exception) {
+            throw new IllegalStateException(exception);
+        }
     }
 }

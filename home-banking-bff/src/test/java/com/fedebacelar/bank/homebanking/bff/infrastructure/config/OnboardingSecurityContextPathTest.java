@@ -85,7 +85,7 @@ class OnboardingSecurityContextPathTest {
                 "continuation-token",
                 Instant.now().plusSeconds(7200)
         ));
-        when(onboardingFlowService.resendCredentialInvitation(null))
+        when(onboardingFlowService.resendCredentialInvitation(null, "onboarding-resend-01"))
                 .thenThrow(new OnboardingSessionRequiredException());
 
         CsrfCookie csrf = exchangeMagicLink();
@@ -93,6 +93,7 @@ class OnboardingSecurityContextPathTest {
                 .uri(uri("/web/onboarding/credential-invitations/resend"))
                 .header("Cookie", "NB-XSRF-TOKEN=" + csrf.value())
                 .header("X-XSRF-TOKEN", csrf.value())
+                .header("Idempotency-Key", "onboarding-resend-01")
                 .POST(HttpRequest.BodyPublishers.noBody())
                 .build();
 

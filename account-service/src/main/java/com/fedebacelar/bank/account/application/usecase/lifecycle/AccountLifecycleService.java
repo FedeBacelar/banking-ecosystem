@@ -5,6 +5,7 @@ import com.fedebacelar.bank.account.application.mapper.AccountDetailsMapper;
 import com.fedebacelar.bank.account.application.port.in.AccountLifecycleUseCase;
 import com.fedebacelar.bank.account.application.port.out.AccountRepositoryPort;
 import com.fedebacelar.bank.account.application.view.AccountDetails;
+import com.fedebacelar.bank.account.domain.enums.AccountStatus;
 import com.fedebacelar.bank.account.domain.exception.AccountBalanceNotZeroException;
 import com.fedebacelar.bank.account.domain.exception.AccountNotFoundException;
 import com.fedebacelar.bank.account.domain.model.Account;
@@ -15,6 +16,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.UUID;
 import java.util.function.Function;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -30,7 +32,21 @@ public class AccountLifecycleService implements AccountLifecycleUseCase {
 
     @Override
     public AccountDetails activate(UUID accountId, AccountReasonCommand command) {
-        return transition(accountId, command, account -> account.activate(Instant.now(clock)));
+        BankAccount aggregate = accountRepositoryPort.findByAccountId(accountId)
+                .orElseThrow(() -> new AccountNotFoundException(accountId));
+        if (aggregate.account().status() == AccountStatus.ACTIVE) {
+            return AccountDetailsMapper.toDetails(aggregate);
+        }
+        try {
+            return saveTransition(aggregate, aggregate.account().activate(Instant.now(clock)), command);
+        } catch (ObjectOptimisticLockingFailureException concurrentActivation) {
+            BankAccount current = accountRepositoryPort.findByAccountId(accountId)
+                    .orElseThrow(() -> new AccountNotFoundException(accountId));
+            if (current.account().status() == AccountStatus.ACTIVE) {
+                return AccountDetailsMapper.toDetails(current);
+            }
+            throw concurrentActivation;
+        }
     }
 
     @Override

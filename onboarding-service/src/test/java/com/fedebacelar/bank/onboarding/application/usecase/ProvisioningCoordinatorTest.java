@@ -138,7 +138,11 @@ class ProvisioningCoordinatorTest {
         verify(accounts, never()).activate(any());
         verify(credentials).sendCredentialSetupEmail(userId);
         assertThat(persistedSteps.values())
-                .hasSize(6)
+                .hasSize(7);
+        assertThat(persistedSteps.get(ProvisioningStepType.ACTIVATE_ACCOUNT).status())
+                .isEqualTo(ProvisioningStepStatus.PENDING);
+        assertThat(persistedSteps.values())
+                .filteredOn(step -> step.stepType() != ProvisioningStepType.ACTIVATE_ACCOUNT)
                 .allSatisfy(step -> assertThat(step.status()).isEqualTo(ProvisioningStepStatus.SUCCEEDED));
         assertThat(persistedApplication.get().status())
                 .isEqualTo(OnboardingApplicationStatus.CREDENTIAL_SETUP_PENDING);

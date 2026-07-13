@@ -36,13 +36,22 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class ProvisioningCoordinator {
-    private static final List<ProvisioningStepType> ORDER = List.of(
+    private static final List<ProvisioningStepType> EXECUTION_ORDER = List.of(
             ProvisioningStepType.PRECREATE_KEYCLOAK_USER,
             ProvisioningStepType.CREATE_CUSTOMER,
             ProvisioningStepType.APPROVE_CUSTOMER_KYC,
             ProvisioningStepType.OPEN_ACCOUNT,
             ProvisioningStepType.CREATE_IDENTITY_LINK,
             ProvisioningStepType.SEND_CREDENTIAL_SETUP_EMAIL
+    );
+    private static final List<ProvisioningStepType> INITIALIZED_STEPS = List.of(
+            ProvisioningStepType.PRECREATE_KEYCLOAK_USER,
+            ProvisioningStepType.CREATE_CUSTOMER,
+            ProvisioningStepType.APPROVE_CUSTOMER_KYC,
+            ProvisioningStepType.OPEN_ACCOUNT,
+            ProvisioningStepType.CREATE_IDENTITY_LINK,
+            ProvisioningStepType.SEND_CREDENTIAL_SETUP_EMAIL,
+            ProvisioningStepType.ACTIVATE_ACCOUNT
     );
 
     private final OnboardingApplicationRepositoryPort applicationRepository;
@@ -94,7 +103,7 @@ public class ProvisioningCoordinator {
         ApplicantData applicant = applicantRepository.findByApplicationId(application.id())
                 .orElseThrow(() -> new IllegalStateException("Applicant data is missing during provisioning."));
 
-        for (ProvisioningStepType type : ORDER) {
+        for (ProvisioningStepType type : EXECUTION_ORDER) {
             executeStep(application, applicant, type);
         }
 
@@ -136,7 +145,7 @@ public class ProvisioningCoordinator {
         if (application.status() != OnboardingApplicationStatus.PROVISIONING) {
             throw new IllegalStateException("Application is not ready for provisioning.");
         }
-        for (ProvisioningStepType type : ORDER) {
+        for (ProvisioningStepType type : INITIALIZED_STEPS) {
             stepRepository.findByApplicationIdAndStepType(applicationId, type)
                     .orElseGet(() -> stepRepository.save(OnboardingProvisioningStep.pending(applicationId, type, now)));
         }

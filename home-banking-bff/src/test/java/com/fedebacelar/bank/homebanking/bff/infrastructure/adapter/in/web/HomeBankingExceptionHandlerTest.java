@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
@@ -24,7 +25,7 @@ class HomeBankingExceptionHandlerTest {
                 null
         );
 
-        ProblemDetail problem = handler.handleDownstreamError(exception);
+        ProblemDetail problem = body(handler.handleDownstreamError(exception));
 
         assertThat(problem.getStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE.value());
         assertThat(problem.getProperties())
@@ -47,7 +48,7 @@ class HomeBankingExceptionHandlerTest {
                 null
         );
 
-        ProblemDetail problem = handler.handleDownstreamError(exception);
+        ProblemDetail problem = body(handler.handleDownstreamError(exception));
 
         assertThat(problem.getStatus()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY.value());
         assertThat(problem.getProperties())
@@ -69,7 +70,7 @@ class HomeBankingExceptionHandlerTest {
                 null
         );
 
-        ProblemDetail problem = handler.handleDownstreamError(exception);
+        ProblemDetail problem = body(handler.handleDownstreamError(exception));
 
         assertThat(problem.getStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE.value());
         assertThat(problem.getProperties()).containsEntry("code", "ONBOARDING_DOCUMENT_UPLOAD_UNAVAILABLE");
@@ -85,7 +86,7 @@ class HomeBankingExceptionHandlerTest {
                 null
         );
 
-        ProblemDetail problem = handler.handleDownstreamError(exception);
+        ProblemDetail problem = body(handler.handleDownstreamError(exception));
 
         assertThat(problem.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
         assertThat(problem.getProperties()).containsEntry("code", "INVALID_ONBOARDING_DOCUMENT");
@@ -111,5 +112,47 @@ class HomeBankingExceptionHandlerTest {
         assertThat(problem.getStatus()).isEqualTo(HttpStatus.PAYLOAD_TOO_LARGE.value());
         assertThat(problem.getDetail()).isEqualTo("Each document must be no larger than 10 MB.");
         assertThat(problem.getProperties()).containsEntry("code", "ONBOARDING_DOCUMENT_TOO_LARGE");
+    }
+
+    @Test
+    void shouldPreserveOnlyNumericRetryAfterForCredentialInvitationCooldown() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.RETRY_AFTER, "42");
+        WebClientResponseException exception = WebClientResponseException.create(
+                HttpStatus.TOO_MANY_REQUESTS.value(),
+                "Too many requests",
+                headers,
+                "{\"code\":\"CREDENTIAL_INVITATION_COOLDOWN\"}".getBytes(),
+                null
+        );
+
+        ResponseEntity<ProblemDetail> response = handler.handleDownstreamError(exception);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+        assertThat(response.getHeaders().getFirst(HttpHeaders.RETRY_AFTER)).isEqualTo("42");
+        assertThat(body(response).getProperties())
+                .containsEntry("code", "CREDENTIAL_INVITATION_COOLDOWN");
+    }
+
+    @Test
+    void shouldNotForwardAnUnsafeRetryAfterValue() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.RETRY_AFTER, "tomorrow");
+        WebClientResponseException exception = WebClientResponseException.create(
+                HttpStatus.TOO_MANY_REQUESTS.value(),
+                "Too many requests",
+                headers,
+                "{\"code\":\"CREDENTIAL_INVITATION_COOLDOWN\"}".getBytes(),
+                null
+        );
+
+        ResponseEntity<ProblemDetail> response = handler.handleDownstreamError(exception);
+
+        assertThat(response.getHeaders().getFirst(HttpHeaders.RETRY_AFTER)).isNull();
+    }
+
+    private ProblemDetail body(ResponseEntity<ProblemDetail> response) {
+        assertThat(response.getBody()).isNotNull();
+        return response.getBody();
     }
 }

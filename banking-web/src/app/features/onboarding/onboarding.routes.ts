@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 
 import { OnboardingDraftStore } from './data-access/onboarding-draft.store';
+import { OnboardingStatusStore } from './data-access/onboarding-status.store';
 import { pendingOnboardingChangesGuard } from './data-access/pending-onboarding-changes.guard';
 import { OnboardingShellComponent } from './layout/onboarding-shell.component';
 
@@ -53,13 +54,15 @@ export const onboardingRoutes: Routes = [
           )
       },
       {
-        path: 'solicitud-enviada',
-        title: 'Solicitud enviada | Nerva Banking',
+        path: 'estado',
+        title: 'Estado de tu solicitud | Nerva Banking',
+        providers: [OnboardingStatusStore],
         loadComponent: () =>
-          import('./pages/confirmation/onboarding-confirmation.page').then(
-            (module) => module.OnboardingConfirmationPage
+          import('./pages/status/onboarding-status.page').then(
+            (module) => module.OnboardingStatusPage
           )
       },
+      { path: 'solicitud-enviada', pathMatch: 'full', redirectTo: 'estado' },
       { path: '**', redirectTo: '' }
     ]
   }

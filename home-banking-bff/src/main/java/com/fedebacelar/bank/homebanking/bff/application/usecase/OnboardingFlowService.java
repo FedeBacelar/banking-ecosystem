@@ -82,10 +82,11 @@ public class OnboardingFlowService implements
     }
 
     @Override
-    public OnboardingSubmission resendCredentialInvitation(String continuationToken) {
+    public OnboardingSubmission resendCredentialInvitation(String continuationToken, String idempotencyKey) {
         requireContinuation(continuationToken);
         return onboardingServicePort.resendCredentialInvitation(
                 continuationToken,
+                idempotencyKey,
                 onboardingAccessToken()
         );
     }

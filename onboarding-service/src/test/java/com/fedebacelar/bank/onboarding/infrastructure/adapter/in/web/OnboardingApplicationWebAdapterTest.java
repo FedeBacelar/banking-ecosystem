@@ -182,15 +182,24 @@ class OnboardingApplicationWebAdapterTest {
     @Test
     void shouldResendCredentialInvitation() throws Exception {
         Instant now = Instant.parse("2026-07-10T12:00:00Z");
-        when(resendUseCase.resend("continuation-token")).thenReturn(new OnboardingSubmissionDetails(
+        when(resendUseCase.resend("continuation-token", "request-12345678")).thenReturn(new OnboardingSubmissionDetails(
                 UUID.randomUUID(), OnboardingApplicationStatus.CREDENTIAL_SETUP_PENDING, now, now
         ));
 
         mockMvc.perform(post("/internal/onboarding/continuations/credential-invitations/resend")
+                        .header("Idempotency-Key", "request-12345678")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"continuationToken\":\"continuation-token\"}"))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.status").value("CREDENTIAL_SETUP_PENDING"));
+    }
+
+    @Test
+    void shouldRequireAnIdempotencyKeyForCredentialInvitationResend() throws Exception {
+        mockMvc.perform(post("/internal/onboarding/continuations/credential-invitations/resend")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"continuationToken\":\"continuation-token\"}"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

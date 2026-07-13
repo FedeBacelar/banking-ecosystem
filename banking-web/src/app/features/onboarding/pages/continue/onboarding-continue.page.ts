@@ -97,7 +97,7 @@ export class OnboardingContinuePage {
             void this.router.navigate(['/onboarding/solicitud']);
             return;
           }
-          void this.router.navigate(['/onboarding/solicitud-enviada']);
+          void this.router.navigate(['/onboarding/estado']);
         },
         error: (error: unknown) => {
           const kind = magicLinkError(error);

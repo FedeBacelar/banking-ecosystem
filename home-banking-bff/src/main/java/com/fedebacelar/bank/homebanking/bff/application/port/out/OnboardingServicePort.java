@@ -23,5 +23,9 @@ public interface OnboardingServicePort {
             String accessToken
     );
 
-    OnboardingSubmission resendCredentialInvitation(String continuationToken, String accessToken);
+    OnboardingSubmission resendCredentialInvitation(
+            String continuationToken,
+            String idempotencyKey,
+            String accessToken
+    );
 }

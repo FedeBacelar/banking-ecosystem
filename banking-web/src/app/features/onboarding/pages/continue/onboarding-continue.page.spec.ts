@@ -51,4 +51,21 @@ describe('OnboardingContinuePage', () => {
     http.expectNone('/web/onboarding/magic-links/consume');
     http.verify();
   });
+
+  it('routes every post-submission state to the durable status page', () => {
+    window.history.replaceState(null, '', '/onboarding/continue#token=secret-value');
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    const http = TestBed.inject(HttpTestingController);
+
+    const fixture = TestBed.createComponent(OnboardingContinuePage);
+    fixture.detectChanges();
+    http.expectOne('/web/onboarding/magic-links/consume').flush({
+      status: 'SUBMITTED',
+      nextAction: 'WAIT'
+    });
+
+    expect(navigate).toHaveBeenCalledWith(['/onboarding/estado']);
+    http.verify();
+  });
 });

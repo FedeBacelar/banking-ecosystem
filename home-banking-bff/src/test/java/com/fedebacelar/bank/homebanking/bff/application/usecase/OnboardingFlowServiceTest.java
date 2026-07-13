@@ -27,6 +27,7 @@ class OnboardingFlowServiceTest {
 
     private static final String ACCESS_TOKEN = "internal-token";
     private static final String CONTINUATION_TOKEN = "continuation-token";
+    private static final String IDEMPOTENCY_KEY = "onboarding-resend-01";
 
     private final OnboardingServicePort onboardingServicePort = mock(OnboardingServicePort.class);
     private final GetInternalAccessTokenPort internalAccessTokenPort = mock(GetInternalAccessTokenPort.class);
@@ -121,11 +122,11 @@ class OnboardingFlowServiceTest {
                 Instant.parse("2026-07-10T12:00:00Z")
         );
         when(internalAccessTokenPort.getAccessToken(InternalAccessPurpose.ONBOARDING)).thenReturn(ACCESS_TOKEN);
-        when(onboardingServicePort.resendCredentialInvitation(CONTINUATION_TOKEN, ACCESS_TOKEN))
+        when(onboardingServicePort.resendCredentialInvitation(CONTINUATION_TOKEN, IDEMPOTENCY_KEY, ACCESS_TOKEN))
                 .thenReturn(submission);
 
-        assertThat(service.resendCredentialInvitation(CONTINUATION_TOKEN)).isEqualTo(submission);
-        verify(onboardingServicePort).resendCredentialInvitation(CONTINUATION_TOKEN, ACCESS_TOKEN);
+        assertThat(service.resendCredentialInvitation(CONTINUATION_TOKEN, IDEMPOTENCY_KEY)).isEqualTo(submission);
+        verify(onboardingServicePort).resendCredentialInvitation(CONTINUATION_TOKEN, IDEMPOTENCY_KEY, ACCESS_TOKEN);
     }
 
     private OnboardingApplicantData applicantData() {
