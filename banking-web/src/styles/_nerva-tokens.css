@@ -1,0 +1,28 @@
+/* Generated from design-system/tokens.json. Do not edit directly. */
+:root {
+  --nerva-color-canvas: #f7f9fc;
+  --nerva-color-surface: #ffffff;
+  --nerva-color-surface-subtle: #f8fafc;
+  --nerva-color-text: #172033;
+  --nerva-color-text-muted: #5b667a;
+  --nerva-color-border: #d9e0ea;
+  --nerva-color-primary: #1b365d;
+  --nerva-color-primary-strong: #152b4a;
+  --nerva-color-accent: #0b74d1;
+  --nerva-color-accent-on-dark: #8dccff;
+  --nerva-color-accent-soft: #eef6ff;
+  --nerva-color-success: #047857;
+  --nerva-color-success-soft: #ecfdf5;
+  --nerva-color-warning: #9a5b00;
+  --nerva-color-warning-soft: #fff5df;
+  --nerva-color-danger: #9f1239;
+  --nerva-color-danger-border: #fecdd3;
+  --nerva-color-danger-soft: #fff1f2;
+  --nerva-color-on-primary: #ffffff;
+  --nerva-font-sans: "Geist Variable", Geist, "Segoe UI", Roboto, Arial, sans-serif;
+  --nerva-radius-control: 10px;
+  --nerva-radius-card: 16px;
+  --nerva-radius-pill: 999px;
+  --nerva-shadow-card: 0 18px 45px rgba(21, 43, 74, 0.12);
+  --nerva-shadow-focus: 0 0 0 3px #0b74d1;
+}

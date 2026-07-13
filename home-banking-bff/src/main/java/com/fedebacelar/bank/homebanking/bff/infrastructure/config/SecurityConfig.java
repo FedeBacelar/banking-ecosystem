@@ -16,11 +16,14 @@ import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInit
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
-import org.springframework.security.web.util.matcher.AnyRequestMatcher;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.savedrequest.NullRequestCache;
 
 @Configuration
 public class SecurityConfig {
@@ -29,10 +32,11 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             LogoutSuccessHandler logoutSuccessHandler,
+            AuthenticationSuccessHandler authenticationSuccessHandler,
+            AuthenticationFailureHandler authenticationFailureHandler,
             CookieCsrfTokenRepository csrfTokenRepository,
-            @Value("${home-banking-bff.frontend.home-url:http://localhost:4200}") String frontendHomeUrl
+            AuthenticationEntryPoint authenticationEntryPoint
     ) throws Exception {
-        AuthenticationEntryPoint loginEntryPoint = new LoginUrlAuthenticationEntryPoint("/oauth2/authorization/keycloak");
         return http
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository)
@@ -51,18 +55,18 @@ public class SecurityConfig {
                                 "/actuator/health/**",
                                 "/actuator/info",
                                 "/error",
+                                "/auth/login/home",
                                 "/onboarding/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exceptionHandling -> exceptionHandling
-                        .defaultAuthenticationEntryPointFor(
-                                loginEntryPoint,
-                                AnyRequestMatcher.INSTANCE
-                        )
+                        .authenticationEntryPoint(authenticationEntryPoint)
                 )
+                .requestCache(requestCache -> requestCache.requestCache(new NullRequestCache()))
                 .oauth2Login(oauth2 -> oauth2
-                        .defaultSuccessUrl(frontendHomeUrl, true)
+                        .successHandler(authenticationSuccessHandler)
+                        .failureHandler(authenticationFailureHandler)
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
@@ -72,6 +76,30 @@ public class SecurityConfig {
                         .clearAuthentication(true)
                 )
                 .build();
+    }
+
+    @Bean
+    AuthenticationEntryPoint authenticationEntryPoint() {
+        return new ApiAuthenticationEntryPoint();
+    }
+
+    @Bean
+    AuthenticationSuccessHandler authenticationSuccessHandler(
+            @Value("${home-banking-bff.frontend.home-url:http://localhost:4200/app/inicio}") String frontendHomeUrl
+    ) {
+        SavedRequestAwareAuthenticationSuccessHandler successHandler =
+                new SavedRequestAwareAuthenticationSuccessHandler();
+        successHandler.setDefaultTargetUrl(frontendHomeUrl);
+        successHandler.setAlwaysUseDefaultTargetUrl(true);
+        return successHandler;
+    }
+
+    @Bean
+    AuthenticationFailureHandler authenticationFailureHandler(
+            @Value("${home-banking-bff.frontend.authentication-error-url:http://localhost:4200/error?reason=authentication}")
+            String frontendAuthenticationErrorUrl
+    ) {
+        return new SimpleUrlAuthenticationFailureHandler(frontendAuthenticationErrorUrl);
     }
 
     @Bean
@@ -85,11 +113,12 @@ public class SecurityConfig {
     @Bean
     LogoutSuccessHandler logoutSuccessHandler(
             ClientRegistrationRepository clientRegistrationRepository,
-            @Value("${home-banking-bff.frontend.logout-url:http://localhost:4200}") String logoutUrl
+            @Value("${home-banking-bff.frontend.logout-url:http://localhost:4200/sesion-cerrada}") String logoutUrl
     ) {
         OidcClientInitiatedLogoutSuccessHandler logoutSuccessHandler =
                 new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
         logoutSuccessHandler.setPostLogoutRedirectUri(logoutUrl);
+        logoutSuccessHandler.setDefaultTargetUrl(logoutUrl);
         return logoutSuccessHandler;
     }
 

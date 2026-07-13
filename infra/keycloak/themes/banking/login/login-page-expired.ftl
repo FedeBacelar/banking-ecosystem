@@ -4,7 +4,7 @@
   <#if section = "header">
     ${msg("pageExpiredTitle")}
   <#elseif section = "form">
-    <div id="kc-page-expired" class="banking-status">
+    <div id="kc-page-expired" class="banking-status" role="status">
       <span class="banking-status-icon banking-icon banking-icon--key-round" aria-hidden="true"></span>
       <p>${msg("pageExpiredMsg1")}</p>
       <div class="banking-actions">

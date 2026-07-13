@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["color", "font", "radius", "shadow"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "color": { "$ref": "#/$defs/stringMap" },
+    "font": { "$ref": "#/$defs/stringMap" },
+    "radius": { "$ref": "#/$defs/stringMap" },
+    "shadow": { "$ref": "#/$defs/stringMap" }
+  },
+  "$defs": {
+    "stringMap": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    }
+  }
+}

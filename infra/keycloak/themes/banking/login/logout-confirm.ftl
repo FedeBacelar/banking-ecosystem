@@ -1,4 +1,5 @@
 <#import "template.ftl" as layout>
+<#assign bankingFrontendUrl = properties.bankingFrontendUrl!"http://localhost:4200">
 
 <@layout.registrationLayout; section>
   <#if section = "header">
@@ -11,8 +12,8 @@
         <input type="hidden" name="session_code" value="${logoutConfirm.code}">
         <button class="banking-action-button" name="confirmLogout" id="kc-logout" type="submit">${msg("doLogout")}</button>
       </form>
-      <#if !(logoutConfirm.skipLink) && (client.baseUrl)?has_content>
-        <a class="banking-action-link" href="${client.baseUrl}">${msg("backToApplication")}</a>
+      <#if !(logoutConfirm.skipLink)>
+        <a class="banking-action-link" href="${bankingFrontendUrl}">${msg("bankingBackHome")}</a>
       </#if>
     </div>
   </#if>

@@ -1,23 +1,35 @@
-:root {
-  --nb-bg: #f7f9fc;
-  --nb-surface: #ffffff;
-  --nb-text: #172033;
-  --nb-muted: #5b667a;
-  --nb-border: #d9e0ea;
-  --nb-input: #f8fafc;
-  --nb-primary: #1b365d;
-  --nb-primary-strong: #152b4a;
-  --nb-accent: #0b74d1;
-  --nb-success: #079669;
-  --nb-success-bg: #ecfdf5;
-  --nb-success-border: #a7f3d0;
-  --nb-error-bg: #fff1f2;
-  --nb-error-border: #fecdd3;
-  --nb-error-text: #9f1239;
-  --nb-shadow: 0 18px 45px rgb(21 43 74 / 12%);
-  color: var(--nb-text);
-  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
-  font-size: 16px;
+@use 'tailwindcss';
+@use './styles/nerva-tokens';
+
+@font-face {
+  font-family: 'Geist Variable';
+  src: url('/assets/fonts/geist-latin-wght-normal.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme inline {
+  --font-sans: var(--nerva-font-sans);
+  --color-brand: var(--nerva-color-primary);
+  --color-brand-strong: var(--nerva-color-primary-strong);
+  --color-action: var(--nerva-color-accent);
+  --color-accent-on-dark: var(--nerva-color-accent-on-dark);
+  --color-action-soft: var(--nerva-color-accent-soft);
+  --color-canvas: var(--nerva-color-canvas);
+  --color-surface: var(--nerva-color-surface);
+  --color-surface-subtle: var(--nerva-color-surface-subtle);
+  --color-ink: var(--nerva-color-text);
+  --color-ink-muted: var(--nerva-color-text-muted);
+  --color-line: var(--nerva-color-border);
+  --color-positive: var(--nerva-color-success);
+  --color-positive-subtle: var(--nerva-color-success-soft);
+  --color-caution: var(--nerva-color-warning);
+  --color-caution-subtle: var(--nerva-color-warning-soft);
+  --color-danger: var(--nerva-color-danger);
+  --color-danger-subtle: var(--nerva-color-danger-soft);
+  --shadow-card: var(--nerva-shadow-card);
+  --shadow-floating: var(--nerva-shadow-card);
 }
 
 *,
@@ -26,188 +38,77 @@
   box-sizing: border-box;
 }
 
-html,
-body {
+html {
+  min-width: 20rem;
   min-height: 100%;
+  scroll-behavior: smooth;
+  color-scheme: light;
+  font-family: var(--nerva-font-sans);
+  font-synthesis: none;
 }
 
 body {
+  min-height: 100vh;
   margin: 0;
-  background: var(--nb-bg);
-  color: var(--nb-text);
-  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+  background: var(--nerva-color-canvas);
+  color: var(--nerva-color-text);
+  font-family: inherit;
   line-height: 1.5;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
-.form-stack {
-  display: grid;
-  gap: 16px;
+a,
+button {
+  -webkit-tap-highlight-color: transparent;
 }
 
-.field {
-  display: grid;
-  gap: 8px;
+:focus-visible {
+  outline: 3px solid var(--nerva-color-accent);
+  outline-offset: 3px;
 }
 
-.field span {
-  color: var(--nb-text);
-  font-size: 14px;
-  font-weight: 750;
+.bg-brand :focus-visible {
+  outline-color: var(--nerva-color-accent-on-dark);
 }
 
-.field input,
-.field select {
-  width: 100%;
-  min-height: 46px;
-  border: 1px solid var(--nb-border);
-  border-radius: 8px;
-  background: var(--nb-input);
-  color: var(--nb-text);
-  outline: none;
-  padding: 0 14px;
+::selection {
+  background: color-mix(in srgb, var(--nerva-color-accent) 22%, white);
 }
 
-.field input:focus,
-.field select:focus {
-  border-color: var(--nb-accent);
-  box-shadow: 0 0 0 3px rgb(11 116 209 / 14%);
-}
-
-.field input[aria-invalid="true"],
-.field select[aria-invalid="true"] {
-  border-color: var(--nb-error-text);
-}
-
-.checkbox-field {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.checkbox-field input {
-  width: 18px;
-  min-height: 18px;
-  margin: 2px 0 0;
-  padding: 0;
-}
-
-.checkbox-field span {
-  font-weight: 650;
-}
-
-.field-grid {
-  display: grid;
-  gap: 14px;
-}
-
-.button-row {
-  display: grid;
-  gap: 12px;
-}
-
-.field-error {
-  margin: -6px 0 0;
-  color: var(--nb-error-text);
-  font-size: 13px;
-  font-weight: 650;
-}
-
-.primary-button,
-.ghost-button,
-.primary-link {
-  display: inline-flex;
-  min-height: 46px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  padding: 0 16px;
-  font-size: 14px;
-  font-weight: 800;
-  text-decoration: none;
-}
-
-.primary-button,
-.primary-link {
-  border: 1px solid var(--nb-primary);
-  background: var(--nb-primary);
-  color: #fff;
-}
-
-.primary-button:not(:disabled):hover,
-.primary-link:hover {
-  background: var(--nb-primary-strong);
-}
-
-.primary-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.62;
-}
-
-.ghost-button {
-  border: 1px solid var(--nb-border);
-  background: #fff;
-  color: var(--nb-primary);
-}
-
-.secondary-link {
-  color: var(--nb-primary);
-  font-size: 14px;
-  font-weight: 800;
-  text-decoration: none;
-}
-
-.secondary-link:hover {
-  text-decoration: underline;
-}
-
-.supporting-copy {
-  margin: 0;
-  color: var(--nb-muted);
-  font-size: 14px;
-}
-
-.alert,
-.status-panel {
-  display: grid;
-  gap: 4px;
-  border-radius: 8px;
-  padding: 14px;
-  font-size: 14px;
-}
-
-.alert--error {
-  border: 1px solid var(--nb-error-border);
-  background: var(--nb-error-bg);
-  color: var(--nb-error-text);
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 100;
+  transform: translateY(-180%);
+  border-radius: 0.625rem;
+  background: var(--nerva-color-surface);
+  color: var(--nerva-color-primary);
+  padding: 0.75rem 1rem;
   font-weight: 700;
+  box-shadow: var(--nerva-shadow-card);
+  transition: transform 150ms ease;
 }
 
-.status-panel {
-  border: 1px solid var(--nb-border);
-  background: #f8fafc;
-  color: var(--nb-muted);
+.skip-link:focus {
+  transform: translateY(0);
 }
 
-.status-panel strong {
-  color: var(--nb-text);
-  font-size: 15px;
-}
-
-.status-panel small {
-  overflow-wrap: anywhere;
-}
-
-.status-panel--success {
-  border-color: var(--nb-success-border);
-  background: var(--nb-success-bg);
-}
-
-.status-panel--success strong {
-  color: var(--nb-success);
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

@@ -2,16 +2,21 @@ import { Routes } from '@angular/router';
 
 export const routes: Routes = [
   {
-    path: '',
-    pathMatch: 'full',
-    redirectTo: 'onboarding/start'
+    path: 'app',
+    loadChildren: () =>
+      import('./features/home-banking/home-banking.routes').then(
+        (module) => module.homeBankingRoutes
+      )
   },
   {
-    path: 'onboarding',
-    loadChildren: () => import('./features/onboarding/onboarding.routes').then((m) => m.onboardingRoutes)
+    path: '',
+    loadChildren: () =>
+      import('./features/public/public.routes').then(
+        (module) => module.publicRoutes
+      )
   },
   {
     path: '**',
-    redirectTo: 'onboarding/start'
+    redirectTo: ''
   }
 ];

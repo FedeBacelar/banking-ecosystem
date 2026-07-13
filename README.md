@@ -13,7 +13,7 @@ The repository is organized as a monorepo. Each service owns its code, configura
 - `document-service`: document metadata and object storage integration for banking evidence.
 - `onboarding-service`: digital onboarding applications, email magic links, and onboarding state.
 - `home-banking-bff`: browser-facing session boundary, onboarding facade, and customer data composition.
-- `banking-web`: Angular verification client for the implemented digital onboarding flow.
+- `banking-web`: customer-facing Angular SPA for public journeys and authenticated home banking.
 - `config-server`: centralized configuration server for the local ecosystem.
 - `eureka-server`: service discovery server for the local microservices ecosystem.
 - `api-gateway`: external HTTP entry point and route layer for the local ecosystem.
@@ -224,6 +224,22 @@ Gateway entry point:
 http://localhost:8085
 ```
 
+Create or reconcile the local bank data linked to the Keycloak user
+`home-banking-user` after Keycloak, customer, account, and identity services are
+ready. The script is safe to run more than once and stops on conflicting local
+data instead of replacing it:
+
+```powershell
+cd ..
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\local\seed-home-banking-user.ps1
+```
+
+The local login remains:
+
+```txt
+home-banking-user / home-banking-user-password
+```
+
 Start `banking-web`:
 
 ```powershell
@@ -234,7 +250,7 @@ npm start
 Angular frontend:
 
 ```txt
-http://localhost:4200/onboarding/start
+http://localhost:4200/
 ```
 
 ## Tests

@@ -1,21 +1,29 @@
+@font-face {
+  font-family: "Geist Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../fonts/geist-latin-wght-normal.woff2") format("woff2-variations");
+}
+
 :root {
-  --banking-bg: #f7f9fc;
-  --banking-card: #ffffff;
-  --banking-text: #172033;
-  --banking-muted: #5b667a;
-  --banking-border: #d9e0ea;
-  --banking-input: #f8fafc;
-  --banking-primary: #1b365d;
-  --banking-primary-strong: #152b4a;
-  --banking-accent: #0b74d1;
-  --banking-success: #079669;
-  --banking-error-bg: #fff1f2;
-  --banking-error-border: #fecdd3;
-  --banking-error-text: #9f1239;
-  --banking-shadow: 0 18px 45px rgba(21, 43, 74, 0.12);
-  --banking-radius: 8px;
-  --banking-scale: 1;
-  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+  --banking-bg: var(--nerva-color-canvas);
+  --banking-card: var(--nerva-color-surface);
+  --banking-text: var(--nerva-color-text);
+  --banking-muted: var(--nerva-color-text-muted);
+  --banking-border: var(--nerva-color-border);
+  --banking-input: var(--nerva-color-surface-subtle);
+  --banking-primary: var(--nerva-color-primary);
+  --banking-primary-strong: var(--nerva-color-primary-strong);
+  --banking-accent: var(--nerva-color-accent);
+  --banking-success: var(--nerva-color-success);
+  --banking-error-bg: var(--nerva-color-danger-soft);
+  --banking-error-border: var(--nerva-color-danger-border);
+  --banking-error-text: var(--nerva-color-danger);
+  --banking-shadow: var(--nerva-shadow-card);
+  --banking-focus: var(--nerva-shadow-focus);
+  --banking-radius: var(--nerva-radius-control);
+  font-family: var(--nerva-font-sans);
   font-size: 16px;
 }
 
@@ -27,6 +35,7 @@
 
 html,
 body {
+  width: 100%;
   min-height: 100%;
 }
 
@@ -35,14 +44,34 @@ body {
   margin: 0;
   background: var(--banking-bg);
   color: var(--banking-text);
-  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif !important;
+  font-family: var(--nerva-font-sans) !important;
   font-size: 16px !important;
   line-height: 1.5;
 }
 
 .banking-shell {
   display: grid;
+  width: 100%;
   min-height: 100vh;
+}
+
+.banking-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+a:focus-visible,
+button:focus-visible,
+input[type="checkbox"]:focus-visible {
+  outline: 3px solid var(--banking-accent);
+  outline-offset: 3px;
 }
 
 .banking-icon {
@@ -135,16 +164,16 @@ body {
   font-size: 14px;
   font-weight: 600;
   text-decoration: none;
+  transition: color 160ms ease;
 }
 
 .banking-back-link:hover {
   color: var(--banking-text);
 }
 
-.banking-mobile-secure {
+.banking-mobile-brand {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
   color: var(--banking-muted);
   font-size: 12px;
   font-weight: 700;
@@ -176,14 +205,42 @@ body {
 
 .banking-login-card {
   border: 1px solid var(--banking-border);
-  border-radius: 16px;
+  border-radius: var(--nerva-radius-card);
   background: var(--banking-card);
   box-shadow: var(--banking-shadow);
   padding: 32px;
   width: 100%;
 }
 
-.banking-login-card__header h2 {
+.banking-academic-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 18px 4px 0;
+  color: var(--banking-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.banking-academic-note > .banking-icon {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--banking-accent);
+  font-size: 16px;
+}
+
+.banking-academic-note strong,
+.banking-academic-note span span {
+  display: block;
+}
+
+.banking-academic-note strong {
+  margin-bottom: 2px;
+  color: var(--banking-text);
+  font-weight: 700;
+}
+
+.banking-login-card__header h1 {
   margin: 0;
   color: var(--banking-text);
   font-size: 22px;
@@ -262,7 +319,7 @@ body {
 .banking-input:focus,
 .banking-password-control:focus-within {
   border-color: var(--banking-accent);
-  box-shadow: 0 0 0 3px rgba(11, 116, 209, 0.16);
+  box-shadow: var(--banking-focus);
 }
 
 .banking-password-control {
@@ -327,6 +384,7 @@ body {
   cursor: pointer;
   font-size: 14px;
   font-weight: 800;
+  transition: background-color 160ms ease, opacity 160ms ease;
 }
 
 .banking-submit:hover {
@@ -335,6 +393,35 @@ body {
 
 .banking-submit .banking-icon {
   font-size: 18px;
+}
+
+.banking-submit__spinner {
+  display: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.38);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: banking-spin 700ms linear infinite;
+}
+
+.banking-submit--loading {
+  pointer-events: none;
+  opacity: 0.88;
+}
+
+.banking-submit--loading .banking-submit__idle-icon {
+  display: none;
+}
+
+.banking-submit--loading .banking-submit__spinner {
+  display: inline-block;
+}
+
+@keyframes banking-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .banking-field-error {
@@ -459,35 +546,6 @@ body {
   color: var(--banking-error-text);
 }
 
-.banking-keycloak-note {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 24px;
-  color: var(--banking-muted);
-  font-size: 12px;
-}
-
-.banking-keycloak-note .banking-icon {
-  color: var(--banking-success);
-  font-size: 14px;
-}
-
-.banking-keycloak-note span {
-  color: var(--banking-success);
-  font-weight: 800;
-}
-
-.banking-demo-note,
-.banking-page-note {
-  margin: 18px 0 0;
-  color: rgba(91, 102, 122, 0.78);
-  font-size: 12px;
-  line-height: 1.55;
-  text-align: center;
-}
-
 .banking-info {
   margin-top: 20px;
   color: var(--banking-muted);
@@ -588,9 +646,9 @@ body {
   text-decoration: underline;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1120px) {
   .banking-shell {
-    grid-template-columns: minmax(560px, 48.8vw) minmax(560px, 1fr);
+    grid-template-columns: minmax(0, 48.8vw) minmax(0, 1fr);
   }
 
   .banking-brand-panel {
@@ -628,8 +686,8 @@ body {
   }
 
   .banking-brand-panel__content {
-    max-width: 540px;
-    margin-bottom: 92px;
+    max-width: 480px;
+    margin-bottom: 60px;
   }
 
   .banking-badge {
@@ -637,7 +695,7 @@ body {
     align-items: center;
     gap: 8px;
     border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 999px;
+    border-radius: var(--nerva-radius-pill);
     background: rgba(255, 255, 255, 0.06);
     color: rgba(255, 255, 255, 0.84);
     font-size: 12px;
@@ -645,12 +703,7 @@ body {
     padding: 5px 11px;
   }
 
-  .banking-badge .banking-icon {
-    color: #31c48d;
-    font-size: 14px;
-  }
-
-  .banking-brand-panel h1 {
+  .banking-brand-panel h2 {
     margin: 28px 0 0;
     color: #fff;
     font-size: 32px;
@@ -664,38 +717,6 @@ body {
     font-size: 15px;
     line-height: 1.7;
     max-width: 520px;
-  }
-
-  .banking-trust-list {
-    display: grid;
-    gap: 16px;
-    margin: 34px 0 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .banking-trust-list li {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    color: rgba(255, 255, 255, 0.84);
-    font-size: 14px;
-    font-weight: 650;
-  }
-
-  .banking-trust-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    border-radius: var(--banking-radius);
-    background: rgba(255, 255, 255, 0.09);
-    color: #fff;
-  }
-
-  .banking-trust-icon .banking-icon {
-    font-size: 17px;
   }
 
   .banking-brand-panel__footer {
@@ -712,7 +733,7 @@ body {
     padding-bottom: 92px;
   }
 
-  .banking-mobile-secure,
+  .banking-mobile-brand,
   .banking-logo--mobile {
     display: none;
   }
@@ -730,5 +751,16 @@ body {
 
   .banking-login-card {
     padding: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

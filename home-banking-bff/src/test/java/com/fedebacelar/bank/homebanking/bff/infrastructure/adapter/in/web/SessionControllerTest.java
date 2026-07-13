@@ -1,8 +1,12 @@
 package com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web;
 
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oidcLogin;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -16,6 +20,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -40,20 +46,25 @@ class SessionControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private ClientRegistrationRepository clientRegistrationRepository;
+
     @MockitoBean
     private GetAuthenticatedHomeContextUseCase getAuthenticatedHomeContextUseCase;
 
     @Test
-    void shouldRedirectAnonymousUserToLogin() throws Exception {
+    void shouldReturnProblemDetailForAnonymousApiRequest() throws Exception {
         mockMvc.perform(get("/me"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/oauth2/authorization/keycloak"));
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"));
     }
 
     @Test
-    void shouldExposeAuthenticatedAggregateFromMeOnly() throws Exception {
+    void shouldValidateAuthenticatedAggregateButExposeOnlyPresentationIdentity() throws Exception {
         UUID customerId = UUID.randomUUID();
         AuthenticatedUser user = new AuthenticatedUser("keycloak-sub", "homebanking-user", "user@example.com");
+        String displayName = "Home Banking User";
         ObjectMapper mapper = new ObjectMapper();
         when(getAuthenticatedHomeContextUseCase.getHomeContext(user)).thenReturn(new HomeBankingContext(
                 user.subject(),
@@ -67,15 +78,75 @@ class SessionControllerTest {
         mockMvc.perform(get("/me").with(oidcLogin().idToken(token -> token
                         .subject(user.subject())
                         .claim("preferred_username", user.username())
+                        .claim("email", user.email())
+                        .claim("name", displayName))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value(user.username()))
+                .andExpect(jsonPath("$.displayName").value(displayName))
+                .andExpect(jsonPath("$.subject").doesNotExist())
+                .andExpect(jsonPath("$.email").doesNotExist())
+                .andExpect(jsonPath("$.customerId").doesNotExist())
+                .andExpect(jsonPath("$.customer").doesNotExist())
+                .andExpect(jsonPath("$.accounts").doesNotExist());
+
+        verify(getAuthenticatedHomeContextUseCase).getHomeContext(user);
+    }
+
+    @Test
+    void shouldUseUsernameWhenOidcNameIsUnavailable() throws Exception {
+        AuthenticatedUser user = new AuthenticatedUser("keycloak-sub", "homebanking-user", "user@example.com");
+        when(getAuthenticatedHomeContextUseCase.getHomeContext(user)).thenReturn(new HomeBankingContext(
+                user.subject(), user.username(), user.email(), UUID.randomUUID(), null, List.of()
+        ));
+
+        mockMvc.perform(get("/me").with(oidcLogin().idToken(token -> token
+                        .subject(user.subject())
+                        .claim("preferred_username", user.username())
                         .claim("email", user.email()))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.subject").value(user.subject()))
-                .andExpect(jsonPath("$.customerId").value(customerId.toString()));
+                .andExpect(jsonPath("$.displayName").value(user.username()));
+    }
+
+    @Test
+    void shouldStartOnlyTheFixedHomeLoginJourney() throws Exception {
+        mockMvc.perform(get("/auth/login/home")
+                        .queryParam("returnTo", "https://attacker.example/redirect"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/oauth2/authorization/keycloak"));
+    }
+
+    @Test
+    void shouldRedirectOauthFailureToFixedFrontendError() throws Exception {
+        mockMvc.perform(get("/login/oauth2/code/keycloak")
+                        .queryParam("error", "access_denied")
+                        .queryParam("state", "invalid-state"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("http://localhost:4200/error?reason=authentication"));
+    }
+
+    @Test
+    void shouldRejectLogoutWithoutCsrf() throws Exception {
+        mockMvc.perform(post("/logout").with(oidcLogin().clientRegistration(
+                        clientRegistrationRepository.findByRegistrationId("keycloak")
+                )))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldAcceptTopLevelFormLogoutAndUseFixedPostLogoutDestination() throws Exception {
+        mockMvc.perform(post("/logout")
+                        .with(oidcLogin().clientRegistration(
+                                clientRegistrationRepository.findByRegistrationId("keycloak")
+                        ))
+                        .with(csrf()))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("http://localhost:4200/sesion-cerrada"));
     }
 
     @Test
     void shouldNotExposeRedundantSessionEndpoint() throws Exception {
         mockMvc.perform(get("/session"))
-                .andExpect(status().is3xxRedirection());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"));
     }
 }

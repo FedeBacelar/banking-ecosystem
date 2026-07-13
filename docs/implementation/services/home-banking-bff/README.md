@@ -24,10 +24,33 @@ The multipart submit is the capture boundary: the BFF forwards applicant data, t
 
 Application start is enumeration-safe. Status is presentation-oriented and never exposes review evidence, remote errors, external resource IDs, or Keycloak subjects.
 
+## Authenticated Session API
+
+```txt
+GET  /web/auth/login/home
+GET  /web/me
+POST /web/logout
+```
+
+`/web/auth/login/home` is the only home login entry point and always starts the Keycloak authorization-code flow for the fixed `HOME` destination. The callback always returns to Angular `/app/inicio`; failures return to `/error?reason=authentication`. There is no browser-controlled `returnTo` parameter.
+
+`/web/me` still verifies the Keycloak subject against `identity-service` and resolves the corresponding customer and accounts before returning. Its browser contract is intentionally limited to:
+
+```json
+{
+  "username": "home-banking-user",
+  "displayName": "Home Banking User"
+}
+```
+
+An anonymous API request receives a `401` Problem Detail response and never a Keycloak redirect. Login is navigation initiated explicitly through the login endpoint.
+
+`POST /web/logout` accepts a top-level form POST with the CSRF token in `_csrf`, invalidates the BFF session, initiates RP-initiated logout at Keycloak, and uses `/sesion-cerrada` as both its registered post-logout destination and safe fallback.
+
 ## Security
 
 - Magic-link exchange sets `NB_ONBOARDING_CONTINUATION` as HttpOnly, `SameSite=Lax`, scoped to `/web/onboarding`.
-- The same exchange materializes `NB-XSRF-TOKEN`; there is no `/web/csrf` request.
+- Magic-link exchange and authenticated `/web/me` materialize `NB-XSRF-TOKEN`; there is no `/web/csrf` request.
 - Angular automatically sends `X-XSRF-TOKEN` on later same-origin mutations.
 - Responses use `Cache-Control: no-store` and correlation IDs.
 - Internal calls use dedicated client-credentials tokens selected by purpose; browser credentials are not propagated.

@@ -278,6 +278,11 @@ When `keycloak-realm-init` exits with code `0`, that stopped container is expect
 
 The `banking` theme customizes the Keycloak login page while keeping Keycloak responsible for the authentication flow.
 
+The customer-facing theme is Spanish-only, uses direct sign-in copy, and shows
+the academic disclaimer beside the form on every viewport. It does not present
+unimplemented banking capabilities or implementation/security language as
+customer benefits.
+
 Current implemented scope:
 
 ```txt
@@ -312,7 +317,8 @@ Public self-registration, public password recovery, and Keycloak remember-me are
 The browser-facing login should be tested through the BFF:
 
 ```txt
-http://localhost:8085/web/me
+http://localhost:8085/web/auth/login/home
 ```
 
-If the realm already exists in the Docker volume, select the theme manually in Keycloak or recreate the local volume.
+`keycloak-realm-init` reconciles the theme, Spanish locale, browser URLs, and
+client secrets for both new realms and existing local volumes.

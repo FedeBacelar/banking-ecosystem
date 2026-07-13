@@ -1,12 +1,11 @@
 {
   "realm": "banking-ecosystem",
-  "displayName": "Banking Ecosystem",
+  "displayName": "Nerva Banking",
   "enabled": true,
   "loginTheme": "banking",
   "internationalizationEnabled": true,
   "supportedLocales": [
-    "es",
-    "en"
+    "es"
   ],
   "defaultLocale": "es",
   "registrationAllowed": false,
@@ -138,16 +137,18 @@
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
+      "rootUrl": "${BANKING_FRONTEND_URL}",
+      "baseUrl": "${BANKING_FRONTEND_URL}",
       "redirectUris": [
         "http://localhost:8085/web/login/oauth2/code/keycloak",
-        "http://localhost:4200/onboarding/credentials-complete"
+        "${BANKING_FRONTEND_URL}/onboarding/credentials-complete"
       ],
       "webOrigins": [
         "http://localhost:8085",
-        "http://localhost:4200"
+        "${BANKING_FRONTEND_URL}"
       ],
       "attributes": {
-        "post.logout.redirect.uris": "http://localhost:4200/*"
+        "post.logout.redirect.uris": "${BANKING_FRONTEND_URL}/*"
       }
     },
     {

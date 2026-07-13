@@ -43,8 +43,9 @@ spring:
 
 home-banking-bff:
   frontend:
-    home-url: ${HOME_BANKING_FRONTEND_HOME_URL:http://localhost:4200}
-    logout-url: ${HOME_BANKING_FRONTEND_LOGOUT_URL:http://localhost:4200}
+    home-url: ${HOME_BANKING_FRONTEND_HOME_URL:http://localhost:4200/app/inicio}
+    authentication-error-url: ${HOME_BANKING_FRONTEND_AUTHENTICATION_ERROR_URL:http://localhost:4200/error?reason=authentication}
+    logout-url: ${HOME_BANKING_FRONTEND_LOGOUT_URL:http://localhost:4200/sesion-cerrada}
   http:
     connect-timeout: ${HOME_BANKING_BFF_CONNECT_TIMEOUT:PT3S}
     response-timeout: ${HOME_BANKING_BFF_RESPONSE_TIMEOUT:PT30S}

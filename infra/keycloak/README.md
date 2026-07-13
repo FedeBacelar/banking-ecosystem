@@ -157,13 +157,18 @@ login-page-expired.ftl
 logout-confirm.ftl
 theme.properties
 messages/messages_es.properties
-messages/messages_en.properties
+resources/css/nerva-tokens.css
 resources/css/banking-login.css
 resources/img/banking-logo.svg
+resources/fonts/geist-latin-wght-normal.woff2
 resources/js/banking-login.js
 ```
 
-The theme keeps Keycloak in control of authentication behavior: form submission, validation errors, redirects, password visibility, social providers, and session handling.
+The customer-facing realm and theme support Spanish only. The theme uses the canonical Nerva tokens, logos, and self-hosted Geist font generated from `design-system`; run `node design-system/scripts/generate.mjs --check` from the repository root to verify the copies.
+
+The login form uses direct access copy and always shows the academic disclaimer. It does not advertise unimplemented product features or use security/implementation language as marketing content.
+
+The theme keeps Keycloak in control of authentication behavior: form submission, validation errors, redirects, password visibility, social providers, and session handling. JavaScript adds accessible loading feedback and password visibility as progressive enhancements; native form submission remains available without JavaScript.
 
 Public self-registration, public password recovery, and Keycloak remember-me are disabled in the imported realm. Those flows should be implemented only after defining the corresponding banking business process.
 
@@ -175,9 +180,18 @@ The Docker Compose file mounts themes into the container:
 
 For local theme development, Docker Compose disables Keycloak theme/template/static caching. Restart the Keycloak container after changing mounted files if the browser still shows an older version.
 
-If the realm already exists in the Docker volume, changing `loginTheme` in the import JSON will not update the running realm automatically. Set the login theme manually in the Keycloak admin console or recreate the local volume.
+`BANKING_FRONTEND_URL` controls the theme's `Volver al inicio` link and the interactive client's browser URLs. Use an origin without a trailing slash; the local default is `http://localhost:4200`.
 
-Manual admin path:
+The one-shot `keycloak-realm-init` container reconciles the login theme, Spanish locale, browser URLs, and client secrets on every infrastructure start. This also updates existing local volumes.
+
+Verify the static theme contract, or include the rendered local Keycloak page when the container is running:
+
+```powershell
+node infra/keycloak/scripts/verify-theme.mjs
+node infra/keycloak/scripts/verify-theme.mjs --live
+```
+
+Manual verification path:
 
 ```txt
 Realm settings -> Themes -> Login theme -> banking

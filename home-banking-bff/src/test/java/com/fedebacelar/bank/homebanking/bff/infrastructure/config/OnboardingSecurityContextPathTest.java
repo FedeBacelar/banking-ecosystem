@@ -109,9 +109,23 @@ class OnboardingSecurityContextPathTest {
 
         HttpResponse<String> response = client().send(request, HttpResponse.BodyHandlers.ofString());
 
+        assertThat(response.statusCode()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
+        assertThat(response.headers().firstValue("Location")).isEmpty();
+        assertThat(response.body()).contains("AUTHENTICATION_REQUIRED");
+    }
+
+    @Test
+    void shouldExposeFixedLoginJourneyThroughWebContextPath() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(uri("/web/auth/login/home?returnTo=https://attacker.example/redirect"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client().send(request, HttpResponse.BodyHandlers.ofString());
+
         assertThat(response.statusCode()).isEqualTo(HttpStatus.FOUND.value());
         assertThat(response.headers().firstValue("Location"))
-                .hasValueSatisfying(location -> assertThat(location).endsWith("/web/oauth2/authorization/keycloak"));
+                .contains("/web/oauth2/authorization/keycloak");
     }
 
     private CsrfCookie exchangeMagicLink() throws Exception {

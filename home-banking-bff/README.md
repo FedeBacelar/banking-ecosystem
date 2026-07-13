@@ -26,9 +26,15 @@ Port `8086` is available only for technical diagnostics. Frontend traffic must u
 Authenticated home banking:
 
 ```txt
+GET  /web/auth/login/home
 GET  /web/me
 POST /web/logout
 ```
+
+- Login starts only through the fixed home journey. The browser cannot provide a `returnTo` or select an arbitrary post-login destination.
+- A successful callback returns to `/app/inicio`; an OIDC failure returns to `/error?reason=authentication`.
+- `GET /web/me` resolves the identity link, customer, and accounts internally, but exposes only `username` and `displayName`. Anonymous API calls receive `401` Problem Detail instead of an interactive redirect.
+- The same `/web/me` response materializes `NB-XSRF-TOKEN`. Logout is a CSRF-protected top-level form POST, closes both the BFF and Keycloak sessions, and returns to `/sesion-cerrada`.
 
 Digital onboarding:
 
@@ -52,7 +58,7 @@ There is no public CSRF bootstrap endpoint and no onboarding session endpoint.
 
 Application start and magic-link exchange do not rely on an existing browser cookie and are exempt from CSRF. Once the exchange establishes continuation authority, Spring Security requires the `X-XSRF-TOKEN` header on later mutations.
 
-Angular reads `NB-XSRF-TOKEN` and sends the header automatically. CSRF is a transport defense, not a frontend workflow step and not an extra request.
+Angular reads `NB-XSRF-TOKEN` and sends the header automatically for API calls. A top-level logout form sends the same token as the `_csrf` field. CSRF is a transport defense, not a frontend workflow step and not an extra request.
 
 ## Internal Access
 

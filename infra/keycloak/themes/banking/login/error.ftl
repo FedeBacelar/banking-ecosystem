@@ -1,18 +1,16 @@
 <#import "template.ftl" as layout>
+<#assign bankingFrontendUrl = properties.bankingFrontendUrl!"http://localhost:4200">
 
 <@layout.registrationLayout displayMessage=false; section>
   <#if section = "header">
     ${kcSanitize(msg("errorTitle"))?no_esc}
   <#elseif section = "form">
-    <div id="kc-error-message" class="banking-status banking-status--error">
+    <div id="kc-error-message" class="banking-status banking-status--error" role="alert">
       <span class="banking-status-icon banking-icon banking-icon--circle-alert" aria-hidden="true"></span>
-      <p>${kcSanitize((message.summary)!msg("bankingUnexpectedError"))?no_esc}</p>
-      <#if traceId??>
-        <p id="traceId">${msg("traceIdSupportMessage", traceId)}</p>
-      </#if>
-      <#if !(skipLink??) && client?? && client.baseUrl?has_content>
+      <p>${msg("bankingUnexpectedError")}</p>
+      <#if !(skipLink??)>
         <div class="banking-actions">
-          <a id="backToApplication" class="banking-action-link" href="${client.baseUrl}">${msg("backToApplication")}</a>
+          <a id="backToApplication" class="banking-action-link" href="${bankingFrontendUrl}">${msg("bankingBackHome")}</a>
         </div>
       </#if>
     </div>

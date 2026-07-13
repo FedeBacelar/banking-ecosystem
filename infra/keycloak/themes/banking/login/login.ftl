@@ -1,13 +1,21 @@
 <#import "template.ftl" as layout>
 <#import "passkeys.ftl" as passkeys>
 <#import "social-providers.ftl" as identityProviders>
+<#assign hasLoginError = messagesPerField.existsError('username','password')>
 
-<@layout.registrationLayout displayMessage=!messagesPerField.existsError('username','password') displayInfo=realm.password && realm.registrationAllowed && !registrationDisabled??; section>
+<@layout.registrationLayout displayMessage=!hasLoginError displayInfo=realm.password && realm.registrationAllowed && !registrationDisabled??; section>
   <#if section = "header">
     ${msg("loginAccountTitle")}
   <#elseif section = "form">
     <#if realm.password>
-      <form id="kc-form-login" class="banking-form" onsubmit="login.disabled = true; return true;" action="${url.loginAction}" method="post" novalidate="novalidate">
+      <form
+        id="kc-form-login"
+        class="banking-form"
+        action="${url.loginAction}"
+        method="post"
+        novalidate="novalidate"
+        data-loading-announcement="${msg('bankingLoginLoadingAnnouncement')}"
+      >
         <#if !usernameHidden??>
           <#assign usernameLabel>
             <#if !realm.loginWithEmailAllowed>${msg("username")}<#elseif !realm.registrationEmailAsUsername>${msg("usernameOrEmail")}<#else>${msg("email")}</#if>
@@ -22,11 +30,8 @@
               type="text"
               autocomplete="${(enableWebAuthnConditionalUI?has_content)?then('username webauthn', 'username')}"
               autofocus
-              aria-invalid="<#if messagesPerField.existsError('username','password')>true</#if>"
+              <#if hasLoginError>aria-invalid="true" aria-describedby="login-error"</#if>
             />
-            <#if messagesPerField.existsError('username','password')>
-              <p class="banking-field-error">${kcSanitize(messagesPerField.getFirstError('username','password'))?no_esc}</p>
-            </#if>
           </div>
         </#if>
 
@@ -42,7 +47,7 @@
               type="password"
               autocomplete="current-password"
               <#if usernameHidden??>autofocus</#if>
-              aria-invalid="<#if messagesPerField.existsError('password')>true</#if>"
+              <#if hasLoginError>aria-invalid="true" aria-describedby="login-error"</#if>
             />
             <button
               id="password-show-password"
@@ -56,14 +61,19 @@
               <span class="banking-icon banking-icon--eye" aria-hidden="true"></span>
             </button>
           </div>
+          <#if hasLoginError>
+            <p id="login-error" class="banking-field-error" role="alert">${kcSanitize(messagesPerField.getFirstError('username','password'))?no_esc}</p>
+          </#if>
         </div>
 
         <input type="hidden" id="id-hidden-input" name="credentialId" <#if auth.selectedCredential?has_content>value="${auth.selectedCredential}"</#if>/>
 
-        <button id="kc-login" class="banking-submit" name="login" type="submit">
-          <span class="banking-icon banking-icon--lock" aria-hidden="true"></span>
-          ${msg("doLogIn")}
+        <button id="kc-login" class="banking-submit" name="login" type="submit" data-loading-label="${msg('bankingLoginLoading')}">
+          <span class="banking-icon banking-icon--lock banking-submit__idle-icon" aria-hidden="true"></span>
+          <span class="banking-submit__spinner" aria-hidden="true"></span>
+          <span class="banking-submit__label">${msg("doLogIn")}</span>
         </button>
+        <span id="login-progress" class="banking-sr-only" role="status" aria-live="polite"></span>
       </form>
     </#if>
     <@passkeys.conditionalUIData />

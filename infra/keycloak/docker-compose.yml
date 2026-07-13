@@ -10,6 +10,7 @@ services:
       ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET: ${ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET:-local-onboarding-bff-secret}
       HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET: ${HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET:-local-home-banking-service-secret}
       ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET: ${ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET:-local-onboarding-secret}
+      BANKING_FRONTEND_URL: ${BANKING_FRONTEND_URL:-http://localhost:4200}
       KEYCLOAK_SMTP_HOST: ${KEYCLOAK_SMTP_HOST:-smtp.gmail.com}
       KEYCLOAK_SMTP_PORT: ${KEYCLOAK_SMTP_PORT:-587}
       KEYCLOAK_SMTP_FROM: ${KEYCLOAK_SMTP_FROM:-no-reply@nerva.local}
@@ -48,6 +49,15 @@ services:
           realms/banking-ecosystem/users/profile \
           -f /config/banking-user-profile.json
 
+        FRONTEND_URL="$${BANKING_FRONTEND_URL%/}"
+
+        /opt/keycloak/bin/kcadm.sh update realms/banking-ecosystem \
+          -s 'displayName=Nerva Banking' \
+          -s 'loginTheme=banking' \
+          -s 'internationalizationEnabled=true' \
+          -s 'defaultLocale=es' \
+          -s 'supportedLocales=["es"]'
+
         reconcile_client_secret() {
           local client_id="$$1"
           local client_secret="$$2"
@@ -64,6 +74,25 @@ services:
             -s "secret=$$client_secret"
         }
 
+        reconcile_browser_client() {
+          local client_uuid
+          client_uuid=$$(/opt/keycloak/bin/kcadm.sh get clients \
+            -r banking-ecosystem \
+            -q clientId=home-banking-bff \
+            --fields id \
+            --format csv \
+            --noquotes)
+          test -n "$$client_uuid"
+          /opt/keycloak/bin/kcadm.sh update "clients/$$client_uuid" \
+            -r banking-ecosystem \
+            -s "rootUrl=$$FRONTEND_URL" \
+            -s "baseUrl=$$FRONTEND_URL" \
+            -s "redirectUris=[\"http://localhost:8085/web/login/oauth2/code/keycloak\",\"$$FRONTEND_URL/onboarding/credentials-complete\"]" \
+            -s "webOrigins=[\"http://localhost:8085\",\"$$FRONTEND_URL\"]" \
+            -s "attributes={\"post.logout.redirect.uris\":\"$$FRONTEND_URL/*\"}"
+        }
+
+        reconcile_browser_client
         reconcile_client_secret home-banking-bff "$$HOME_BANKING_BFF_OAUTH_CLIENT_SECRET"
         reconcile_client_secret onboarding-bff-service "$$ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET"
         reconcile_client_secret home-banking-bff-service "$$HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET"
@@ -75,6 +104,7 @@ services:
       ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET: ${ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET:-local-onboarding-bff-secret}
       HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET: ${HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET:-local-home-banking-service-secret}
       ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET: ${ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET:-local-onboarding-secret}
+      BANKING_FRONTEND_URL: ${BANKING_FRONTEND_URL:-http://localhost:4200}
     volumes:
       - ./realms/banking-user-profile.json:/config/banking-user-profile.json:ro
     restart: "no"

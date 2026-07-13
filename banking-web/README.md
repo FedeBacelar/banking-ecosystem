@@ -1,42 +1,79 @@
 # banking-web
 
-Angular verification client for Nerva Banking. The current UI proves the onboarding contracts; it is not the final guided banking frontend and may be replaced.
+Customer-facing Angular application for Nerva Banking. It is the single SPA for
+public journeys and the authenticated home-banking branch.
 
-## Demo Flow
+## Current scope
+
+Step 1 implements the complete access journey:
 
 ```txt
-/onboarding/start
-/onboarding/check-email
-/onboarding/continue#token=...
-/onboarding/applicant-data
-/onboarding/status
-/onboarding/credentials-complete
+/ -> /web/auth/login/home -> Keycloak -> /app/inicio -> /web/logout
 ```
 
-Browser calls are limited to relative `/web/**` URLs, which the development proxy sends to `api-gateway`.
+Public routes:
 
-The demo performs:
+```txt
+/
+/error
+/sesion-expirada
+/sesion-cerrada
+```
 
-1. one request to start with an email;
-2. one request to exchange the magic link;
-3. one multipart request to submit data, terms, and both DNI files;
-4. status reads while the asynchronous backend process advances.
+`/app/inicio` is lazy-loaded, requires `GET /web/me`, and intentionally shows
+only the "En construcción" state. The guided onboarding journey will be added
+in a later construction step.
 
-It never calls an internal service, stores an access token, requests session metadata, or explicitly fetches CSRF. Angular's HTTP integration sends the XSRF header automatically after the BFF creates the cookie.
+The landing page exposes one real action: sign in. Angular and Keycloak show a
+visible academic disclaimer and explicitly ask visitors not to enter real
+personal, banking, or password data. Access error, inactive-session, and
+post-logout routes use a minimal shell without duplicated sign-in actions.
+
+## Architecture
+
+- Angular 22 standalone, strict, and zoneless.
+- Feature-first routes under `features/public` and `features/home-banking`.
+- Shared shells and brand primitives under `shared`.
+- Session and browser-security concerns under `core`.
+- Tailwind CSS 4, selective Angular CDK, Lucide icons, and Angular Signal Forms.
+
+Browser requests use relative `/web/**` URLs. The development proxy sends them
+to `api-gateway`; the SPA never stores OAuth tokens or calls internal services.
+Login and logout are top-level browser navigations. Logout is a normal HTML
+`POST` with the CSRF value materialized by `/web/me`.
+
+## Visual source of truth
+
+The canonical Nerva tokens, logos, and Geist font live in `../design-system`.
+Do not edit these generated copies directly:
+
+```txt
+src/styles/_nerva-tokens.css
+public/assets/brand/*
+public/assets/fonts/*
+```
+
+Regenerate or verify them from the repository root:
+
+```powershell
+node design-system/scripts/generate.mjs
+node design-system/scripts/generate.mjs --check
+```
 
 ## Development
 
 ```powershell
+npm.cmd install
 npm.cmd start
 ```
 
-Open `http://localhost:4200/onboarding/start`. The proxy maps `/web` to `http://localhost:8085`.
-
-Real email requires the notification SMTP environment and the onboarding infrastructure to be running.
+Open `http://localhost:4200/`. The BFF, gateway, Keycloak, and subject-linked
+local customer seed must be available for the authenticated route.
 
 ## Verification
 
 ```powershell
 npm.cmd test -- --watch=false
 npm.cmd run build
+npm.cmd audit --omit=dev
 ```
