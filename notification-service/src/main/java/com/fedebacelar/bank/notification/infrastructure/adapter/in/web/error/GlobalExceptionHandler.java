@@ -1,5 +1,6 @@
 package com.fedebacelar.bank.notification.infrastructure.adapter.in.web.error;
 
+import com.fedebacelar.bank.notification.domain.exception.InvalidTemplateVariableException;
 import com.fedebacelar.bank.notification.domain.exception.MissingTemplateVariableException;
 import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
@@ -19,6 +20,14 @@ public class GlobalExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
         problem.setType(URI.create("https://bank.fedebacelar.com/problems/missing-template-variable"));
         problem.setTitle("Missing template variable");
+        return problem;
+    }
+
+    @ExceptionHandler(InvalidTemplateVariableException.class)
+    ProblemDetail handleInvalidTemplateVariable(InvalidTemplateVariableException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
+        problem.setType(URI.create("https://bank.fedebacelar.com/problems/invalid-template-variable"));
+        problem.setTitle("Invalid template variable");
         return problem;
     }
 

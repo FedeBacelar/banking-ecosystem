@@ -43,6 +43,9 @@ public class NotificationEntity {
     @Column(nullable = false, columnDefinition = "text")
     private String body;
 
+    @Column(columnDefinition = "mediumtext")
+    private String htmlBody;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 40)
     private NotificationStatus status;
@@ -130,6 +133,14 @@ public class NotificationEntity {
 
     public void setBody(String body) {
         this.body = body;
+    }
+
+    public String getHtmlBody() {
+        return htmlBody;
+    }
+
+    public void setHtmlBody(String htmlBody) {
+        this.htmlBody = htmlBody;
     }
 
     public NotificationStatus getStatus() {

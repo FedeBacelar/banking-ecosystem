@@ -32,6 +32,7 @@ spring:
 notification:
   email:
     from: ${NOTIFICATION_SMTP_FROM:no-reply@nerva.local}
+    from-name: ${NOTIFICATION_SMTP_FROM_NAME:Nerva Banking}
 
 banking:
   security:

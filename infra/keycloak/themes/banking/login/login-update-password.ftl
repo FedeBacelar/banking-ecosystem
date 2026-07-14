@@ -2,6 +2,7 @@
 <#assign hasNewPasswordError = messagesPerField.existsError('password')>
 <#assign hasConfirmationError = messagesPerField.existsError('password-confirm')>
 <#assign minimumPasswordLength = passwordPolicies.length!15>
+<#assign maximumPasswordLength = passwordPolicies.maxLength!64>
 
 <@layout.registrationLayout
   displayMessage=(messagesPerField.exists('global') && message?has_content && message.type == 'error')
@@ -50,7 +51,7 @@
             <span class="banking-icon banking-icon--eye" aria-hidden="true"></span>
           </button>
         </div>
-        <p id="password-new-hint" class="banking-field-hint">${msg("bankingCreatePasswordHint", minimumPasswordLength)}</p>
+        <p id="password-new-hint" class="banking-field-hint">${msg("bankingCreatePasswordHint", minimumPasswordLength, maximumPasswordLength)}</p>
         <#if hasNewPasswordError>
           <p id="password-new-error" class="banking-field-error" role="alert">${kcSanitize(messagesPerField.get('password'))?no_esc}</p>
         </#if>

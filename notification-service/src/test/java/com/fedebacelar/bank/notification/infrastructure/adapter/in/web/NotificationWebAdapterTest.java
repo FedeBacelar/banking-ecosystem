@@ -11,6 +11,7 @@ import com.fedebacelar.bank.notification.application.view.NotificationDetails;
 import com.fedebacelar.bank.notification.domain.enums.NotificationChannel;
 import com.fedebacelar.bank.notification.domain.enums.NotificationStatus;
 import com.fedebacelar.bank.notification.domain.enums.NotificationTemplateCode;
+import com.fedebacelar.bank.notification.domain.exception.InvalidTemplateVariableException;
 import com.fedebacelar.bank.notification.domain.exception.MissingTemplateVariableException;
 import com.fedebacelar.bank.notification.infrastructure.adapter.in.web.error.GlobalExceptionHandler;
 import com.fedebacelar.bank.notification.infrastructure.adapter.in.web.mapper.NotificationWebMapper;
@@ -48,7 +49,7 @@ class NotificationWebAdapterTest {
                                   "recipient": "person@example.com",
                                   "templateCode": "ONBOARDING_EMAIL_MAGIC_LINK",
                                   "variables": {
-                                    "magicLink": "http://localhost:4200/onboarding/continue#token=abc",
+                                    "magicLink": "http://localhost:4200/onboarding/continue?request=example",
                                     "expiresInMinutes": "30"
                                   },
                                   "correlationId": "application-1",
@@ -98,6 +99,32 @@ class NotificationWebAdapterTest {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Missing template variable"));
+    }
+
+    @Test
+    void returnsBadRequestForUnsafeTemplateVariableWithoutEchoingItsValue() throws Exception {
+        when(sendEmailNotificationUseCase.send(any()))
+                .thenThrow(new InvalidTemplateVariableException(
+                        NotificationTemplateCode.ONBOARDING_EMAIL_MAGIC_LINK,
+                        "magicLink"
+                ));
+
+        mockMvc.perform(post("/internal/notifications/email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "recipient": "person@example.com",
+                                  "templateCode": "ONBOARDING_EMAIL_MAGIC_LINK",
+                                  "variables": {
+                                    "magicLink": "invalid-value",
+                                    "expiresInMinutes": "30"
+                                  },
+                                  "sensitive": true
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Invalid template variable"))
+                .andExpect(jsonPath("$.detail").value("Invalid variable 'magicLink' for template ONBOARDING_EMAIL_MAGIC_LINK"));
     }
 
     private NotificationDetails notificationDetails(NotificationStatus status) {

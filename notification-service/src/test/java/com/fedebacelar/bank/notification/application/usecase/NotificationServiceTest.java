@@ -29,7 +29,7 @@ class NotificationServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-07-04T21:00:00Z");
     private static final Map<String, String> VARIABLES = Map.of(
-            "magicLink", "http://localhost/onboarding/continue#token=secret",
+            "magicLink", "https://nerva.example/onboarding/continue?request=sensitive-value",
             "expiresInMinutes", "30"
     );
 
@@ -46,20 +46,26 @@ class NotificationServiceTest {
     @Test
     void shouldDeliverSensitiveContentInMemoryButPersistOnlyRedactedAuditData() {
         when(renderer.render(NotificationTemplateCode.ONBOARDING_EMAIL_MAGIC_LINK, VARIABLES))
-                .thenReturn(new RenderedNotification("Subject", "Body with secret link"));
+                .thenReturn(new RenderedNotification(
+                        "Subject",
+                        "Text body with sensitive link",
+                        "<html>HTML body with sensitive link</html>"
+                ));
         when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         var details = service.send(command(true));
 
         assertThat(details.status()).isEqualTo(NotificationStatus.SENT);
         verify(emailDelivery).deliver(org.mockito.ArgumentMatchers.argThat(notification ->
-                notification.body().contains("secret link")
+                notification.body().contains("sensitive link")
+                        && notification.htmlBody().contains("sensitive link")
                         && notification.variables().containsKey("magicLink")
         ));
         ArgumentCaptor<Notification> persisted = ArgumentCaptor.forClass(Notification.class);
         verify(repository, org.mockito.Mockito.times(2)).save(persisted.capture());
         assertThat(persisted.getAllValues()).allSatisfy(notification -> {
             assertThat(notification.body()).isEqualTo("[REDACTED]");
+            assertThat(notification.htmlBody()).isEqualTo("[REDACTED]");
             assertThat(notification.variables()).isEmpty();
         });
     }
@@ -67,7 +73,11 @@ class NotificationServiceTest {
     @Test
     void shouldPersistOnlySanitizedFailureInformation() {
         when(renderer.render(NotificationTemplateCode.ONBOARDING_EMAIL_MAGIC_LINK, VARIABLES))
-                .thenReturn(new RenderedNotification("Subject", "Body with secret link"));
+                .thenReturn(new RenderedNotification(
+                        "Subject",
+                        "Text body with sensitive link",
+                        "<html>HTML body with sensitive link</html>"
+                ));
         when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         doThrow(new EmailDeliveryException(
                 "Email delivery failed: smtp.internal.example password=secret",
@@ -82,6 +92,7 @@ class NotificationServiceTest {
         ArgumentCaptor<Notification> persisted = ArgumentCaptor.forClass(Notification.class);
         verify(repository, org.mockito.Mockito.times(2)).save(persisted.capture());
         assertThat(persisted.getAllValues().getLast().body()).isEqualTo("[REDACTED]");
+        assertThat(persisted.getAllValues().getLast().htmlBody()).isEqualTo("[REDACTED]");
         assertThat(persisted.getAllValues().getLast().variables()).isEmpty();
     }
 
@@ -92,7 +103,11 @@ class NotificationServiceTest {
                 NotificationTemplateCode.ONBOARDING_EMAIL_MAGIC_LINK,
                 VARIABLES,
                 "delivery-1",
-                new RenderedNotification("Subject", "Body with secret link"),
+                new RenderedNotification(
+                        "Subject",
+                        "Text body with sensitive link",
+                        "<html>HTML body with sensitive link</html>"
+                ),
                 NOW.minusSeconds(10)
         ).redactContent().markSent(NOW.minusSeconds(5));
         when(repository.findByTemplateCodeAndCorrelationId(

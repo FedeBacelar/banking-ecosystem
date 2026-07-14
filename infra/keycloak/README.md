@@ -200,13 +200,13 @@ The one-shot `keycloak-realm-init` container reconciles the login and email them
 
 ## Credential password policy
 
-The customer realm requires at least 15 characters, rejects the username and
-email as the complete password, and checks the repository-owned local
-blocklist. It does not require arbitrary character classes or periodic password
-changes. Spaces and passphrases remain supported.
+The customer realm accepts passwords from 15 to 64 characters, rejects the
+username and email as the complete password, and checks the repository-owned
+local blocklist. It does not require arbitrary character classes or periodic
+password changes. Spaces and passphrases remain supported.
 
 ```txt
-length(15) and notUsername and notEmail and passwordBlacklist(nerva-passwords.txt)
+length(15) and maxLength(64) and notUsername and notEmail and passwordBlacklist(nerva-passwords.txt)
 ```
 
 The local blocklist is mounted read-only from

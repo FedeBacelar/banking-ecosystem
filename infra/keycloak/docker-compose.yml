@@ -64,7 +64,7 @@ services:
           -s 'displayName=Nerva Banking' \
           -s 'loginTheme=banking' \
           -s 'emailTheme=banking' \
-          -s 'passwordPolicy=length(15) and notUsername and notEmail and passwordBlacklist(nerva-passwords.txt)' \
+          -s 'passwordPolicy=length(15) and maxLength(64) and notUsername and notEmail and passwordBlacklist(nerva-passwords.txt)' \
           -s 'internationalizationEnabled=true' \
           -s 'defaultLocale=es' \
           -s 'supportedLocales=["es"]' \

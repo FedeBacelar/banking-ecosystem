@@ -1,9 +1,9 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, HostListener, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnDestroy, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { form, FormField, maxLength, required } from '@angular/forms/signals';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import {
-  LucideCamera,
   LucideCheck,
   LucideChevronLeft,
   LucideDynamicIcon,
@@ -29,6 +29,14 @@ import {
 
 type DocumentSide = 'front' | 'back';
 type FileErrors = Record<DocumentSide, string | null>;
+type BirthDatePart = 'day' | 'month' | 'year';
+type BirthDateParts = Record<BirthDatePart, string>;
+interface DocumentPreview {
+  kind: 'image' | 'pdf';
+  objectUrl: string;
+  resourceUrl: SafeResourceUrl;
+}
+type DocumentPreviews = Record<DocumentSide, DocumentPreview | null>;
 
 const STEP_LABELS = ['Sobre vos', 'Tu DNI', 'Contacto', 'Domicilio', 'Revisión'] as const;
 
@@ -165,11 +173,25 @@ const STEP_LABELS = ['Sobre vos', 'Tu DNI', 'Contacto', 'Domicilio', 'Revisión'
           <input id="last-name" autocomplete="family-name" [formField]="applicationForm.lastName" [attr.aria-invalid]="showFieldError('lastName')" [attr.aria-describedby]="showFieldError('lastName') ? 'last-name-error' : null" class="nb-input" />
           @if (showFieldError('lastName')) { <p id="last-name-error" class="nb-field-error">Ingresá tu apellido.</p> }
         </div>
-        <div>
-          <label for="birth-date" class="nb-label">Fecha de nacimiento</label>
-          <input id="birth-date" type="date" autocomplete="bday" [max]="maxEligibleBirthDate" [formField]="applicationForm.birthDate" [attr.aria-invalid]="showFieldError('birthDate')" [attr.aria-describedby]="showFieldError('birthDate') ? 'birth-date-error' : null" class="nb-input" />
+        <fieldset [attr.aria-invalid]="showFieldError('birthDate')" [attr.aria-describedby]="showFieldError('birthDate') ? 'birth-date-help birth-date-error' : 'birth-date-help'">
+          <legend class="nb-label">Fecha de nacimiento</legend>
+          <div class="mt-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.35fr)] gap-2">
+            <label class="min-w-0 text-xs font-medium text-ink-muted">
+              Día
+              <input id="birth-date-day" inputmode="numeric" autocomplete="bday-day" maxlength="2" placeholder="DD" [value]="birthDateParts().day" (input)="updateBirthDatePart('day', $event)" (blur)="birthDateTouched.set(true)" [attr.aria-invalid]="showFieldError('birthDate')" [attr.aria-describedby]="showFieldError('birthDate') ? 'birth-date-help birth-date-error' : 'birth-date-help'" class="nb-input mt-1 text-center tabular-nums" />
+            </label>
+            <label class="min-w-0 text-xs font-medium text-ink-muted">
+              Mes
+              <input id="birth-date-month" inputmode="numeric" autocomplete="bday-month" maxlength="2" placeholder="MM" [value]="birthDateParts().month" (input)="updateBirthDatePart('month', $event)" (blur)="birthDateTouched.set(true)" [attr.aria-invalid]="showFieldError('birthDate')" [attr.aria-describedby]="showFieldError('birthDate') ? 'birth-date-help birth-date-error' : 'birth-date-help'" class="nb-input mt-1 text-center tabular-nums" />
+            </label>
+            <label class="min-w-0 text-xs font-medium text-ink-muted">
+              Año
+              <input id="birth-date-year" inputmode="numeric" autocomplete="bday-year" maxlength="4" placeholder="AAAA" [value]="birthDateParts().year" (input)="updateBirthDatePart('year', $event)" (blur)="birthDateTouched.set(true)" [attr.aria-invalid]="showFieldError('birthDate')" [attr.aria-describedby]="showFieldError('birthDate') ? 'birth-date-help birth-date-error' : 'birth-date-help'" class="nb-input mt-1 text-center tabular-nums" />
+            </label>
+          </div>
+          <p id="birth-date-help" class="mt-2 text-xs text-ink-muted">Por ejemplo: 21 / 01 / 2001.</p>
           @if (showFieldError('birthDate')) { <p id="birth-date-error" class="nb-field-error">{{ birthDateError() }}</p> }
-        </div>
+        </fieldset>
         <div class="sm:col-span-2">
           <label for="nationality" class="nb-label">Nacionalidad</label>
           <select id="nationality" autocomplete="country-name" [formField]="applicationForm.nationality" [attr.aria-invalid]="showFieldError('nationality')" [attr.aria-describedby]="showFieldError('nationality') ? 'nationality-error' : null" class="nb-input">
@@ -203,21 +225,40 @@ const STEP_LABELS = ['Sobre vos', 'Tu DNI', 'Contacto', 'Domicilio', 'Revisión'
       @if (draft().documentValidity === 'HAS_DATE') {
         <div class="mt-5 max-w-sm">
           <label for="document-valid-until" class="nb-label">¿Hasta cuándo es válido?</label>
-          <input id="document-valid-until" type="date" [min]="today" [formField]="applicationForm.documentValidUntil" [attr.aria-invalid]="showFieldError('documentValidUntil')" [attr.aria-describedby]="showFieldError('documentValidUntil') ? 'document-valid-until-error' : 'document-valid-until-help'" class="nb-input" />
+          <input id="document-valid-until" type="date" [min]="today" [formField]="applicationForm.documentValidUntil" [attr.aria-invalid]="showFieldError('documentValidUntil')" [attr.aria-describedby]="showFieldError('documentValidUntil') ? 'document-valid-until-help document-valid-until-error' : 'document-valid-until-help'" class="nb-input nb-date-input" />
           <p id="document-valid-until-help" class="mt-2 text-xs text-ink-muted">La fecha está en el frente del DNI.</p>
-          @if (showFieldError('documentValidUntil')) { <p id="document-valid-until-error" class="nb-field-error">La fecha no puede ser anterior a hoy.</p> }
+          @if (showFieldError('documentValidUntil')) { <p id="document-valid-until-error" class="nb-field-error">{{ documentValidUntilError() }}</p> }
         </div>
       }
 
       <div class="mt-7 grid gap-5 sm:grid-cols-2">
-        <ng-container [ngTemplateOutlet]="filePicker" [ngTemplateOutletContext]="{ side: 'front', label: 'Frente del DNI', file: store.dniFront(), error: fileErrors().front }"></ng-container>
-        <ng-container [ngTemplateOutlet]="filePicker" [ngTemplateOutletContext]="{ side: 'back', label: 'Dorso del DNI', file: store.dniBack(), error: fileErrors().back }"></ng-container>
+        <ng-container [ngTemplateOutlet]="filePicker" [ngTemplateOutletContext]="{ side: 'front', label: 'Frente del DNI', file: store.dniFront(), error: fileErrors().front, preview: filePreviews().front }"></ng-container>
+        <ng-container [ngTemplateOutlet]="filePicker" [ngTemplateOutletContext]="{ side: 'back', label: 'Dorso del DNI', file: store.dniBack(), error: fileErrors().back, preview: filePreviews().back }"></ng-container>
       </div>
     </ng-template>
 
-    <ng-template #filePicker let-side="side" let-label="label" let-file="file" let-error="error">
-      <div class="rounded-xl border border-line p-4" role="group" tabindex="-1" [attr.aria-labelledby]="side + '-document-label'" [attr.aria-describedby]="(error || (showErrors() && !file)) ? side + '-file-error' : null" [attr.aria-invalid]="!!(error || (showErrors() && !file))" [attr.id]="'document-' + side + '-zone'" (dragover)="allowDrop($event)" (drop)="dropFile($event, side)">
+    <ng-template #filePicker let-side="side" let-label="label" let-file="file" let-error="error" let-preview="preview">
+      <div class="nb-file-card rounded-xl border border-line p-4" role="group" tabindex="-1" [attr.aria-labelledby]="side + '-document-label'" [attr.aria-describedby]="(error || (showErrors() && !file)) ? side + '-file-error' : side + '-file-help'" [attr.aria-invalid]="!!(error || (showErrors() && !file))" [attr.id]="'document-' + side + '-zone'" (dragover)="allowDrop($event)" (drop)="dropFile($event, side)">
         <p class="text-sm font-semibold text-ink" [id]="side + '-document-label'">{{ label }}</p>
+        <div class="mt-3 overflow-hidden rounded-xl border border-line bg-surface-subtle">
+          @if (file && preview?.kind === 'image') {
+            <img [src]="preview.objectUrl" [alt]="'Vista previa de ' + label.toLowerCase()" class="h-44 w-full object-contain sm:h-52" />
+          } @else if (file && preview?.kind === 'pdf') {
+            <iframe [src]="preview.resourceUrl" sandbox referrerpolicy="no-referrer" class="h-52 w-full border-0" [title]="'Vista previa de ' + label.toLowerCase()"></iframe>
+          } @else if (file) {
+            <div class="flex min-h-36 flex-col items-center justify-center px-4 text-center">
+              <svg [lucideIcon]="fileText" class="size-7 text-action" aria-hidden="true"></svg>
+              <p class="mt-2 text-sm font-semibold text-ink">Archivo listo</p>
+            </div>
+          } @else {
+            <div class="flex min-h-36 flex-col items-center justify-center border border-dashed border-transparent px-4 text-center sm:min-h-44">
+              <svg [lucideIcon]="upload" class="size-5 text-action" aria-hidden="true"></svg>
+              <p class="mt-2 text-sm font-semibold text-ink">Agregá este lado del DNI</p>
+              <p class="mt-1 hidden text-xs text-ink-muted sm:block">También podés arrastrar el archivo acá.</p>
+            </div>
+          }
+        </div>
+
         @if (file) {
           <div class="mt-3 flex min-w-0 items-start gap-3 rounded-lg bg-positive-subtle p-3 text-positive">
             <svg [lucideIcon]="fileText" class="mt-0.5 size-5 shrink-0" aria-hidden="true"></svg>
@@ -225,29 +266,23 @@ const STEP_LABELS = ['Sobre vos', 'Tu DNI', 'Contacto', 'Domicilio', 'Revisión'
               <p class="truncate text-sm font-semibold text-ink">{{ file.name }}</p>
               <p class="mt-0.5 text-xs text-ink-muted">Listo para enviar · {{ formatFileSize(file.size) }}</p>
             </div>
-            <button type="button" (click)="removeFile(side)" class="rounded-lg p-1 text-ink-muted hover:bg-white" [attr.aria-label]="'Quitar ' + label.toLowerCase()">
-              <svg [lucideIcon]="x" class="size-4" aria-hidden="true"></svg>
-            </button>
-          </div>
-        } @else {
-          <div class="mt-3 hidden min-h-24 flex-col items-center justify-center rounded-lg border border-dashed border-line bg-surface-subtle px-3 text-center sm:flex">
-            <svg [lucideIcon]="upload" class="size-5 text-action" aria-hidden="true"></svg>
-            <p class="mt-2 text-xs text-ink-muted">Arrastrá el archivo acá</p>
           </div>
         }
 
-        <div class="mt-3 grid gap-2 sm:grid-cols-2">
-          <label [for]="side + '-camera'" class="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-line px-3 text-xs font-semibold text-brand hover:bg-surface-subtle">
-            <svg [lucideIcon]="camera" class="size-4" aria-hidden="true"></svg>
-            Sacá una foto
+        <div class="mt-3 flex flex-col gap-2 sm:flex-row">
+          <input [id]="side + '-file'" type="file" accept="image/jpeg,image/png,application/pdf" class="nb-file-input sr-only" [attr.aria-label]="(file ? 'Reemplazar ' : 'Agregar ') + label.toLowerCase()" (change)="selectFile($event, side)" />
+          <label [for]="side + '-file'" class="nb-file-trigger inline-flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-line px-3 text-sm font-semibold text-brand hover:bg-surface-subtle">
+            <svg [lucideIcon]="upload" class="size-4" aria-hidden="true"></svg>
+            {{ file ? 'Reemplazar archivo' : 'Agregar archivo' }}
           </label>
-          <input [id]="side + '-camera'" type="file" accept="image/jpeg,image/png" capture="environment" class="sr-only" [attr.aria-label]="'Sacar una foto para ' + label.toLowerCase()" (change)="selectFile($event, side)" />
-          <label [for]="side + '-file'" class="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-lg border border-line px-3 text-xs font-semibold text-brand hover:bg-surface-subtle">
-            Elegí un archivo
-          </label>
-          <input [id]="side + '-file'" type="file" accept="image/jpeg,image/png,application/pdf" class="sr-only" [attr.aria-label]="'Elegir un archivo para ' + label.toLowerCase()" (change)="selectFile($event, side)" />
+          @if (file) {
+            <button type="button" (click)="removeFile(side)" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold text-ink-muted hover:bg-surface-subtle" [attr.aria-label]="'Quitar ' + label.toLowerCase()">
+              <svg [lucideIcon]="x" class="size-4" aria-hidden="true"></svg>
+              Quitar
+            </button>
+          }
         </div>
-        <p class="mt-2 text-xs text-ink-muted">JPG, PNG o PDF · hasta 10 MB</p>
+        <p [id]="side + '-file-help'" class="mt-2 text-xs text-ink-muted">JPG, PNG o PDF · hasta 10 MB. Revisá que se vea completo.</p>
         @if (error || (showErrors() && !file)) {
           <p [id]="side + '-file-error'" class="nb-field-error" role="alert">{{ error || 'Agregá este lado del DNI.' }}</p>
         }
@@ -259,9 +294,9 @@ const STEP_LABELS = ['Sobre vos', 'Tu DNI', 'Contacto', 'Domicilio', 'Revisión'
       <h1 id="wizard-heading" class="mt-3 text-3xl font-semibold tracking-[-0.03em] text-ink" tabindex="-1">¿Cómo podemos contactarte?</h1>
       <div class="mt-7 max-w-md">
         <label for="national-phone" class="nb-label">Número de teléfono</label>
-        <div class="mt-2 flex rounded-xl border border-line bg-surface shadow-sm focus-within:border-action">
+        <div class="nb-phone-control mt-2 flex rounded-xl border border-line bg-surface shadow-sm" [attr.aria-invalid]="showFieldError('nationalPhone')">
           <span class="flex min-h-12 items-center border-r border-line px-4 text-sm font-semibold text-ink" aria-hidden="true">+54</span>
-          <input id="national-phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="11 2345 6789" [formField]="applicationForm.nationalPhone" [attr.aria-invalid]="showFieldError('nationalPhone')" [attr.aria-describedby]="showFieldError('nationalPhone') ? 'national-phone-error' : 'national-phone-help'" class="min-h-12 min-w-0 flex-1 rounded-r-xl px-4 text-ink outline-none" />
+          <input id="national-phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="11 2345 6789" [formField]="applicationForm.nationalPhone" [attr.aria-invalid]="showFieldError('nationalPhone')" [attr.aria-describedby]="showFieldError('nationalPhone') ? 'national-phone-help national-phone-error' : 'national-phone-help'" class="nb-phone-input min-h-12 min-w-0 flex-1 rounded-r-xl bg-transparent px-4 text-ink" />
         </div>
         <p id="national-phone-help" class="mt-2 text-xs text-ink-muted">Incluí el código de área, sin 0 ni 15.</p>
         @if (showFieldError('nationalPhone')) { <p id="national-phone-error" class="nb-field-error">{{ phoneError() }}</p> }
@@ -326,10 +361,7 @@ const STEP_LABELS = ['Sobre vos', 'Tu DNI', 'Contacto', 'Domicilio', 'Revisión'
         </article>
       </ng-template>
 
-      <div class="mt-6 rounded-xl border border-caution/30 bg-caution-subtle p-4 text-sm leading-6 text-ink">
-        <strong>Documentos de desarrollo.</strong> No corresponden a una operación bancaria real.
-      </div>
-      <div class="mt-5 rounded-xl border border-line p-4">
+      <div class="mt-6 rounded-xl border border-line p-4">
         <label class="flex cursor-pointer items-start gap-3">
           <input id="terms-accepted" type="checkbox" [formField]="applicationForm.termsAccepted" [attr.aria-invalid]="showFieldError('termsAccepted')" [attr.aria-describedby]="showFieldError('termsAccepted') ? 'terms-accepted-error' : null" class="mt-1 size-4 rounded border-line text-action" />
           <span class="text-sm leading-6 text-ink">
@@ -348,9 +380,10 @@ const STEP_LABELS = ['Sobre vos', 'Tu DNI', 'Contacto', 'Domicilio', 'Revisión'
     </ng-template>
   `
 })
-export class OnboardingApplicationPage {
+export class OnboardingApplicationPage implements OnDestroy {
   private readonly api = inject(OnboardingApiService);
   private readonly router = inject(Router);
+  private readonly sanitizer = inject(DomSanitizer);
   protected readonly store = inject(OnboardingDraftStore);
 
   protected readonly applicationForm = form(this.store.draft, (path) => {
@@ -379,7 +412,8 @@ export class OnboardingApplicationPage {
   protected readonly nationalities = NATIONALITIES;
   protected readonly provinces = ARGENTINA_PROVINCES;
   protected readonly today = localIsoDate(new Date());
-  protected readonly maxEligibleBirthDate = yearsAgoIso(18);
+  protected readonly birthDateParts = signal<BirthDateParts>(splitBirthDate(this.store.draft().birthDate));
+  protected readonly birthDateTouched = signal(false);
   protected readonly currentStep = signal(0);
   protected readonly furthestStep = signal(0);
   protected readonly showErrors = signal(false);
@@ -389,6 +423,7 @@ export class OnboardingApplicationPage {
   protected readonly pageError = signal<string | null>(null);
   protected readonly sessionExpired = signal(false);
   protected readonly fileErrors = signal<FileErrors>({ front: null, back: null });
+  protected readonly filePreviews = signal<DocumentPreviews>({ front: null, back: null });
   protected readonly personalReview = computed(() => [
     [this.draft().firstName, this.draft().middleName, this.draft().lastName].filter(Boolean).join(' '),
     formatDate(this.draft().birthDate),
@@ -412,8 +447,12 @@ export class OnboardingApplicationPage {
   protected readonly chevronLeft = LucideChevronLeft;
   protected readonly upload = LucideUpload;
   protected readonly fileText = LucideFileText;
-  protected readonly camera = LucideCamera;
   protected readonly x = LucideX;
+
+  ngOnDestroy(): void {
+    this.revokePreview('front');
+    this.revokePreview('back');
+  }
 
   protected continue(event: SubmitEvent): void {
     event.preventDefault();
@@ -525,6 +564,7 @@ export class OnboardingApplicationPage {
   }
 
   protected removeFile(side: DocumentSide): void {
+    this.revokePreview(side);
     this.fileSignal(side).set(null);
     this.fileErrors.update((errors) => ({ ...errors, [side]: null }));
     this.store.markDirty();
@@ -534,19 +574,55 @@ export class OnboardingApplicationPage {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
+  protected updateBirthDatePart(part: BirthDatePart, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const maxLength = part === 'year' ? 4 : 2;
+    const value = input.value.replace(/\D/g, '').slice(0, maxLength);
+    input.value = value;
+    this.birthDateParts.update((parts) => ({ ...parts, [part]: value }));
+    const { day, month, year } = this.birthDateParts();
+    this.store.draft.update((draft) => ({
+      ...draft,
+      birthDate: day && month && year
+        ? `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+        : ''
+    }));
+    this.store.markDirty();
+  }
+
   protected showFieldError(field: keyof OnboardingDraft): boolean {
     if (!this.fieldHasError(field)) {
       return false;
     }
-    return this.showErrors() || this.applicationForm[field]().touched();
+    return this.showErrors()
+      || (field === 'birthDate' ? this.birthDateTouched() : this.applicationForm[field]().touched());
   }
 
   protected birthDateError(): string {
+    const parts = this.birthDateParts();
+    const completedParts = Object.values(parts).filter(Boolean).length;
+    if (completedParts > 0 && completedParts < 3) {
+      return 'Completá el día, el mes y el año.';
+    }
     const value = this.draft().birthDate;
+    if (!value) {
+      return 'Ingresá tu fecha de nacimiento.';
+    }
     if (!isIsoCalendarDate(value)) {
       return 'Ingresá una fecha válida.';
     }
-    return 'Para continuar necesitás ser mayor de 18 años.';
+    return 'Para continuar tenés que tener 18 años o más.';
+  }
+
+  protected documentValidUntilError(): string {
+    const value = this.draft().documentValidUntil;
+    if (!value) {
+      return 'Ingresá la fecha de validez.';
+    }
+    if (!isIsoCalendarDate(value)) {
+      return 'Ingresá una fecha válida.';
+    }
+    return 'La fecha no puede ser anterior a hoy.';
   }
 
   protected phoneError(): string {
@@ -635,7 +711,7 @@ export class OnboardingApplicationPage {
     }
     if (field === 'documentValidUntil') {
       return this.draft().documentValidity === 'HAS_DATE'
-        && (typeof value !== 'string' || value < this.today);
+        && (typeof value !== 'string' || !isIsoCalendarDate(value) || value < this.today);
     }
     if (field === 'nationalPhone') {
       return typeof value !== 'string' || digitsOnly(value).replace(/^54/, '').length !== 10;
@@ -675,7 +751,7 @@ export class OnboardingApplicationPage {
         this.fieldHasError('firstName') ? 'first-name' : '',
         this.fieldHasError('middleName') ? 'middle-name' : '',
         this.fieldHasError('lastName') ? 'last-name' : '',
-        this.fieldHasError('birthDate') ? 'birth-date' : '',
+        this.fieldHasError('birthDate') ? 'birth-date-day' : '',
         this.fieldHasError('nationality') ? 'nationality' : ''
       ].filter(Boolean);
     }
@@ -717,12 +793,38 @@ export class OnboardingApplicationPage {
       return;
     }
     this.fileSignal(side).set(file);
+    this.createPreview(file, side);
     this.fileErrors.update((errors) => ({ ...errors, [side]: null }));
     this.store.markDirty();
   }
 
   private fileSignal(side: DocumentSide) {
     return side === 'front' ? this.store.dniFront : this.store.dniBack;
+  }
+
+  private createPreview(file: File, side: DocumentSide): void {
+    this.revokePreview(side);
+    if (typeof URL.createObjectURL !== 'function') {
+      return;
+    }
+    const objectUrl = URL.createObjectURL(file);
+    this.filePreviews.update((previews) => ({
+      ...previews,
+      [side]: {
+        kind: file.type === 'application/pdf' ? 'pdf' : 'image',
+        objectUrl,
+        resourceUrl: this.sanitizer.bypassSecurityTrustResourceUrl(objectUrl)
+      }
+    }));
+  }
+
+  private revokePreview(side: DocumentSide): void {
+    const preview = this.filePreviews()[side];
+    if (!preview) {
+      return;
+    }
+    URL.revokeObjectURL(preview.objectUrl);
+    this.filePreviews.update((previews) => ({ ...previews, [side]: null }));
   }
 }
 
@@ -731,6 +833,14 @@ function isAdult(value: string): boolean {
     return false;
   }
   return value <= yearsAgoIso(18);
+}
+
+function splitBirthDate(value: string): BirthDateParts {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return { day: '', month: '', year: '' };
+  }
+  const [year, month, day] = value.split('-');
+  return { day, month, year };
 }
 
 function isIsoCalendarDate(value: string): boolean {

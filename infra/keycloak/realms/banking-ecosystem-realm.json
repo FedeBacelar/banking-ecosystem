@@ -4,7 +4,7 @@
   "enabled": true,
   "loginTheme": "banking",
   "emailTheme": "banking",
-  "passwordPolicy": "length(15) and notUsername and notEmail and passwordBlacklist(nerva-passwords.txt)",
+  "passwordPolicy": "length(15) and maxLength(64) and notUsername and notEmail and passwordBlacklist(nerva-passwords.txt)",
   "internationalizationEnabled": true,
   "supportedLocales": [
     "es"

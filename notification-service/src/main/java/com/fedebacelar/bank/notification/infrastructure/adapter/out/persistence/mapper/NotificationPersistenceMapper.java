@@ -32,6 +32,7 @@ public class NotificationPersistenceMapper {
         entity.setCorrelationId(notification.correlationId());
         entity.setSubject(notification.subject());
         entity.setBody(notification.body());
+        entity.setHtmlBody(notification.htmlBody());
         entity.setStatus(notification.status());
         entity.setAttemptCount(notification.attemptCount());
         entity.setLastError(notification.lastError());
@@ -52,6 +53,7 @@ public class NotificationPersistenceMapper {
                 entity.getCorrelationId(),
                 entity.getSubject(),
                 entity.getBody(),
+                entity.getHtmlBody(),
                 entity.getStatus(),
                 entity.getAttemptCount(),
                 entity.getLastError(),

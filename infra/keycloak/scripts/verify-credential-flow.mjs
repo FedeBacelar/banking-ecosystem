@@ -4,7 +4,7 @@ const realm = "banking-ecosystem";
 const completionEntryPoint =
   "http://localhost:8085/web/auth/login/onboarding-completion";
 const expectedPasswordPolicy =
-  "length(15) and notUsername and notEmail and passwordBlacklist(nerva-passwords.txt)";
+  "length(15) and maxLength(64) and notUsername and notEmail and passwordBlacklist(nerva-passwords.txt)";
 
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
@@ -304,6 +304,10 @@ try {
   assert(page.includes('id="kc-passwd-update-form"'), "The Nerva password form did not render.");
   assert(page.includes("Creá tu contraseña"), "The password page copy is not in Spanish.");
   assert(
+    page.includes("Usá entre 15 y 64 caracteres. Podés incluir espacios."),
+    "The password page does not explain or enforce its supported length range.",
+  );
+  assert(
     !page.includes("Creá tu contraseña para continuar."),
     "The password page repeats a non-actionable global prompt.",
   );
@@ -318,6 +322,18 @@ try {
   });
   page = await shortPasswordResponse.response.text();
   assert(page.includes("Usá al menos 15 caracteres."), "The minimum-length error is not actionable.");
+
+  const longPassword = "una frase de prueba deliberadamente extensa ".repeat(2);
+  const longPasswordResponse = await session.follow(formAction(page, "kc-passwd-update-form"), {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      "password-new": longPassword,
+      "password-confirm": longPassword,
+    }),
+  });
+  page = await longPasswordResponse.response.text();
+  assert(page.includes("Usá hasta 64 caracteres."), "The maximum-length error is not actionable.");
 
   const blockedPassword = "nerva banking 2026";
   const blockedPasswordResponse = await session.follow(formAction(page, "kc-passwd-update-form"), {

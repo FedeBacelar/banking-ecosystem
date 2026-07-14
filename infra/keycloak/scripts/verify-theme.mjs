@@ -8,7 +8,7 @@ const keycloakDirectory = path.join(repositoryDirectory, "infra", "keycloak");
 const loginThemeDirectory = path.join(keycloakDirectory, "themes", "banking", "login");
 const emailThemeDirectory = path.join(keycloakDirectory, "themes", "banking", "email");
 const expectedPasswordPolicy =
-  "length(15) and notUsername and notEmail and passwordBlacklist(nerva-passwords.txt)";
+  "length(15) and maxLength(64) and notUsername and notEmail and passwordBlacklist(nerva-passwords.txt)";
 const expectedCredentialActionPriorities = {
   UPDATE_PROFILE: 30,
   UPDATE_PASSWORD: 40,
@@ -174,7 +174,10 @@ assert(
   updatePassword.includes('name="password-new"') &&
     updatePassword.includes('name="password-confirm"') &&
     updatePassword.match(/aria-required="true"/g)?.length === 2 &&
-    updatePassword.includes("passwordPolicies.length"),
+    updatePassword.includes("passwordPolicies.length") &&
+    updatePassword.includes("passwordPolicies.maxLength") &&
+    /^bankingCreatePasswordHint=Usá entre \{0\} y \{1\} caracteres\. Podés incluir espacios\.$/m.test(messages) &&
+    /^invalidPasswordMaxLengthMessage=Usá hasta \{0\} caracteres\.$/m.test(messages),
   "The password action is not bound to the native Keycloak contract.",
 );
 assert(
