@@ -76,7 +76,7 @@ onboarding:
     admin-base-url: ${KEYCLOAK_ADMIN_BASE_URL:http://localhost:8090}
     realm: ${KEYCLOAK_REALM:banking-ecosystem}
     action-client-id: ${ONBOARDING_CREDENTIAL_ACTION_CLIENT_ID:home-banking-bff}
-    credential-redirect-uri: ${ONBOARDING_CREDENTIAL_REDIRECT_URI:http://localhost:4200/onboarding/credentials-complete}
+    credential-redirect-uri: ${ONBOARDING_CREDENTIAL_REDIRECT_URI:http://localhost:8085/web/auth/login/onboarding-completion}
     action-lifespan: ${ONBOARDING_CREDENTIAL_ACTION_LIFESPAN:PT24H}
   review:
     mode: AUTO

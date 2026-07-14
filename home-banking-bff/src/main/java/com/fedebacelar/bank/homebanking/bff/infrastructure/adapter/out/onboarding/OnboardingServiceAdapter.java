@@ -6,6 +6,9 @@ import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingContinuation;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingFile;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingSession;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingSubmission;
+import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingSubjectStatus;
+import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.OnboardingCompletionStatusRequest;
+import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.OnboardingCompletionStatusResponse;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.ConsumeMagicLinkRequest;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.OnboardingContinuationResponse;
 import com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.onboarding.dto.OnboardingSubmissionResponse;
@@ -109,6 +112,18 @@ public class OnboardingServiceAdapter implements OnboardingServicePort {
                 ))
                 .retrieve()
                 .bodyToMono(OnboardingSubmissionResponse.class)
+                .block();
+        return response.toDomain();
+    }
+
+    @Override
+    public OnboardingSubjectStatus getCompletionStatus(String keycloakSubject, String accessToken) {
+        OnboardingCompletionStatusResponse response = webClient.post()
+                .uri("http://onboarding-service/internal/onboarding/completion-status")
+                .headers(headers -> headers.setBearerAuth(accessToken))
+                .bodyValue(new OnboardingCompletionStatusRequest(keycloakSubject))
+                .retrieve()
+                .bodyToMono(OnboardingCompletionStatusResponse.class)
                 .block();
         return response.toDomain();
     }

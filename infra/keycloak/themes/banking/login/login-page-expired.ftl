@@ -5,7 +5,9 @@
     ${msg("pageExpiredTitle")}
   <#elseif section = "form">
     <div id="kc-page-expired" class="banking-status" role="status">
-      <span class="banking-status-icon banking-icon banking-icon--key-round" aria-hidden="true"></span>
+      <span class="banking-status-icon" aria-hidden="true">
+        <span class="banking-icon banking-icon--key-round"></span>
+      </span>
       <p>${msg("pageExpiredMsg1")}</p>
       <div class="banking-actions">
         <a id="loginRestartLink" class="banking-action-button" href="${url.loginRestartFlowUrl}">${msg("bankingRestartLogin")}</a>

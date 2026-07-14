@@ -1,10 +1,14 @@
 document.addEventListener("DOMContentLoaded", () => {
   document.documentElement.classList.add("banking-theme-ready");
 
-  const password = document.getElementById("password");
-  const passwordToggle = document.getElementById("password-show-password");
+  document.querySelectorAll("[data-banking-password-toggle]").forEach((passwordToggle) => {
+    const controlledInputId = passwordToggle.getAttribute("aria-controls");
+    const password = controlledInputId
+      ? document.getElementById(controlledInputId)
+      : null;
 
-  if (password && passwordToggle) {
+    if (!password) return;
+
     passwordToggle.setAttribute("aria-pressed", "false");
 
     passwordToggle.addEventListener("click", () => {
@@ -28,32 +32,34 @@ document.addEventListener("DOMContentLoaded", () => {
         icon.classList.toggle("banking-icon--eye-off", isHidden);
       }
     });
-  }
+  });
 
-  const loginForm = document.getElementById("kc-form-login");
-  const loginButton = document.getElementById("kc-login");
+  document.querySelectorAll("[data-banking-loading-form]").forEach((form) => {
+    const submitButton = form.querySelector("[data-banking-submit]");
+    if (!submitButton) return;
 
-  if (loginForm && loginButton) {
     let isSubmitting = false;
 
-    loginForm.addEventListener("submit", (event) => {
+    form.addEventListener("submit", (event) => {
+      if (event.submitter?.hasAttribute("data-banking-cancel")) return;
+
       if (isSubmitting) {
         event.preventDefault();
         return;
       }
 
       isSubmitting = true;
-      loginForm.setAttribute("aria-busy", "true");
-      loginButton.setAttribute("aria-disabled", "true");
-      loginButton.classList.add("banking-submit--loading");
+      form.setAttribute("aria-busy", "true");
+      submitButton.setAttribute("aria-disabled", "true");
+      submitButton.classList.add("banking-submit--loading");
 
-      const label = loginButton.querySelector(".banking-submit__label");
-      const progress = document.getElementById("login-progress");
-      const loadingLabel = loginButton.dataset.loadingLabel;
-      const loadingAnnouncement = loginForm.dataset.loadingAnnouncement;
+      const label = submitButton.querySelector(".banking-submit__label");
+      const progress = form.querySelector("[data-banking-progress]");
+      const loadingLabel = submitButton.dataset.loadingLabel;
+      const loadingAnnouncement = form.dataset.loadingAnnouncement;
 
       if (label && loadingLabel) label.textContent = loadingLabel;
       if (progress && loadingAnnouncement) progress.textContent = loadingAnnouncement;
     });
-  }
+  });
 });

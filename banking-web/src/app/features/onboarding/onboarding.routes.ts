@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 
+import { OnboardingCompletionStore } from './data-access/onboarding-completion.store';
 import { OnboardingDraftStore } from './data-access/onboarding-draft.store';
 import { OnboardingStatusStore } from './data-access/onboarding-status.store';
 import { pendingOnboardingChangesGuard } from './data-access/pending-onboarding-changes.guard';
@@ -11,6 +12,37 @@ const loadContinuePage = () =>
   );
 
 export const onboardingRoutes: Routes = [
+  {
+    path: 'finalizando',
+    component: OnboardingShellComponent,
+    data: { hideExistingAccountLogin: true },
+    providers: [OnboardingCompletionStore],
+    children: [
+      {
+        path: '',
+        title: 'Terminando de preparar tu cuenta | Nerva Banking',
+        loadComponent: () =>
+          import('./pages/completion/onboarding-completion.page').then(
+            (module) => module.OnboardingCompletionPage
+          )
+      }
+    ]
+  },
+  {
+    path: 'credentials-complete',
+    component: OnboardingShellComponent,
+    data: { hideExistingAccountLogin: true },
+    children: [
+      {
+        path: '',
+        title: 'Continuar | Nerva Banking',
+        loadComponent: () =>
+          import('./pages/completion-entry/onboarding-completion-entry.page').then(
+            (module) => module.OnboardingCompletionEntryPage
+          )
+      }
+    ]
+  },
   {
     path: '',
     component: OnboardingShellComponent,

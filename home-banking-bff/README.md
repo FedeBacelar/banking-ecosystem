@@ -27,11 +27,13 @@ Authenticated home banking:
 
 ```txt
 GET  /web/auth/login/home
+GET  /web/auth/login/onboarding-completion
 GET  /web/me
 POST /web/logout
 ```
 
 - Login starts only through the fixed home journey. The browser cannot provide a `returnTo` or select an arbitrary post-login destination.
+- Credential completion uses a second Spring registration with its own callback and the fixed `/onboarding/finalizando` destination. Both registrations use the same confidential Keycloak client, but their post-login journeys cannot be selected by browser input.
 - A successful callback returns to `/app/inicio`; an OIDC failure returns to `/error?reason=authentication`.
 - `GET /web/me` resolves the identity link, customer, and accounts internally, but exposes only `username` and `displayName`. Anonymous API calls receive `401` Problem Detail instead of an interactive redirect.
 - The same `/web/me` response materializes `NB-XSRF-TOKEN`. Logout is a CSRF-protected top-level form POST, closes both the BFF and Keycloak sessions, and returns to `/sesion-cerrada`.
@@ -43,6 +45,7 @@ POST /web/onboarding/applications
 POST /web/onboarding/magic-links/consume
 POST /web/onboarding/submissions
 GET  /web/onboarding/status
+GET  /web/onboarding/completion-status
 POST /web/onboarding/credential-invitations/resend
 ```
 
@@ -52,7 +55,12 @@ There is no public CSRF bootstrap endpoint and no onboarding session endpoint.
 - Magic-link exchange sets the opaque continuation cookie and materializes the readable XSRF cookie in the same response.
 - Submit is one multipart command containing applicant data, terms acceptance, DNI front, and DNI back.
 - Status exposes only `applicationId`, public status, `nextAction`, and `updatedAt`.
+- Authenticated completion status accepts no identifier. It derives the Keycloak subject from the OIDC principal and returns only `PROCESSING`, `COMPLETED`, or `FAILED` with `updatedAt`.
 - Internal checks, dependency errors, Keycloak subjects, and provisioning references never reach the browser.
+
+## Concurrent OIDC Login Limitation
+
+Spring Security's default session authorization-request repository retains one pending OAuth2 authorization request per browser session. The dedicated completion registration prevents a successful callback from selecting the wrong journey, but two concurrent login attempts in different tabs can still cause one state validation to fail. Supporting simultaneous login attempts requires a bounded authorization-request repository keyed by `state`; that expansion is intentionally deferred.
 
 ## CSRF Model
 

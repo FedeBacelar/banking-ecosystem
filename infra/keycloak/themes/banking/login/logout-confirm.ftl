@@ -6,7 +6,9 @@
     ${msg("logoutConfirmTitle")}
   <#elseif section = "form">
     <div id="kc-logout-confirm" class="banking-status">
-      <span class="banking-status-icon banking-icon banking-icon--lock" aria-hidden="true"></span>
+      <span class="banking-status-icon" aria-hidden="true">
+        <span class="banking-icon banking-icon--lock"></span>
+      </span>
       <p>${msg("logoutConfirmHeader")}</p>
       <form class="banking-actions" action="${url.logoutConfirmAction}" onsubmit="confirmLogout.disabled = true; return true;" method="post">
         <input type="hidden" name="session_code" value="${logoutConfirm.code}">

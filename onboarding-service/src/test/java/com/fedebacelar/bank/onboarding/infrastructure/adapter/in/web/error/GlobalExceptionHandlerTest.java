@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingDocumentTooLargeException;
 import com.fedebacelar.bank.onboarding.domain.exception.CredentialInvitationCooldownException;
+import com.fedebacelar.bank.onboarding.domain.exception.OnboardingCompletionNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpHeaders;
@@ -48,5 +49,16 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody().getProperties())
                 .containsEntry("code", "CREDENTIAL_INVITATION_COOLDOWN")
                 .containsEntry("retryAfterSeconds", 45L);
+    }
+
+    @Test
+    void shouldReturnAStableCompletionNotFoundContractWithoutTheSubject() {
+        ProblemDetail problem = handler.handleCompletionNotFound(
+                new OnboardingCompletionNotFoundException()
+        );
+
+        assertThat(problem.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
+        assertThat(problem.getProperties()).containsEntry("code", "ONBOARDING_COMPLETION_NOT_FOUND");
+        assertThat(problem.getDetail()).doesNotContain("subject=");
     }
 }

@@ -2,11 +2,15 @@ package com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fedebacelar.bank.homebanking.bff.application.exception.InternalAccessUnavailableException;
+import java.net.URI;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
@@ -54,6 +58,77 @@ class HomeBankingExceptionHandlerTest {
         assertThat(problem.getProperties())
                 .containsEntry("code", "ONBOARDING_INCOMPLETE")
                 .doesNotContainKey("downstreamStatus");
+    }
+
+    @Test
+    void shouldExposeOnlyTheStableCompletionNotFoundCode() {
+        WebClientResponseException exception = WebClientResponseException.create(
+                HttpStatus.NOT_FOUND.value(),
+                "Not found",
+                HttpHeaders.EMPTY,
+                """
+                {
+                  "detail": "internal subject or application detail",
+                  "code": "ONBOARDING_COMPLETION_NOT_FOUND"
+                }
+                """.getBytes(),
+                null
+        );
+
+        ProblemDetail problem = body(handler.handleDownstreamError(exception));
+
+        assertThat(problem.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
+        assertThat(problem.getTitle()).isEqualTo("No pudimos completar la operación");
+        assertThat(problem.getDetail()).isEqualTo("Intentá nuevamente más tarde.");
+        assertThat(problem.getProperties())
+                .containsEntry("code", "ONBOARDING_COMPLETION_NOT_FOUND")
+                .doesNotContainEntry("detail", "internal subject or application detail");
+    }
+
+    @Test
+    void shouldSanitizeUnknownCompletionFailuresAsServiceUnavailable() {
+        WebClientResponseException exception = WebClientResponseException.create(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "Internal error",
+                HttpHeaders.EMPTY,
+                "{\"code\":\"DATABASE_FAILURE\",\"detail\":\"sensitive\"}".getBytes(),
+                null
+        );
+
+        ProblemDetail problem = body(handler.handleDownstreamError(exception));
+
+        assertThat(problem.getStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE.value());
+        assertThat(problem.getProperties()).containsEntry("code", "ONBOARDING_SERVICE_UNAVAILABLE");
+        assertThat(problem.getDetail()).doesNotContain("sensitive");
+    }
+
+    @Test
+    void shouldSanitizeConnectionAndTimeoutFailuresAsServiceUnavailable() {
+        WebClientRequestException exception = new WebClientRequestException(
+                new IllegalStateException("connection failed for sensitive-subject"),
+                HttpMethod.POST,
+                URI.create("http://onboarding-service/internal/onboarding/completion-status"),
+                HttpHeaders.EMPTY
+        );
+
+        ProblemDetail problem = handler.handleDownstreamUnavailable(exception);
+
+        assertThat(problem.getStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE.value());
+        assertThat(problem.getProperties()).containsEntry("code", "ONBOARDING_SERVICE_UNAVAILABLE");
+        assertThat(problem.getDetail()).doesNotContain("sensitive-subject");
+    }
+
+    @Test
+    void shouldSanitizeInternalTokenFailuresAsServiceUnavailable() {
+        ProblemDetail problem = handler.handleInternalAccessUnavailable(
+                new InternalAccessUnavailableException(
+                        new IllegalStateException("token failure for sensitive-client")
+                )
+        );
+
+        assertThat(problem.getStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE.value());
+        assertThat(problem.getProperties()).containsEntry("code", "ONBOARDING_SERVICE_UNAVAILABLE");
+        assertThat(problem.getDetail()).doesNotContain("sensitive-client");
     }
 
     @Test

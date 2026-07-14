@@ -43,6 +43,7 @@ POST /internal/onboarding/applications
 GET /internal/onboarding/applications/{applicationId}
 POST /internal/onboarding/magic-links/consume
 POST /internal/onboarding/continuations/validate
+POST /internal/onboarding/completion-status
 ```
 
 Security:
@@ -50,6 +51,7 @@ Security:
 ```txt
 ONBOARDING_WRITE -> start applications and consume magic links
 ONBOARDING_READ  -> read application metadata and validate continuations
+ONBOARDING_READ  -> resolve completion status from a BFF-derived Keycloak subject
 ```
 
 ## Tests

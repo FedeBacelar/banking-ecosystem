@@ -83,6 +83,35 @@ describe('OnboardingStatusPage', () => {
     expect(liveCopy).toContain('Tenés que esperar antes de pedir otro correo.');
   });
 
+  it('uses direct customer copy while sending and after accepting a resend', () => {
+    fixture = TestBed.createComponent(OnboardingStatusPage);
+    fixture.detectChanges();
+    http.expectOne('/web/onboarding/status').flush({
+      applicationId: 'id',
+      status: 'CREDENTIAL_SETUP_PENDING',
+      nextAction: 'CHECK_EMAIL',
+      updatedAt: '2026-07-13T00:00:00Z'
+    });
+    fixture.detectChanges();
+
+    const button = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('button')
+    ).find((candidate) => candidate.textContent?.includes('Reenviar correo'))!;
+    button.click();
+    fixture.detectChanges();
+    expect(button.textContent).toContain('Enviando otro correo…');
+
+    http.expectOne('/web/onboarding/credential-invitations/resend').flush(
+      { applicationId: 'id', status: 'CREDENTIAL_SETUP_PENDING', submittedAt: '', updatedAt: '' },
+      { status: 202, statusText: 'Accepted' }
+    );
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      'Te enviamos un nuevo correo.'
+    );
+  });
+
   it('offers a new link when the continuation is no longer available', () => {
     fixture = TestBed.createComponent(OnboardingStatusPage);
     fixture.detectChanges();

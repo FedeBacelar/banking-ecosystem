@@ -26,6 +26,7 @@ services:
       - "${KEYCLOAK_PORT:-8090}:8080"
     volumes:
       - keycloak_data:/opt/keycloak/data
+      - ./password-blacklists:/opt/keycloak/data/password-blacklists:ro
       - ./realms/banking-ecosystem-realm.json:/opt/keycloak/data/import/banking-ecosystem-realm.json:ro
       - ./themes:/opt/keycloak/themes:ro
     healthcheck:
@@ -53,7 +54,7 @@ services:
           -f /config/banking-user-profile.json
 
         FRONTEND_URL="$${BANKING_FRONTEND_URL%/}"
-        SMTP_CONFIG="{\"host\":\"$${KEYCLOAK_SMTP_HOST}\",\"port\":\"$${KEYCLOAK_SMTP_PORT}\",\"from\":\"$${KEYCLOAK_SMTP_FROM}\",\"auth\":\"$${KEYCLOAK_SMTP_AUTH}\",\"starttls\":\"$${KEYCLOAK_SMTP_STARTTLS}\",\"ssl\":\"$${KEYCLOAK_SMTP_SSL}\""
+        SMTP_CONFIG="{\"host\":\"$${KEYCLOAK_SMTP_HOST}\",\"port\":\"$${KEYCLOAK_SMTP_PORT}\",\"from\":\"$${KEYCLOAK_SMTP_FROM}\",\"fromDisplayName\":\"Nerva Banking\",\"auth\":\"$${KEYCLOAK_SMTP_AUTH}\",\"starttls\":\"$${KEYCLOAK_SMTP_STARTTLS}\",\"ssl\":\"$${KEYCLOAK_SMTP_SSL}\""
         if test -n "$${KEYCLOAK_SMTP_USERNAME}"; then
           SMTP_CONFIG="$$SMTP_CONFIG,\"user\":\"$${KEYCLOAK_SMTP_USERNAME}\",\"password\":\"$${KEYCLOAK_SMTP_PASSWORD}\""
         fi
@@ -62,10 +63,19 @@ services:
         /opt/keycloak/bin/kcadm.sh update realms/banking-ecosystem \
           -s 'displayName=Nerva Banking' \
           -s 'loginTheme=banking' \
+          -s 'emailTheme=banking' \
+          -s 'passwordPolicy=length(15) and notUsername and notEmail and passwordBlacklist(nerva-passwords.txt)' \
           -s 'internationalizationEnabled=true' \
           -s 'defaultLocale=es' \
           -s 'supportedLocales=["es"]' \
           -s "smtpServer=$$SMTP_CONFIG"
+
+        /opt/keycloak/bin/kcadm.sh update authentication/required-actions/UPDATE_PROFILE \
+          -r banking-ecosystem \
+          -s 'priority=30'
+        /opt/keycloak/bin/kcadm.sh update authentication/required-actions/UPDATE_PASSWORD \
+          -r banking-ecosystem \
+          -s 'priority=40'
 
         reconcile_client_secret() {
           local client_id="$$1"
@@ -96,7 +106,7 @@ services:
             -r banking-ecosystem \
             -s "rootUrl=$$FRONTEND_URL" \
             -s "baseUrl=$$FRONTEND_URL" \
-            -s "redirectUris=[\"http://localhost:8085/web/login/oauth2/code/keycloak\",\"$$FRONTEND_URL/onboarding/credentials-complete\"]" \
+            -s "redirectUris=[\"http://localhost:8085/web/login/oauth2/code/keycloak\",\"http://localhost:8085/web/login/oauth2/code/keycloak-onboarding-completion\",\"http://localhost:8085/web/auth/login/onboarding-completion\",\"$$FRONTEND_URL/onboarding/credentials-complete\"]" \
             -s "webOrigins=[\"http://localhost:8085\",\"$$FRONTEND_URL\"]" \
             -s "attributes={\"post.logout.redirect.uris\":\"$$FRONTEND_URL/*\"}"
         }

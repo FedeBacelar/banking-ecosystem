@@ -8,6 +8,7 @@ import com.fedebacelar.bank.onboarding.domain.exception.InvalidMagicLinkTokenExc
 import com.fedebacelar.bank.onboarding.domain.exception.InvalidOnboardingStatusTransitionException;
 import com.fedebacelar.bank.onboarding.domain.exception.NotificationDeliveryException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingApplicationNotFoundException;
+import com.fedebacelar.bank.onboarding.domain.exception.OnboardingCompletionNotFoundException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingContinuationExpiredException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingDocumentUploadException;
 import com.fedebacelar.bank.onboarding.domain.exception.OnboardingDocumentTooLargeException;
@@ -117,6 +118,18 @@ public class GlobalExceptionHandler {
         problem.setType(URI.create("https://bank.fedebacelar.com/problems/invalid-idempotency-key"));
         problem.setTitle("Invalid idempotency key");
         problem.setProperty("code", "INVALID_IDEMPOTENCY_KEY");
+        return problem;
+    }
+
+    @ExceptionHandler(OnboardingCompletionNotFoundException.class)
+    ProblemDetail handleCompletionNotFound(OnboardingCompletionNotFoundException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.NOT_FOUND,
+                "No onboarding completion process was found for the authenticated identity."
+        );
+        problem.setType(URI.create("https://bank.fedebacelar.com/problems/onboarding-completion-not-found"));
+        problem.setTitle("Onboarding completion not found");
+        problem.setProperty("code", "ONBOARDING_COMPLETION_NOT_FOUND");
         return problem;
     }
 

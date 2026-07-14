@@ -269,8 +269,10 @@ The one-shot `keycloak-realm-init` container applies `banking-user-profile.json`
 The credential action lifespan defaults to 24 hours and redirects to:
 
 ```txt
-http://localhost:4200/onboarding/credentials-complete
+http://localhost:8085/web/auth/login/onboarding-completion
 ```
+
+That BFF entry point creates an authenticated session and returns to Angular only after OAuth completes. The previous `/onboarding/credentials-complete` frontend route remains temporarily as a fixed, parameter-free alias for action emails that were already issued.
 
 When `keycloak-realm-init` exits with code `0`, that stopped container is expected; it is an initialization job.
 

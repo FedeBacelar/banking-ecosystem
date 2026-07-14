@@ -5,6 +5,7 @@ import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingContinuation;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingFile;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingSession;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingSubmission;
+import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingSubjectStatus;
 
 public interface OnboardingServicePort {
 
@@ -28,4 +29,6 @@ public interface OnboardingServicePort {
             String idempotencyKey,
             String accessToken
     );
+
+    OnboardingSubjectStatus getCompletionStatus(String keycloakSubject, String accessToken);
 }

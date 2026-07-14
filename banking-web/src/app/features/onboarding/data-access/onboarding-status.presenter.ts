@@ -154,9 +154,9 @@ const STATUS_VIEWS = {
     canResendCredentials: false
   },
   CREDENTIAL_SETUP_PENDING: {
-    title: 'Creá tu usuario y contraseña',
-    description: 'Te enviamos un correo con el enlace para configurar tu acceso.',
-    supportingText: 'Si no lo encontrás, revisá la carpeta de correo no deseado.',
+    title: 'Creá tu acceso a Nerva Banking',
+    description: 'Te enviamos un correo para que elijas tu usuario y contraseña.',
+    supportingText: 'Usá el enlace del último correo que recibiste. Si no lo encontrás, revisá Spam.',
     tone: 'action',
     completedMilestones: 3,
     activeMilestone: 3,
@@ -209,7 +209,7 @@ const STATUS_VIEWS = {
     canResendCredentials: false,
     action: {
       kind: 'full-page',
-      label: 'Ingresar',
+      label: 'Ingresar a Nerva Banking',
       href: '/web/auth/login/home'
     }
   },

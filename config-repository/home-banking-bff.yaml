@@ -22,6 +22,16 @@ spring:
               - openid
               - profile
               - email
+          keycloak-onboarding-completion:
+            provider: keycloak
+            client-id: ${HOME_BANKING_BFF_OAUTH_CLIENT_ID:home-banking-bff}
+            client-secret: ${HOME_BANKING_BFF_OAUTH_CLIENT_SECRET:local-bff-secret}
+            authorization-grant-type: authorization_code
+            redirect-uri: ${HOME_BANKING_BFF_ONBOARDING_COMPLETION_OAUTH_REDIRECT_URI:http://localhost:8085/web/login/oauth2/code/keycloak-onboarding-completion}
+            scope:
+              - openid
+              - profile
+              - email
           onboarding-service:
             provider: keycloak
             client-id: ${ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_ID:onboarding-bff-service}
@@ -44,6 +54,7 @@ spring:
 home-banking-bff:
   frontend:
     home-url: ${HOME_BANKING_FRONTEND_HOME_URL:http://localhost:4200/app/inicio}
+    onboarding-completion-url: ${HOME_BANKING_FRONTEND_ONBOARDING_COMPLETION_URL:http://localhost:4200/onboarding/finalizando}
     authentication-error-url: ${HOME_BANKING_FRONTEND_AUTHENTICATION_ERROR_URL:http://localhost:4200/error?reason=authentication}
     logout-url: ${HOME_BANKING_FRONTEND_LOGOUT_URL:http://localhost:4200/sesion-cerrada}
   http:

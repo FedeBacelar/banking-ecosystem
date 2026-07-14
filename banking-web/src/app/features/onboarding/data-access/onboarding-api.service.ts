@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import {
   OnboardingAccess,
+  OnboardingCompletionStatus,
   OnboardingStatus,
   OnboardingSubmission,
   OnboardingSubmissionRequest
@@ -39,6 +40,10 @@ export class OnboardingApiService {
 
   getStatus(): Observable<OnboardingStatus> {
     return this.http.get<OnboardingStatus>(`${this.baseUrl}/status`);
+  }
+
+  getCompletionStatus(): Observable<OnboardingCompletionStatus> {
+    return this.http.get<OnboardingCompletionStatus>(`${this.baseUrl}/completion-status`);
   }
 
   resendCredentialInvitation(idempotencyKey: string): Observable<HttpResponse<OnboardingSubmission>> {

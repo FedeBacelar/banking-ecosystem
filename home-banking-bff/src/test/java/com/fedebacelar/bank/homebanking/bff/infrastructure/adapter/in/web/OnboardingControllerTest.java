@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oidcLogin;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -16,8 +17,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fedebacelar.bank.homebanking.bff.application.port.in.GetAuthenticatedHomeContextUseCase;
+import com.fedebacelar.bank.homebanking.bff.application.port.in.GetOnboardingCompletionStatusUseCase;
 import com.fedebacelar.bank.homebanking.bff.application.usecase.OnboardingFlowService;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingContinuation;
+import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingCompletionState;
+import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingCompletionStatus;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingNextAction;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingPublicStatus;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingState;
@@ -62,6 +66,9 @@ class OnboardingControllerTest {
 
     @MockitoBean
     private GetAuthenticatedHomeContextUseCase getAuthenticatedHomeContextUseCase;
+
+    @MockitoBean
+    private GetOnboardingCompletionStatusUseCase getOnboardingCompletionStatusUseCase;
 
     @Test
     void shouldStartApplicationWithoutLoginAndReturnNoCustomerData() throws Exception {
@@ -162,6 +169,40 @@ class OnboardingControllerTest {
                 .andExpect(jsonPath("$.externalReference").doesNotExist())
                 .andExpect(jsonPath("$.reasonCode").doesNotExist())
                 .andExpect(jsonPath("$.error").doesNotExist());
+    }
+
+    @Test
+    void shouldResolveCompletionOnlyFromTheAuthenticatedOidcSubject() throws Exception {
+        Instant updatedAt = Instant.parse("2026-07-13T12:00:00Z");
+        when(getOnboardingCompletionStatusUseCase.getForKeycloakSubject("authenticated-subject"))
+                .thenReturn(new OnboardingCompletionStatus(
+                        OnboardingCompletionState.COMPLETED,
+                        updatedAt
+                ));
+
+        mockMvc.perform(get("/onboarding/completion-status")
+                        .param("keycloakSubject", "attacker-controlled-subject")
+                        .cookie(new Cookie(CONTINUATION_COOKIE, "unrelated-continuation"))
+                        .with(oidcLogin().idToken(token -> token.subject("authenticated-subject"))))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.updatedAt").value(updatedAt.toString()))
+                .andExpect(jsonPath("$.applicationId").doesNotExist())
+                .andExpect(jsonPath("$.keycloakSubject").doesNotExist())
+                .andExpect(jsonPath("$.subject").doesNotExist())
+                .andExpect(jsonPath("$.email").doesNotExist());
+
+        verify(getOnboardingCompletionStatusUseCase).getForKeycloakSubject("authenticated-subject");
+    }
+
+    @Test
+    void shouldReturnAnApi401ForCompletionStatusWithoutAnOidcSession() throws Exception {
+        mockMvc.perform(get("/onboarding/completion-status"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().doesNotExist("Location"))
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"));
     }
 
     @Test

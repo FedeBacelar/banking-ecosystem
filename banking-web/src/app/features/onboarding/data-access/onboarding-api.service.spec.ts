@@ -66,6 +66,24 @@ describe('OnboardingApiService', () => {
     });
   });
 
+  it('gets the authenticated completion status without sending selectable identifiers', () => {
+    service.getCompletionStatus().subscribe((status) => {
+      expect(status).toEqual({
+        status: 'PROCESSING',
+        updatedAt: '2026-07-13T00:00:00Z'
+      });
+    });
+
+    const request = http.expectOne('/web/onboarding/completion-status');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.keys()).toEqual([]);
+    expect(request.request.body).toBeNull();
+    request.flush({
+      status: 'PROCESSING',
+      updatedAt: '2026-07-13T00:00:00Z'
+    });
+  });
+
   it('sends one explicit idempotency key when requesting another credential email', () => {
     service.resendCredentialInvitation('status-page:request-1').subscribe((response) => {
       expect(response.status).toBe(202);

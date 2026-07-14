@@ -322,6 +322,11 @@ input[type="checkbox"]:focus-visible {
   box-shadow: var(--banking-focus);
 }
 
+.banking-input[aria-invalid="true"],
+.banking-password-control--invalid {
+  border-color: var(--banking-error-border);
+}
+
 .banking-password-control {
   display: flex;
   align-items: stretch;
@@ -407,6 +412,7 @@ input[type="checkbox"]:focus-visible {
 
 .banking-submit--loading {
   pointer-events: none;
+  cursor: wait;
   opacity: 0.88;
 }
 
@@ -429,6 +435,37 @@ input[type="checkbox"]:focus-visible {
   color: var(--banking-error-text);
   font-size: 12px;
   font-weight: 650;
+}
+
+.banking-field-hint {
+  margin: 0;
+  color: var(--banking-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.banking-form-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.banking-secondary-button {
+  display: inline-flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--banking-border);
+  border-radius: var(--banking-radius);
+  background: var(--banking-card);
+  color: var(--banking-text);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.banking-secondary-button:hover {
+  background: var(--banking-input);
 }
 
 .pf-v5-c-form__group {
@@ -593,6 +630,9 @@ input[type="checkbox"]:focus-visible {
   border-radius: 50%;
   background: #eef6ff;
   color: var(--banking-accent);
+}
+
+.banking-status-icon > .banking-icon {
   font-size: 22px;
 }
 

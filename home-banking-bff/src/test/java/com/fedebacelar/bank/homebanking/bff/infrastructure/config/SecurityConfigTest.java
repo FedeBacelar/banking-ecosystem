@@ -31,7 +31,8 @@ class SecurityConfigTest {
     @Test
     void shouldAlwaysUseFixedHomeDestinationAfterAuthentication() throws Exception {
         AuthenticationSuccessHandler handler = securityConfig.authenticationSuccessHandler(
-                "http://localhost:4200/app/inicio"
+                "http://localhost:4200/app/inicio",
+                "http://localhost:4200/onboarding/finalizando"
         );
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("returnTo", "https://attacker.example/redirect");
@@ -44,6 +45,38 @@ class SecurityConfigTest {
         );
 
         assertThat(response.getRedirectedUrl()).isEqualTo("http://localhost:4200/app/inicio");
+    }
+
+    @Test
+    void shouldUseTheFixedCompletionDestinationForTheDedicatedRegistration() throws Exception {
+        AuthenticationSuccessHandler handler = securityConfig.authenticationSuccessHandler(
+                "http://localhost:4200/app/inicio",
+                "http://localhost:4200/onboarding/finalizando"
+        );
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setParameter("returnTo", "https://attacker.example/redirect");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        Instant issuedAt = Instant.now();
+        OidcIdToken idToken = new OidcIdToken(
+                "id-token",
+                issuedAt,
+                issuedAt.plusSeconds(300),
+                Map.of(IdTokenClaimNames.SUB, "subject")
+        );
+        DefaultOidcUser user = new DefaultOidcUser(
+                List.of(new SimpleGrantedAuthority("OIDC_USER")),
+                idToken
+        );
+        OAuth2AuthenticationToken authentication = new OAuth2AuthenticationToken(
+                user,
+                user.getAuthorities(),
+                "keycloak-onboarding-completion"
+        );
+
+        handler.onAuthenticationSuccess(request, response, authentication);
+
+        assertThat(response.getRedirectedUrl())
+                .isEqualTo("http://localhost:4200/onboarding/finalizando");
     }
 
     @Test

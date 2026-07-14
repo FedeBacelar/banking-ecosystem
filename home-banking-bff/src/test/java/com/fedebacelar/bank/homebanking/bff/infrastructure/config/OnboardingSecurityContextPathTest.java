@@ -5,6 +5,7 @@ import static org.mockito.Mockito.when;
 
 import com.fedebacelar.bank.homebanking.bff.application.exception.OnboardingSessionRequiredException;
 import com.fedebacelar.bank.homebanking.bff.application.port.in.GetAuthenticatedHomeContextUseCase;
+import com.fedebacelar.bank.homebanking.bff.application.port.in.GetOnboardingCompletionStatusUseCase;
 import com.fedebacelar.bank.homebanking.bff.application.usecase.OnboardingFlowService;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingContinuation;
 import com.fedebacelar.bank.homebanking.bff.domain.model.OnboardingState;
@@ -48,6 +49,9 @@ class OnboardingSecurityContextPathTest {
 
     @MockitoBean
     private GetAuthenticatedHomeContextUseCase getAuthenticatedHomeContextUseCase;
+
+    @MockitoBean
+    private GetOnboardingCompletionStatusUseCase getOnboardingCompletionStatusUseCase;
 
     @Test
     void shouldAllowPublicStartWithoutCsrfThroughWebContextPath() throws Exception {
@@ -127,6 +131,37 @@ class OnboardingSecurityContextPathTest {
         assertThat(response.statusCode()).isEqualTo(HttpStatus.FOUND.value());
         assertThat(response.headers().firstValue("Location"))
                 .contains("/web/oauth2/authorization/keycloak");
+    }
+
+    @Test
+    void shouldExposeTheFixedOnboardingCompletionLoginJourney() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(uri("/web/auth/login/onboarding-completion?returnTo=https://attacker.example/redirect"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client().send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertThat(response.statusCode()).isEqualTo(HttpStatus.FOUND.value());
+        assertThat(response.headers().firstValue("Location"))
+                .contains("/web/oauth2/authorization/keycloak-onboarding-completion");
+        assertThat(response.headers().firstValue("Location").orElseThrow())
+                .doesNotContain("attacker.example");
+    }
+
+    @Test
+    void shouldRequireAuthenticationForCompletionStatusBeforeThePublicOnboardingWildcard() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(uri("/web/onboarding/completion-status?keycloakSubject=attacker"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client().send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertThat(response.statusCode()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
+        assertThat(response.headers().firstValue("Location")).isEmpty();
+        assertThat(response.headers().firstValue("Cache-Control")).contains("no-store");
+        assertThat(response.body()).contains("AUTHENTICATION_REQUIRED");
     }
 
     private CsrfCookie exchangeMagicLink() throws Exception {

@@ -32,6 +32,7 @@ public class SecurityConfig {
                     }
                     authorize.requestMatchers(HttpMethod.GET, "/internal/onboarding/applications/**").hasRole("ONBOARDING_READ");
                     authorize.requestMatchers(HttpMethod.POST, "/internal/onboarding/continuations/validate").hasRole("ONBOARDING_READ");
+                    authorize.requestMatchers(HttpMethod.POST, "/internal/onboarding/completion-status").hasRole("ONBOARDING_READ");
                     authorize.requestMatchers(HttpMethod.PUT, "/internal/onboarding/**").hasRole("ONBOARDING_WRITE");
                     authorize.requestMatchers(HttpMethod.POST, "/internal/onboarding/**").hasRole("ONBOARDING_WRITE");
                     authorize.requestMatchers("/internal/onboarding/**").denyAll();

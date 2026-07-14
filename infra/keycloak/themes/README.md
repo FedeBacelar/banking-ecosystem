@@ -12,9 +12,10 @@ Current scope:
 
 ```txt
 banking/login
+banking/email
 ```
 
-The theme is responsible only for authentication screens rendered by Keycloak. Banking product screens belong to `banking-web` and are not implemented inside Keycloak.
+The theme is responsible only for authentication screens and identity emails rendered by Keycloak. Banking product screens belong to `banking-web` and are not implemented inside Keycloak.
 
 Visual tokens, logos, and the Geist font come from the repository-level `design-system`. Do not edit generated copies inside this directory. Synchronize or verify them with:
 
@@ -27,18 +28,22 @@ Current covered screens:
 
 ```txt
 login
+choose username
+create password
 error
 info
 login-page-expired
 logout-confirm
+credential invitation email (HTML and plain text)
 ```
 
 Banking access requests, password recovery and long-lived browser sessions are not enabled from the public login screen. Those flows should be designed as controlled banking operations before exposing them to users.
 
-The `keycloak-realm-init` container applies the theme and Spanish-only locale to both new and existing local realms. To verify it manually:
+The `keycloak-realm-init` container applies both themes, the Spanish-only locale, the username-before-password action order and the local credential policy to new and existing local realms. To verify it manually:
 
 ```txt
 Realm settings -> Themes -> Login theme -> banking
+Realm settings -> Themes -> Email theme -> banking
 ```
 
 The return URL uses `BANKING_FRONTEND_URL` and defaults to `http://localhost:4200`; it never probes a BFF session endpoint.

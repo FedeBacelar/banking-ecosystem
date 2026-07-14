@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { RouterLink, RouterOutlet } from '@angular/router';
+import { Component, inject } from '@angular/core';
+import { ActivatedRoute, RouterLink, RouterOutlet } from '@angular/router';
 import { LucideDynamicIcon, LucideInfo } from '@lucide/angular';
 
 import { NervaLogoComponent } from '../../../shared/brand/nerva-logo.component';
@@ -14,12 +14,14 @@ import { NervaLogoComponent } from '../../../shared/brand/nerva-logo.component';
           <a routerLink="/" aria-label="Nerva Banking, ir al inicio" class="rounded-lg">
             <nb-nerva-logo />
           </a>
-          <a
-            href="/web/auth/login/home"
-            class="text-sm font-semibold text-brand underline-offset-4 hover:underline"
-          >
-            Ya tengo una cuenta
-          </a>
+          @if (showExistingAccountLogin) {
+            <a
+              href="/web/auth/login/home"
+              class="text-sm font-semibold text-brand underline-offset-4 hover:underline"
+            >
+              Ya tengo una cuenta
+            </a>
+          }
         </div>
       </header>
 
@@ -47,5 +49,9 @@ import { NervaLogoComponent } from '../../../shared/brand/nerva-logo.component';
   `
 })
 export class OnboardingShellComponent {
+  private readonly route = inject(ActivatedRoute);
+
   protected readonly circleInfo = LucideInfo;
+  protected readonly showExistingAccountLogin =
+    this.route.snapshot.data['hideExistingAccountLogin'] !== true;
 }

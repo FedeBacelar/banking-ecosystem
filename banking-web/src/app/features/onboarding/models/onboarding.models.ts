@@ -35,6 +35,13 @@ export interface OnboardingStatus {
   updatedAt: string;
 }
 
+export type OnboardingCompletionState = 'PROCESSING' | 'COMPLETED' | 'FAILED';
+
+export interface OnboardingCompletionStatus {
+  status: OnboardingCompletionState;
+  updatedAt: string;
+}
+
 export interface OnboardingSubmission {
   applicationId: string;
   status: OnboardingState;

@@ -18,7 +18,8 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
-import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.web.DefaultRedirectStrategy;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
@@ -51,11 +52,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/onboarding/completion-status").authenticated()
                         .requestMatchers(
                                 "/actuator/health/**",
                                 "/actuator/info",
                                 "/error",
                                 "/auth/login/home",
+                                "/auth/login/onboarding-completion",
                                 "/onboarding/**"
                         ).permitAll()
                         .anyRequest().authenticated()
@@ -85,13 +88,20 @@ public class SecurityConfig {
 
     @Bean
     AuthenticationSuccessHandler authenticationSuccessHandler(
-            @Value("${home-banking-bff.frontend.home-url:http://localhost:4200/app/inicio}") String frontendHomeUrl
+            @Value("${home-banking-bff.frontend.home-url:http://localhost:4200/app/inicio}") String frontendHomeUrl,
+            @Value("${home-banking-bff.frontend.onboarding-completion-url:http://localhost:4200/onboarding/finalizando}")
+            String frontendOnboardingCompletionUrl
     ) {
-        SavedRequestAwareAuthenticationSuccessHandler successHandler =
-                new SavedRequestAwareAuthenticationSuccessHandler();
-        successHandler.setDefaultTargetUrl(frontendHomeUrl);
-        successHandler.setAlwaysUseDefaultTargetUrl(true);
-        return successHandler;
+        DefaultRedirectStrategy redirectStrategy = new DefaultRedirectStrategy();
+        return (request, response, authentication) -> {
+            String destination = authentication instanceof OAuth2AuthenticationToken oauth2Authentication
+                    && "keycloak-onboarding-completion".equals(
+                            oauth2Authentication.getAuthorizedClientRegistrationId()
+                    )
+                    ? frontendOnboardingCompletionUrl
+                    : frontendHomeUrl;
+            redirectStrategy.sendRedirect(request, response, destination);
+        };
     }
 
     @Bean

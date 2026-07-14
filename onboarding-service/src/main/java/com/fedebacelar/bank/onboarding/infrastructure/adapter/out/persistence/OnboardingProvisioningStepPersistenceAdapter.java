@@ -2,6 +2,7 @@ package com.fedebacelar.bank.onboarding.infrastructure.adapter.out.persistence;
 
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingProvisioningStepRepositoryPort;
 import com.fedebacelar.bank.onboarding.domain.enums.ProvisioningStepType;
+import com.fedebacelar.bank.onboarding.domain.enums.ProvisioningStepStatus;
 import com.fedebacelar.bank.onboarding.domain.model.OnboardingProvisioningStep;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.out.persistence.mapper.OnboardingProvisioningStepPersistenceMapper;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.out.persistence.repository.OnboardingProvisioningStepJpaRepository;
@@ -21,6 +22,11 @@ public class OnboardingProvisioningStepPersistenceAdapter implements OnboardingP
     }
     @Override public Optional<OnboardingProvisioningStep> findByApplicationIdAndStepType(UUID applicationId, ProvisioningStepType type) {
         return repository.findByApplicationIdAndStepType(applicationId.toString(), type).map(mapper::toDomain);
+    }
+    @Override public Optional<OnboardingProvisioningStep> findByTypeStatusAndExternalReference(
+            ProvisioningStepType type, ProvisioningStepStatus status, String externalReference) {
+        return repository.findByStepTypeAndStatusAndExternalReference(type, status, externalReference)
+                .map(mapper::toDomain);
     }
     @Override public List<OnboardingProvisioningStep> findByApplicationId(UUID applicationId) {
         return repository.findByApplicationIdOrderByCreatedAtAsc(applicationId.toString()).stream().map(mapper::toDomain).toList();

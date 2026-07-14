@@ -2,6 +2,7 @@ package com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fedebacelar.bank.homebanking.bff.application.exception.InternalAccessUnavailableException;
 import com.fedebacelar.bank.homebanking.bff.application.exception.IdentityNotLinkedException;
 import com.fedebacelar.bank.homebanking.bff.application.exception.OnboardingSessionRequiredException;
 import jakarta.validation.ConstraintViolationException;
@@ -19,6 +20,7 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 @RestControllerAdvice
@@ -38,6 +40,7 @@ public class HomeBankingExceptionHandler {
             Map.entry("ONBOARDING_DOCUMENT_TOO_LARGE", HttpStatus.PAYLOAD_TOO_LARGE),
             Map.entry("ONBOARDING_DOCUMENT_UPLOAD_UNAVAILABLE", HttpStatus.SERVICE_UNAVAILABLE),
             Map.entry("CREDENTIAL_INVITATION_COOLDOWN", HttpStatus.TOO_MANY_REQUESTS),
+            Map.entry("ONBOARDING_COMPLETION_NOT_FOUND", HttpStatus.NOT_FOUND),
             Map.entry("IDEMPOTENCY_CONFLICT", HttpStatus.CONFLICT)
     );
 
@@ -112,14 +115,32 @@ public class HomeBankingExceptionHandler {
                 .map(PUBLIC_ONBOARDING_ERRORS::get)
                 .orElse(HttpStatus.SERVICE_UNAVAILABLE);
         ProblemDetail problem = ProblemDetail.forStatus(publicStatus);
-        problem.setTitle("Request could not be completed");
-        problem.setDetail("We could not complete the operation right now. Try again later.");
+        problem.setTitle("No pudimos completar la operación");
+        problem.setDetail("Intentá nuevamente más tarde.");
         problem.setProperty("code", downstreamCode.orElse("ONBOARDING_SERVICE_UNAVAILABLE"));
         ResponseEntity.BodyBuilder response = ResponseEntity.status(publicStatus);
         if (downstreamCode.filter("CREDENTIAL_INVITATION_COOLDOWN"::equals).isPresent()) {
             sanitizedRetryAfter(exception).ifPresent(value -> response.header(HttpHeaders.RETRY_AFTER, value));
         }
         return response.body(problem);
+    }
+
+    @ExceptionHandler(WebClientRequestException.class)
+    ProblemDetail handleDownstreamUnavailable(WebClientRequestException exception) {
+        return serviceUnavailableProblem();
+    }
+
+    @ExceptionHandler(InternalAccessUnavailableException.class)
+    ProblemDetail handleInternalAccessUnavailable(InternalAccessUnavailableException exception) {
+        return serviceUnavailableProblem();
+    }
+
+    private ProblemDetail serviceUnavailableProblem() {
+        ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.SERVICE_UNAVAILABLE);
+        problem.setTitle("No pudimos completar la operación");
+        problem.setDetail("Intentá nuevamente más tarde.");
+        problem.setProperty("code", "ONBOARDING_SERVICE_UNAVAILABLE");
+        return problem;
     }
 
     private Optional<String> sanitizedRetryAfter(WebClientResponseException exception) {

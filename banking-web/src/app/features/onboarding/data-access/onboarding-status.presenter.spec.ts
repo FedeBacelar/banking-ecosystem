@@ -55,10 +55,13 @@ describe('onboarding status presenter', () => {
 
   it('keeps checking while credential setup can finish in another tab or device', () => {
     expect(presentOnboardingStatus('CREDENTIAL_SETUP_PENDING')).toMatchObject({
-      title: 'Creá tu usuario y contraseña',
+      title: 'Creá tu acceso a Nerva Banking',
       autoPoll: true,
       canResendCredentials: true
     });
+    expect(presentOnboardingStatus('COMPLETED').action?.label).toBe(
+      'Ingresar a Nerva Banking'
+    );
     expect(presentOnboardingStatus('CREDENTIAL_SETUP_EXPIRED').canRefresh).toBe(false);
     expect(presentOnboardingStatus('CREDENTIAL_SETUP_FAILED').canRefresh).toBe(false);
   });

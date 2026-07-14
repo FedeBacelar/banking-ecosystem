@@ -24,7 +24,7 @@
   </@field.group>
 </#macro>
 
-<#macro registrationLayout bodyClass="" displayInfo=false displayMessage=true displayRequiredFields=false>
+<#macro registrationLayout bodyClass="" displayInfo=false displayMessage=true displayRequiredFields=false pageSubtitleKey="bankingLoginSubtitle" brandDescriptionKey="bankingBrandDescription" backLabelKey="bankingBackHome">
 <!DOCTYPE html>
 <html class="${properties.kcHtmlClass!}" lang="${lang}"<#if realm.internationalizationEnabled> dir="${(locale.rtl)?then('rtl','ltr')}"</#if>>
 <head>
@@ -93,7 +93,7 @@
           ${msg("bankingAccessLabel")}
         </span>
         <h2>${msg("bankingBrandTitle")}</h2>
-        <p>${msg("bankingBrandDescription")}</p>
+        <p>${msg(brandDescriptionKey)}</p>
       </section>
       <p class="banking-brand-panel__footer">Nerva Banking</p>
     </aside>
@@ -102,7 +102,7 @@
       <div class="banking-auth-panel__top">
         <a class="banking-back-link" href="${bankingFrontendUrl}">
           <span class="banking-icon banking-icon--arrow-left" aria-hidden="true"></span>
-          ${msg("bankingBackHome")}
+          ${msg(backLabelKey)}
         </a>
         <span class="banking-mobile-brand">
           Nerva Banking
@@ -116,7 +116,7 @@
           <section class="banking-login-card" aria-labelledby="kc-page-title">
             <header class="banking-login-card__header">
               <h1 id="kc-page-title"><#nested "header"></h1>
-              <p>${msg("bankingLoginSubtitle")}</p>
+              <p>${msg(pageSubtitleKey)}</p>
             </header>
 
             <div class="banking-divider" aria-hidden="true"></div>

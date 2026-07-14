@@ -132,7 +132,7 @@ type ResendState = 'idle' | 'loading' | 'success' | 'cooldown' | 'error';
                   >
                     @if (resendState() === 'loading') {
                       <span class="nb-spinner size-4" aria-hidden="true"></span>
-                      Solicitando nuevo correo…
+                      Enviando otro correo…
                     } @else if (resendState() === 'cooldown' && cooldownSeconds() > 0) {
                       Podés pedir otro correo en {{ formatCooldown(cooldownSeconds()) }}
                     } @else {
@@ -253,7 +253,7 @@ export class OnboardingStatusPage {
   protected readonly cooldownSeconds = signal(0);
   protected readonly resendAnnouncement = computed(() => {
     if (this.resendState() === 'success') {
-      return 'Listo. Revisá tu correo en unos minutos.';
+      return 'Te enviamos un nuevo correo.';
     }
     if (this.resendState() === 'cooldown') {
       return 'Tenés que esperar antes de pedir otro correo.';
@@ -265,7 +265,7 @@ export class OnboardingStatusPage {
   });
   protected readonly resendMessage = computed(() => {
     if (this.resendState() === 'success') {
-      return 'Listo. Revisá tu correo en unos minutos.';
+      return 'Te enviamos un nuevo correo.';
     }
     if (this.resendState() === 'cooldown') {
       return this.cooldownSeconds() > 0

@@ -14,6 +14,7 @@
         action="${url.loginAction}"
         method="post"
         novalidate="novalidate"
+        data-banking-loading-form
         data-loading-announcement="${msg('bankingLoginLoadingAnnouncement')}"
       >
         <#if !usernameHidden??>
@@ -55,6 +56,7 @@
               type="button"
               aria-label="${msg('showPassword')}"
               aria-controls="password"
+              data-banking-password-toggle
               data-label-show="${msg('showPassword')}"
               data-label-hide="${msg('hidePassword')}"
             >
@@ -68,12 +70,12 @@
 
         <input type="hidden" id="id-hidden-input" name="credentialId" <#if auth.selectedCredential?has_content>value="${auth.selectedCredential}"</#if>/>
 
-        <button id="kc-login" class="banking-submit" name="login" type="submit" data-loading-label="${msg('bankingLoginLoading')}">
+        <button id="kc-login" class="banking-submit" name="login" type="submit" data-banking-submit data-loading-label="${msg('bankingLoginLoading')}">
           <span class="banking-icon banking-icon--lock banking-submit__idle-icon" aria-hidden="true"></span>
           <span class="banking-submit__spinner" aria-hidden="true"></span>
           <span class="banking-submit__label">${msg("doLogIn")}</span>
         </button>
-        <span id="login-progress" class="banking-sr-only" role="status" aria-live="polite"></span>
+        <span id="login-progress" class="banking-sr-only" role="status" aria-live="polite" data-banking-progress></span>
       </form>
     </#if>
     <@passkeys.conditionalUIData />

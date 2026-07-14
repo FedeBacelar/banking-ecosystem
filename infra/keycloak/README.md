@@ -6,10 +6,11 @@ Keycloak is the local Identity Provider for API security work. It imports a deve
 
 The included credentials are development defaults. To override them, create a local `.env` file from `.env.example`. Local `.env` files must not be committed.
 
-The local realm uses the `banking` login theme located in:
+The local realm uses the `banking` login and email themes located in:
 
 ```txt
 infra/keycloak/themes/banking/login
+infra/keycloak/themes/banking/email
 ```
 
 ## Start
@@ -53,6 +54,12 @@ banking-ecosystem
 ```
 
 Login theme:
+
+```txt
+banking
+```
+
+Email theme:
 
 ```txt
 banking
@@ -164,6 +171,13 @@ resources/fonts/geist-latin-wght-normal.woff2
 resources/js/banking-login.js
 ```
 
+The credential required actions add dedicated `login-update-profile.ftl` and
+`login-update-password.ftl` screens. They preserve Keycloak's native field and
+form contracts while presenting only the username and password choices needed
+by onboarding. The realm explicitly orders `UPDATE_PROFILE` before
+`UPDATE_PASSWORD`, so customers choose their username before creating a
+password on both fresh imports and existing local volumes.
+
 The customer-facing realm and theme support Spanish only. The theme uses the canonical Nerva tokens, logos, and self-hosted Geist font generated from `design-system`; run `node design-system/scripts/generate.mjs --check` from the repository root to verify the copies.
 
 The login form uses direct access copy and always shows the academic disclaimer. It does not advertise unimplemented product features or use security/implementation language as marketing content.
@@ -182,14 +196,43 @@ For local theme development, Docker Compose disables Keycloak theme/template/sta
 
 `BANKING_FRONTEND_URL` controls the theme's `Volver al inicio` link and the interactive client's browser URLs. Use an origin without a trailing slash; the local default is `http://localhost:4200`.
 
-The one-shot `keycloak-realm-init` container reconciles the login theme, Spanish locale, browser URLs, and client secrets on every infrastructure start. This also updates existing local volumes.
+The one-shot `keycloak-realm-init` container reconciles the login and email themes, Spanish locale, credential-action order, password policy, browser URLs, SMTP sender, and client secrets on every infrastructure start. This also updates existing local volumes.
+
+## Credential password policy
+
+The customer realm requires at least 15 characters, rejects the username and
+email as the complete password, and checks the repository-owned local
+blocklist. It does not require arbitrary character classes or periodic password
+changes. Spaces and passphrases remain supported.
+
+```txt
+length(15) and notUsername and notEmail and passwordBlacklist(nerva-passwords.txt)
+```
+
+The local blocklist is mounted read-only from
+`infra/keycloak/password-blacklists`. It makes development and validation
+deterministic; it is not a production compromised-password corpus.
+
+## Credential email theme
+
+The `banking/email` theme owns the credential invitation subject, responsive
+HTML and plain-text alternative. Copy describes the two customer actions
+without exposing Keycloak action identifiers or administrative language, and
+the academic disclaimer remains visible even when images are unavailable.
 
 Verify the static theme contract, or include the rendered local Keycloak page when the container is running:
 
 ```powershell
 node infra/keycloak/scripts/verify-theme.mjs
 node infra/keycloak/scripts/verify-theme.mjs --live
+node infra/keycloak/scripts/verify-credential-flow.mjs
 ```
+
+The credential-flow verifier creates and removes a disposable Keycloak user,
+sends one message through the configured local SMTP server, checks both email
+representations, exercises the username and password required actions, and
+stops at the BFF completion redirect. It requires Keycloak and Mailpit to be
+running.
 
 Manual verification path:
 

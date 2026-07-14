@@ -3,6 +3,7 @@ package com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web;
 import com.fedebacelar.bank.onboarding.application.command.SubmitOnboardingCommand;
 import com.fedebacelar.bank.onboarding.application.port.in.ConsumeMagicLinkUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.GetOnboardingApplicationUseCase;
+import com.fedebacelar.bank.onboarding.application.port.in.GetOnboardingCompletionStatusUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.ResendCredentialInvitationUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.RetryOnboardingWorkflowUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.StartOnboardingApplicationUseCase;
@@ -11,6 +12,8 @@ import com.fedebacelar.bank.onboarding.application.port.in.ValidateContinuationU
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.ConsumeMagicLinkRequest;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.ContinuationRequest;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.OnboardingApplicationResponse;
+import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.OnboardingCompletionStatusRequest;
+import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.OnboardingCompletionStatusResponse;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.OnboardingContinuationResponse;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.OnboardingSubmissionResponse;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.in.web.dto.StartOnboardingApplicationRequest;
@@ -42,6 +45,7 @@ public class OnboardingApplicationController {
     private final ConsumeMagicLinkUseCase consumeMagicLinkUseCase;
     private final ValidateContinuationUseCase validateContinuationUseCase;
     private final GetOnboardingApplicationUseCase getOnboardingApplicationUseCase;
+    private final GetOnboardingCompletionStatusUseCase getOnboardingCompletionStatusUseCase;
     private final SubmitOnboardingUseCase submitOnboardingUseCase;
     private final ResendCredentialInvitationUseCase resendCredentialInvitationUseCase;
     private final RetryOnboardingWorkflowUseCase retryWorkflowUseCase;
@@ -52,6 +56,7 @@ public class OnboardingApplicationController {
             ConsumeMagicLinkUseCase consumeMagicLinkUseCase,
             ValidateContinuationUseCase validateContinuationUseCase,
             GetOnboardingApplicationUseCase getOnboardingApplicationUseCase,
+            GetOnboardingCompletionStatusUseCase getOnboardingCompletionStatusUseCase,
             SubmitOnboardingUseCase submitOnboardingUseCase,
             ResendCredentialInvitationUseCase resendCredentialInvitationUseCase,
             RetryOnboardingWorkflowUseCase retryWorkflowUseCase,
@@ -61,6 +66,7 @@ public class OnboardingApplicationController {
         this.consumeMagicLinkUseCase = consumeMagicLinkUseCase;
         this.validateContinuationUseCase = validateContinuationUseCase;
         this.getOnboardingApplicationUseCase = getOnboardingApplicationUseCase;
+        this.getOnboardingCompletionStatusUseCase = getOnboardingCompletionStatusUseCase;
         this.submitOnboardingUseCase = submitOnboardingUseCase;
         this.resendCredentialInvitationUseCase = resendCredentialInvitationUseCase;
         this.retryWorkflowUseCase = retryWorkflowUseCase;
@@ -78,6 +84,16 @@ public class OnboardingApplicationController {
     @GetMapping("/applications/{applicationId}")
     public OnboardingApplicationResponse get(@PathVariable UUID applicationId) {
         return mapper.toResponse(getOnboardingApplicationUseCase.get(applicationId));
+    }
+
+    @Operation(summary = "Resolve onboarding completion status from an authenticated Keycloak subject")
+    @PostMapping("/completion-status")
+    public OnboardingCompletionStatusResponse completionStatus(
+            @Valid @RequestBody OnboardingCompletionStatusRequest request
+    ) {
+        return OnboardingCompletionStatusResponse.from(
+                getOnboardingCompletionStatusUseCase.getByKeycloakSubject(request.keycloakSubject())
+        );
     }
 
     @Operation(summary = "Consume onboarding magic link")

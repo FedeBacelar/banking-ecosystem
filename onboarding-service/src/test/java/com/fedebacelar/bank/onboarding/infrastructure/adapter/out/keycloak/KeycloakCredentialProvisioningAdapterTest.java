@@ -68,9 +68,25 @@ class KeycloakCredentialProvisioningAdapterTest {
         assertThat(state.username()).isEqualTo("federico.bacelar");
     }
 
+    @Test
+    void sendsCredentialActionsBackThroughTheBffCompletionEntryPoint() {
+        KeycloakAdminFeignClient client = mock(KeycloakAdminFeignClient.class);
+
+        adapter(client).sendCredentialSetupEmail("keycloak-user-id");
+
+        verify(client).executeActionsEmail(
+                "banking-ecosystem",
+                "keycloak-user-id",
+                "home-banking-bff",
+                "http://localhost:8085/web/auth/login/onboarding-completion",
+                Math.toIntExact(Duration.ofHours(24).toSeconds()),
+                List.of("UPDATE_PROFILE", "UPDATE_PASSWORD")
+        );
+    }
+
     private KeycloakCredentialProvisioningAdapter adapter(KeycloakAdminFeignClient client) {
         return new KeycloakCredentialProvisioningAdapter(client, "banking-ecosystem", "home-banking-bff",
-                "http://localhost:4200/onboarding/credentials-complete", Duration.ofHours(24));
+                "http://localhost:8085/web/auth/login/onboarding-completion", Duration.ofHours(24));
     }
 
     private ApplicantData applicant(UUID applicationId) {

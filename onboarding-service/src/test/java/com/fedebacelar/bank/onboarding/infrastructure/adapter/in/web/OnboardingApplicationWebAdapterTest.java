@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fedebacelar.bank.onboarding.application.port.in.ConsumeMagicLinkUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.GetOnboardingApplicationUseCase;
+import com.fedebacelar.bank.onboarding.application.port.in.GetOnboardingCompletionStatusUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.ResendCredentialInvitationUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.RetryOnboardingWorkflowUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.StartOnboardingApplicationUseCase;
@@ -18,6 +19,7 @@ import com.fedebacelar.bank.onboarding.application.port.in.SubmitOnboardingUseCa
 import com.fedebacelar.bank.onboarding.application.port.in.ValidateContinuationUseCase;
 import com.fedebacelar.bank.onboarding.application.view.OnboardingApplicationDetails;
 import com.fedebacelar.bank.onboarding.application.view.OnboardingContinuationDetails;
+import com.fedebacelar.bank.onboarding.application.view.OnboardingCompletionDetails;
 import com.fedebacelar.bank.onboarding.application.view.OnboardingSubmissionDetails;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingApplicationStatus;
 import com.fedebacelar.bank.onboarding.domain.exception.InvalidOnboardingDocumentException;
@@ -58,6 +60,8 @@ class OnboardingApplicationWebAdapterTest {
     private ValidateContinuationUseCase validateUseCase;
     @MockitoBean
     private GetOnboardingApplicationUseCase getUseCase;
+    @MockitoBean
+    private GetOnboardingCompletionStatusUseCase completionStatusUseCase;
     @MockitoBean
     private SubmitOnboardingUseCase submitUseCase;
     @MockitoBean
@@ -108,6 +112,33 @@ class OnboardingApplicationWebAdapterTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.applicationId").value(applicationId.toString()))
                 .andExpect(jsonPath("$.email").value("person@example.com"));
+    }
+
+    @Test
+    void shouldResolveCompletionFromAKeycloakSubjectWithoutReturningIdentifiers() throws Exception {
+        Instant updatedAt = Instant.parse("2026-07-13T12:00:00Z");
+        when(completionStatusUseCase.getByKeycloakSubject("keycloak-user-id")).thenReturn(
+                new OnboardingCompletionDetails(OnboardingApplicationStatus.COMPLETED, updatedAt)
+        );
+
+        mockMvc.perform(post("/internal/onboarding/completion-status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"keycloakSubject\":\"keycloak-user-id\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.updatedAt").value(updatedAt.toString()))
+                .andExpect(jsonPath("$.applicationId").doesNotExist())
+                .andExpect(jsonPath("$.keycloakSubject").doesNotExist())
+                .andExpect(jsonPath("$.email").doesNotExist());
+    }
+
+    @Test
+    void shouldRejectAnInvalidCompletionSubject() throws Exception {
+        mockMvc.perform(post("/internal/onboarding/completion-status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"keycloakSubject\":\"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
 
     @Test

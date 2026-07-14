@@ -31,7 +31,7 @@ public class KeycloakCredentialProvisioningAdapter implements CredentialProvisio
             KeycloakAdminFeignClient client,
             @Value("${onboarding.keycloak.realm:banking-ecosystem}") String realm,
             @Value("${onboarding.keycloak.action-client-id:home-banking-bff}") String actionClientId,
-            @Value("${onboarding.keycloak.credential-redirect-uri:http://localhost:4200/onboarding/credentials-complete}") String redirectUri,
+            @Value("${onboarding.keycloak.credential-redirect-uri:http://localhost:8085/web/auth/login/onboarding-completion}") String redirectUri,
             @Value("${onboarding.keycloak.action-lifespan:PT24H}") Duration lifespan
     ) {
         this.client = client;

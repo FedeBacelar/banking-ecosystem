@@ -1,10 +1,12 @@
 package com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.out.security;
 
+import com.fedebacelar.bank.homebanking.bff.application.exception.InternalAccessUnavailableException;
 import com.fedebacelar.bank.homebanking.bff.application.port.out.GetInternalAccessTokenPort;
 import com.fedebacelar.bank.homebanking.bff.application.port.out.InternalAccessPurpose;
 import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -23,9 +25,14 @@ public class OAuth2ClientCredentialsTokenAdapter implements GetInternalAccessTok
                 .principal("home-banking-bff:" + purpose.name().toLowerCase())
                 .build();
 
-        OAuth2AuthorizedClient authorizedClient = authorizedClientManager.authorize(request);
+        OAuth2AuthorizedClient authorizedClient;
+        try {
+            authorizedClient = authorizedClientManager.authorize(request);
+        } catch (OAuth2AuthorizationException exception) {
+            throw new InternalAccessUnavailableException(exception);
+        }
         if (authorizedClient == null) {
-            throw new IllegalStateException("Could not authorize internal BFF client.");
+            throw new InternalAccessUnavailableException();
         }
 
         return authorizedClient.getAccessToken().getTokenValue();
