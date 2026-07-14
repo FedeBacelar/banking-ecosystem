@@ -25,6 +25,7 @@ Current capabilities:
   credential setup.
 - Uses Mailpit as the credential-free local SMTP default.
 - Fixes the complete `KEYCLOAK_PUBLIC_URL` used to generate signed action links.
+- Applies bounded temporary lockouts to repeated password failures.
 
 ## Local Runtime
 
@@ -320,6 +321,19 @@ That BFF entry point creates an authenticated session and returns to Angular onl
 
 When `keycloak-realm-init` exits with code `0`, that stopped container is expected; it is an initialization job.
 
+## Brute-force protection
+
+The realm starts a temporary lockout after five failed logins. Wait time grows
+linearly from 30 seconds to a maximum of five minutes, and the failure count
+resets after one hour. Attempts less than one second apart receive a 10-second
+pause. The same values are present in the realm import and reconciled through
+the Admin API for an existing volume.
+
+Permanent lockout is disabled. The project does not yet have an operational
+account-unlock process, and permanent per-account lockout would create a simple
+denial-of-service path for known usernames. This defense does not replace the
+distributed source/IP rate limiting and monitoring required before deployment.
+
 ## Login Theme
 
 The `banking` theme customizes the Keycloak login page while keeping Keycloak responsible for the authentication flow.
@@ -371,6 +385,7 @@ http://localhost:8085/web/auth/login/home
 ```
 
 `keycloak-realm-init` reconciles the login and email themes, Spanish locale,
-fixed public identity URL, browser URLs, local Mailpit SMTP settings, client
-secrets, capability roles, the `account-service` machine client, and exact
-application-role mappings for both new realms and existing local volumes.
+fixed public identity URL, browser URLs, brute-force settings, local Mailpit SMTP
+settings, client secrets, capability roles, the `account-service` machine
+client, and exact application-role mappings for both new realms and existing
+local volumes.

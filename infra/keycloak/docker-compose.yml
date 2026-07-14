@@ -71,6 +71,17 @@ services:
           -s 'internationalizationEnabled=true' \
           -s 'defaultLocale=es' \
           -s 'supportedLocales=["es"]' \
+          -s 'bruteForceProtected=true' \
+          -s 'permanentLockout=false' \
+          -s 'maxTemporaryLockouts=0' \
+          -s 'bruteForceStrategy=LINEAR' \
+          -s 'maxFailureWaitSeconds=300' \
+          -s 'minimumQuickLoginWaitSeconds=10' \
+          -s 'waitIncrementSeconds=30' \
+          -s 'quickLoginCheckMilliSeconds=1000' \
+          -s 'maxDeltaTimeSeconds=3600' \
+          -s 'failureFactor=5' \
+          -s 'maxSecondaryAuthFailures=0' \
           -s "smtpServer=$$SMTP_CONFIG"
 
         /opt/keycloak/bin/kcadm.sh update authentication/required-actions/UPDATE_PROFILE \

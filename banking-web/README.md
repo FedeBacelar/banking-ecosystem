@@ -58,6 +58,11 @@ to `api-gateway`; the SPA never stores OAuth tokens or calls internal services.
 Login and logout are top-level browser navigations. Logout is a normal HTML
 `POST` with the CSRF value materialized by `/web/me`.
 
+If the gateway limits repeated application starts, Angular reads the numeric
+`Retry-After` header and tells the customer how long to wait. The screen does
+not display the client address, request counters, or any email-registration
+state.
+
 ## Visual source of truth
 
 The canonical Nerva tokens, logos, and Geist font live in `../design-system`.

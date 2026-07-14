@@ -1,5 +1,8 @@
 server:
   port: ${API_GATEWAY_PORT:8085}
+  # The gateway rate limiter uses the TCP peer unless an explicit trusted-proxy
+  # CIDR is configured. Do not let the HTTP server reinterpret forwarded headers.
+  forward-headers-strategy: none
 
 spring:
   cloud:
@@ -26,3 +29,19 @@ info:
     name: api-gateway
     description: API gateway for routing external requests to internal banking services
     version: 0.0.1-SNAPSHOT
+
+banking:
+  gateway:
+    rate-limit:
+      onboarding-start:
+        enabled: ${API_GATEWAY_ONBOARDING_START_RATE_LIMIT_ENABLED:true}
+        short-window-requests: ${API_GATEWAY_ONBOARDING_START_SHORT_WINDOW_REQUESTS:3}
+        short-window: ${API_GATEWAY_ONBOARDING_START_SHORT_WINDOW:PT1M}
+        long-window-requests: ${API_GATEWAY_ONBOARDING_START_LONG_WINDOW_REQUESTS:10}
+        long-window: ${API_GATEWAY_ONBOARDING_START_LONG_WINDOW:PT1H}
+        global-short-window-requests: ${API_GATEWAY_ONBOARDING_START_GLOBAL_SHORT_WINDOW_REQUESTS:30}
+        global-long-window-requests: ${API_GATEWAY_ONBOARDING_START_GLOBAL_LONG_WINDOW_REQUESTS:300}
+        maximum-clients: ${API_GATEWAY_ONBOARDING_START_MAXIMUM_CLIENTS:10000}
+        client-idle-expiration: ${API_GATEWAY_ONBOARDING_START_CLIENT_IDLE_EXPIRATION:PT2H}
+        client-ipv6-prefix-length: ${API_GATEWAY_ONBOARDING_START_CLIENT_IPV6_PREFIX_LENGTH:64}
+        trusted-proxies: ${API_GATEWAY_TRUSTED_PROXY_CIDRS:}

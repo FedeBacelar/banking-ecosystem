@@ -39,4 +39,32 @@ describe('OnboardingStartPage', () => {
     expect(navigate).toHaveBeenCalledWith(['/onboarding/correo-enviado']);
     http.verify();
   });
+
+  it('explains when the customer must wait before requesting another link', () => {
+    const fixture = TestBed.createComponent(OnboardingStartPage);
+    const http = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
+
+    const input = (fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>('input')!;
+    input.value = 'person@example.com';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLFormElement>('form')!
+      .dispatchEvent(new SubmitEvent('submit'));
+
+    const request = http.expectOne('/web/onboarding/applications');
+    request.flush(
+      { code: 'ONBOARDING_START_RATE_LIMIT' },
+      {
+        status: 429,
+        statusText: 'Too Many Requests',
+        headers: { 'Retry-After': '60' }
+      }
+    );
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent)
+      .toContain('Esperá un minuto antes de pedir otro enlace.');
+    http.verify();
+  });
 });

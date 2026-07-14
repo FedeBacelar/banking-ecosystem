@@ -13,6 +13,19 @@ const expectedCredentialActionPriorities = {
   UPDATE_PROFILE: 30,
   UPDATE_PASSWORD: 40,
 };
+const expectedBruteForceSettings = {
+  bruteForceProtected: true,
+  permanentLockout: false,
+  maxTemporaryLockouts: 0,
+  bruteForceStrategy: "LINEAR",
+  maxFailureWaitSeconds: 300,
+  minimumQuickLoginWaitSeconds: 10,
+  waitIncrementSeconds: 30,
+  quickLoginCheckMilliSeconds: 1000,
+  maxDeltaTimeSeconds: 3600,
+  failureFactor: 5,
+  maxSecondaryAuthFailures: 0,
+};
 const expectedRedirectUris = [
   "http://localhost:8085/web/login/oauth2/code/keycloak",
   "http://localhost:8085/web/login/oauth2/code/keycloak-onboarding-completion",
@@ -126,6 +139,16 @@ assert(
   JSON.stringify(realm.supportedLocales) === JSON.stringify(["es"]),
   "The customer realm must support Spanish only.",
 );
+for (const [setting, expectedValue] of Object.entries(expectedBruteForceSettings)) {
+  assert(
+    realm[setting] === expectedValue,
+    `The fresh realm import has an unexpected ${setting} brute-force setting.`,
+  );
+  assert(
+    compose.includes(`-s '${setting}=${expectedValue}'`),
+    `The realm initializer does not reconcile the ${setting} brute-force setting.`,
+  );
+}
 assert(
   JSON.stringify(realm.smtpServer) ===
     JSON.stringify({
@@ -411,6 +434,12 @@ if (process.argv.includes("--live")) {
     liveRealm.passwordPolicy === expectedPasswordPolicy,
     "The live password policy is not reconciled.",
   );
+  for (const [setting, expectedValue] of Object.entries(expectedBruteForceSettings)) {
+    assert(
+      liveRealm[setting] === expectedValue,
+      `The live ${setting} brute-force setting is not reconciled.`,
+    );
+  }
   assert(
     liveRealm.smtpServer?.fromDisplayName === "Nerva Banking",
     "The live SMTP sender display name is not reconciled.",

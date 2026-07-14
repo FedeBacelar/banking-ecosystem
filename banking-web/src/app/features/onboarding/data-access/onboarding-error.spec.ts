@@ -1,6 +1,6 @@
 import { HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 
-import { retryAfterSeconds } from './onboarding-error';
+import { isOnboardingStartRateLimited, retryAfterSeconds } from './onboarding-error';
 
 describe('onboarding error presentation', () => {
   it('reads delta-seconds from Retry-After', () => {
@@ -20,5 +20,14 @@ describe('onboarding error presentation', () => {
     });
 
     expect(retryAfterSeconds(error, now)).toBe(60);
+  });
+
+  it('recognizes the stable onboarding start limit contract', () => {
+    const error = new HttpErrorResponse({
+      status: 429,
+      error: { code: 'ONBOARDING_START_RATE_LIMIT' }
+    });
+
+    expect(isOnboardingStartRateLimited(error)).toBe(true);
   });
 });

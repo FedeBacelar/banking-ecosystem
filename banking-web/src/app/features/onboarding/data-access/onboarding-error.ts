@@ -37,6 +37,11 @@ export function isCredentialInvitationCooldown(error: unknown): boolean {
     && (error.status === 429 || problemCode(error) === 'CREDENTIAL_INVITATION_COOLDOWN');
 }
 
+export function isOnboardingStartRateLimited(error: unknown): boolean {
+  return error instanceof HttpErrorResponse
+    && (error.status === 429 || problemCode(error) === 'ONBOARDING_START_RATE_LIMIT');
+}
+
 export function retryAfterSeconds(error: unknown, now = Date.now()): number | null {
   if (!(error instanceof HttpErrorResponse)) {
     return null;

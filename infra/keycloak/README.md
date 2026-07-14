@@ -219,6 +219,20 @@ The theme keeps Keycloak in control of authentication behavior: form submission,
 
 Public self-registration, public password recovery, and Keycloak remember-me are disabled in the imported realm. Those flows should be implemented only after defining the corresponding banking business process.
 
+## Login brute-force protection
+
+The customer realm uses temporary lockouts instead of permanent account
+disablement. Five failed logins start a 30-second wait; each subsequent failure
+increases the wait linearly up to five minutes. The failure count resets after
+one hour. Attempts made less than one second apart trigger a 10-second pause.
+
+This policy is explicit in the realm import and is reconciled by
+`keycloak-realm-init`, so it applies to fresh realms and existing local volumes.
+Permanent lockout is intentionally disabled because this academic environment
+has no staffed account-unlock process and an attacker could otherwise use the
+feature to deny access to a known user. A real deployment must complement this
+per-account defense with distributed source/IP rate limiting and monitoring.
+
 The Docker Compose file mounts themes into the container:
 
 ```txt
@@ -234,7 +248,7 @@ are independent exact origins. They contain scheme, host, and effective port;
 wildcard hosts and suffix matching are not supported. The identity origin must
 match `KEYCLOAK_PUBLIC_URL`.
 
-The one-shot `keycloak-realm-init` container reconciles the login and email themes, Spanish locale, credential-action order, password policy, browser URLs, SMTP sender, and client secrets on every infrastructure start. This also updates existing local volumes.
+The one-shot `keycloak-realm-init` container reconciles the login and email themes, Spanish locale, credential-action order, password and brute-force policies, browser URLs, SMTP sender, and client secrets on every infrastructure start. This also updates existing local volumes.
 
 ## Credential password policy
 

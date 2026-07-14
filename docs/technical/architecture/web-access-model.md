@@ -25,6 +25,11 @@ The BFF stores the continuation token in an HttpOnly cookie and calls `onboardin
 
 Application start and magic-link exchange are not authorized by ambient cookies. The exchange creates both continuation authority and the XSRF cookie. Later mutations require the automatic XSRF header; no CSRF bootstrap request exists.
 
+At the external boundary, only application start is rate-limited per client:
+three accepted requests per minute and ten per hour. The gateway returns a
+sanitized `429` with `Retry-After`; `onboarding-service` independently keeps the
+durable one-minute cooldown per destination email.
+
 The composite submit contains applicant data, terms acceptance, DNI front, and DNI back. `onboarding-service`, not the frontend or BFF, coordinates document storage, review, provisioning, and credential readiness with its purpose-specific provisioning roles. If `account-service` must validate the new customer, it uses its own `CUSTOMER_READ` machine token instead of forwarding the orchestrator token.
 
 ## Authenticated Home Banking

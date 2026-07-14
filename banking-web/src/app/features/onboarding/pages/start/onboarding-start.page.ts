@@ -5,6 +5,10 @@ import { finalize } from 'rxjs';
 
 import { OnboardingApiService } from '../../data-access/onboarding-api.service';
 import { OnboardingDraftStore } from '../../data-access/onboarding-draft.store';
+import {
+  isOnboardingStartRateLimited,
+  retryAfterSeconds
+} from '../../data-access/onboarding-error';
 
 @Component({
   selector: 'nb-onboarding-start-page',
@@ -100,9 +104,26 @@ export class OnboardingStartPage {
           this.emailModel.set({ email: '' });
           void this.router.navigate(['/onboarding/correo-enviado']);
         },
-        error: () => {
+        error: (error: unknown) => {
+          if (isOnboardingStartRateLimited(error)) {
+            this.errorMessage.set(this.rateLimitMessage(retryAfterSeconds(error)));
+            return;
+          }
           this.errorMessage.set('No pudimos enviar el enlace. Intentá nuevamente.');
         }
       });
+  }
+
+  private rateLimitMessage(retryAfter: number | null): string {
+    if (retryAfter === null) {
+      return 'Pediste varios enlaces en poco tiempo. Esperá unos minutos antes de volver a intentar.';
+    }
+    if (retryAfter < 60) {
+      const unit = retryAfter === 1 ? 'segundo' : 'segundos';
+      return `Esperá ${retryAfter} ${unit} antes de pedir otro enlace.`;
+    }
+    const minutes = Math.ceil(retryAfter / 60);
+    const wait = minutes === 1 ? 'un minuto' : `${minutes} minutos`;
+    return `Esperá ${wait} antes de pedir otro enlace.`;
   }
 }

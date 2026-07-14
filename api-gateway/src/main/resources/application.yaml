@@ -3,3 +3,8 @@ spring:
     name: api-gateway
   config:
     import: "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+
+# Edge client identity starts from the TCP peer. Forwarding headers are
+# evaluated only after the rate-limit resolver validates an explicit proxy CIDR.
+server:
+  forward-headers-strategy: none

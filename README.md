@@ -263,6 +263,14 @@ Gateway entry point:
 http://localhost:8085
 ```
 
+The gateway locally limits anonymous application starts to three requests per
+minute and ten per hour for each client. A rejected request returns `429` with
+`Retry-After`, which Angular presents as a concrete wait. Forwarded client
+addresses are ignored unless their immediate proxy CIDR is explicitly trusted.
+A process-wide ceiling also bounds address rotation. The local in-memory
+limiter is for the current single-instance stage; a future multi-instance/VPS
+deployment must use a shared edge limit.
+
 Create or reconcile the local bank data linked to the Keycloak user
 `home-banking-user` after Keycloak, customer, account, and identity services are
 ready. The script is safe to run more than once and stops on conflicting local

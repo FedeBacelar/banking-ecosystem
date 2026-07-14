@@ -67,6 +67,17 @@ ONBOARDING_INTERNAL_OAUTH_CLIENT_ID
 ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET
 HOME_BANKING_BFF_COOKIE_SECURE
 HOME_BANKING_BFF_ONBOARDING_COOKIE_SECURE
+API_GATEWAY_ONBOARDING_START_RATE_LIMIT_ENABLED
+API_GATEWAY_ONBOARDING_START_SHORT_WINDOW_REQUESTS
+API_GATEWAY_ONBOARDING_START_SHORT_WINDOW
+API_GATEWAY_ONBOARDING_START_LONG_WINDOW_REQUESTS
+API_GATEWAY_ONBOARDING_START_LONG_WINDOW
+API_GATEWAY_ONBOARDING_START_GLOBAL_SHORT_WINDOW_REQUESTS
+API_GATEWAY_ONBOARDING_START_GLOBAL_LONG_WINDOW_REQUESTS
+API_GATEWAY_ONBOARDING_START_MAXIMUM_CLIENTS
+API_GATEWAY_ONBOARDING_START_CLIENT_IDLE_EXPIRATION
+API_GATEWAY_ONBOARDING_START_CLIENT_IPV6_PREFIX_LENGTH
+API_GATEWAY_TRUSTED_PROXY_CIDRS
 ```
 
 Local development may use safe defaults, but real credentials must come from outside the repository.
@@ -92,6 +103,14 @@ Changing the public onboarding origin is one atomic deployment change:
 `ONBOARDING_FRONTEND_MAGIC_LINK_BASE_URL` and
 `NOTIFICATION_MAGIC_LINK_ALLOWED_ORIGINS` must include the same origin before
 traffic moves. The end-to-end onboarding check verifies that contract.
+
+Gateway forwarding headers are untrusted by default. Set
+`API_GATEWAY_TRUSTED_PROXY_CIDRS` only when the gateway is reachable exclusively
+through those proxy networks and the boundary proxy replaces client-supplied
+forwarding headers. The value is a comma-separated list of literal IPv4/IPv6
+CIDRs; hostnames, wildcards, and prefixes that trust the entire Internet are
+rejected at startup. The gateway also fails to start if its HTTP server is
+configured to reinterpret forwarding headers before this trust check.
 
 Authenticated SMTP must use either mandatory STARTTLS or implicit SSL.
 Authentication, username, and password are enabled together; finite connection,
