@@ -31,6 +31,8 @@ public class SecurityConfig {
                         authorize.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll();
                     }
                     authorize.requestMatchers(HttpMethod.GET, "/customers/**").hasRole("CUSTOMER_READ");
+                    authorize.requestMatchers(HttpMethod.POST, "/customers/natural-persons").hasRole("CUSTOMER_PROVISION");
+                    authorize.requestMatchers(HttpMethod.PATCH, "/customers/*/kyc/approve").hasRole("CUSTOMER_PROVISION");
                     authorize.requestMatchers(HttpMethod.POST, "/customers/**").hasRole("CUSTOMER_WRITE");
                     authorize.requestMatchers(HttpMethod.PATCH, "/customers/**").hasRole("CUSTOMER_WRITE");
                     authorize.requestMatchers("/customers/**").denyAll();

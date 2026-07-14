@@ -44,6 +44,8 @@ GET /internal/onboarding/applications/{applicationId}
 POST /internal/onboarding/magic-links/consume
 POST /internal/onboarding/continuations/validate
 POST /internal/onboarding/completion-status
+POST /internal/onboarding/applications/{applicationId}/review/retry
+POST /internal/onboarding/applications/{applicationId}/provisioning/retry
 ```
 
 Security:
@@ -52,7 +54,12 @@ Security:
 ONBOARDING_WRITE -> start applications and consume magic links
 ONBOARDING_READ  -> read application metadata and validate continuations
 ONBOARDING_READ  -> resolve completion status from a BFF-derived Keycloak subject
+ONBOARDING_OPERATE -> retry failed review or provisioning work
 ```
+
+The BFF service account has `ONBOARDING_READ` and `ONBOARDING_WRITE`, but not `ONBOARDING_OPERATE`. Operational retries are intentionally unavailable from the browser journey.
+
+Outbound customer, account, and identity creation uses the dedicated `onboarding-orchestrator` service account with `*_PROVISION` roles. Those calls do not reuse the BFF or browser token.
 
 ## Tests
 

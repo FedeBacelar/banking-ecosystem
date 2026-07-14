@@ -168,7 +168,11 @@
       },
       {
         "name": "CUSTOMER_WRITE",
-        "description": "Allows creating and changing customer information."
+        "description": "Allows administrative changes to customer information after onboarding."
+      },
+      {
+        "name": "CUSTOMER_PROVISION",
+        "description": "Allows onboarding to create a customer record and approve its initial KYC."
       },
       {
         "name": "ACCOUNT_READ",
@@ -176,7 +180,11 @@
       },
       {
         "name": "ACCOUNT_WRITE",
-        "description": "Allows creating and changing account information."
+        "description": "Allows administrative changes to account information after onboarding."
+      },
+      {
+        "name": "ACCOUNT_PROVISION",
+        "description": "Allows onboarding to open and activate the initial account for an approved application."
       },
       {
         "name": "IDENTITY_READ",
@@ -184,7 +192,11 @@
       },
       {
         "name": "IDENTITY_WRITE",
-        "description": "Allows creating and changing identity links."
+        "description": "Allows administrative changes to identity links after onboarding."
+      },
+      {
+        "name": "IDENTITY_PROVISION",
+        "description": "Allows onboarding to link the approved customer with their Keycloak identity."
       },
       {
         "name": "NOTIFICATION_WRITE",
@@ -205,6 +217,10 @@
       {
         "name": "ONBOARDING_WRITE",
         "description": "Allows starting and changing onboarding applications."
+      },
+      {
+        "name": "ONBOARDING_OPERATE",
+        "description": "Allows an operator to execute protected onboarding operations."
       }
     ]
   },
@@ -318,6 +334,20 @@
       "standardFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": true
+    },
+    {
+      "clientId": "account-service",
+      "name": "Account Service",
+      "description": "Machine client used by account-service for customer eligibility reads.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${ACCOUNT_INTERNAL_OAUTH_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
     }
   ],
   "users": [
@@ -346,11 +376,11 @@
       "serviceAccountClientId": "onboarding-orchestrator",
       "realmRoles": [
         "CUSTOMER_READ",
-        "CUSTOMER_WRITE",
+        "CUSTOMER_PROVISION",
         "ACCOUNT_READ",
-        "ACCOUNT_WRITE",
+        "ACCOUNT_PROVISION",
         "IDENTITY_READ",
-        "IDENTITY_WRITE",
+        "IDENTITY_PROVISION",
         "DOCUMENT_READ",
         "DOCUMENT_WRITE",
         "NOTIFICATION_WRITE"
@@ -363,6 +393,14 @@
           "view-realm"
         ]
       }
+    },
+    {
+      "username": "service-account-account-service",
+      "enabled": true,
+      "serviceAccountClientId": "account-service",
+      "realmRoles": [
+        "CUSTOMER_READ"
+      ]
     },
     {
       "username": "banking-admin",
@@ -381,15 +419,19 @@
       "realmRoles": [
         "CUSTOMER_READ",
         "CUSTOMER_WRITE",
+        "CUSTOMER_PROVISION",
         "ACCOUNT_READ",
         "ACCOUNT_WRITE",
+        "ACCOUNT_PROVISION",
         "IDENTITY_READ",
         "IDENTITY_WRITE",
+        "IDENTITY_PROVISION",
         "NOTIFICATION_WRITE",
         "DOCUMENT_READ",
         "DOCUMENT_WRITE",
         "ONBOARDING_READ",
-        "ONBOARDING_WRITE"
+        "ONBOARDING_WRITE",
+        "ONBOARDING_OPERATE"
       ]
     },
     {

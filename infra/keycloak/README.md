@@ -71,7 +71,10 @@ Clients:
 banking-api
 banking-swagger
 home-banking-bff
+onboarding-bff-service
+home-banking-bff-service
 onboarding-orchestrator
+account-service
 ```
 
 Realm roles:
@@ -79,15 +82,19 @@ Realm roles:
 ```txt
 CUSTOMER_READ
 CUSTOMER_WRITE
+CUSTOMER_PROVISION
 ACCOUNT_READ
 ACCOUNT_WRITE
+ACCOUNT_PROVISION
 IDENTITY_READ
 IDENTITY_WRITE
+IDENTITY_PROVISION
 NOTIFICATION_WRITE
 DOCUMENT_READ
 DOCUMENT_WRITE
 ONBOARDING_READ
 ONBOARDING_WRITE
+ONBOARDING_OPERATE
 ```
 
 Local test users:
@@ -111,11 +118,17 @@ The interactive `home-banking-bff` client has no service account. Backend calls 
 ```txt
 onboarding-bff-service   -> ONBOARDING_READ, ONBOARDING_WRITE
 home-banking-bff-service -> CUSTOMER_READ, ACCOUNT_READ, IDENTITY_READ
+account-service          -> CUSTOMER_READ
+onboarding-orchestrator  -> read + purpose-specific provisioning roles, document and notification access
 ```
 
 These service accounts are not human login users and are not shared between purposes.
 
-The dedicated `onboarding-orchestrator` confidential client is used by `onboarding-service` for customer, account, identity, document, notification and Keycloak user-administration calls. It does not reuse the browser token or a human test user.
+The dedicated `onboarding-orchestrator` confidential client is used by `onboarding-service` for durable provisioning. It receives `CUSTOMER_PROVISION`, `ACCOUNT_PROVISION` and `IDENTITY_PROVISION` instead of the broader write roles. It does not reuse the browser token or a human test user.
+
+`ONBOARDING_OPERATE` is reserved for explicit operational actions. The browser-facing onboarding service account never receives it; the local `banking-admin` user does.
+
+The realm initializer creates missing provisioning roles and the `account-service` client, rotates local machine secrets, and reconciles the exact application-role set for every managed service account on existing volumes.
 
 `banking-admin` is not a home banking customer. It can test internal APIs, but it should not be used as the browser user for `/web/me`.
 
@@ -225,6 +238,8 @@ Verify the static theme contract, or include the rendered local Keycloak page wh
 ```powershell
 node infra/keycloak/scripts/verify-theme.mjs
 node infra/keycloak/scripts/verify-theme.mjs --live
+node infra/keycloak/scripts/verify-authorization.mjs
+node infra/keycloak/scripts/verify-authorization.mjs --live
 node infra/keycloak/scripts/verify-credential-flow.mjs
 ```
 

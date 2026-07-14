@@ -81,9 +81,13 @@ Info:         http://localhost:8080/actuator/info
 Protected API permissions:
 
 ```txt
-GET        /customers/** -> CUSTOMER_READ
-POST/PATCH /customers/** -> CUSTOMER_WRITE
+GET   /customers/**                   -> CUSTOMER_READ
+POST  /customers/natural-persons      -> CUSTOMER_PROVISION
+PATCH /customers/{customerId}/kyc/approve -> CUSTOMER_PROVISION
+other POST/PATCH /customers/**         -> CUSTOMER_WRITE
 ```
+
+`CUSTOMER_PROVISION` is the narrow onboarding capability. It can create the approved applicant's customer record and approve that initial KYC state without granting general customer maintenance.
 
 `/actuator/health` and `/actuator/info` are public for local operational checks.
 

@@ -78,16 +78,22 @@ The logged-in Keycloak user still needs the API roles required by each endpoint:
 ```txt
 CUSTOMER_READ
 CUSTOMER_WRITE
+CUSTOMER_PROVISION
 ACCOUNT_READ
 ACCOUNT_WRITE
+ACCOUNT_PROVISION
 IDENTITY_READ
 IDENTITY_WRITE
+IDENTITY_PROVISION
 NOTIFICATION_WRITE
 DOCUMENT_READ
 DOCUMENT_WRITE
 ONBOARDING_READ
 ONBOARDING_WRITE
+ONBOARDING_OPERATE
 ```
+
+The provisioning and operation roles are intentionally distinct from general write access. `banking-admin` can exercise them in local Swagger; browser-facing service accounts receive only their exact machine capabilities.
 
 ## Existing Keycloak Volumes
 

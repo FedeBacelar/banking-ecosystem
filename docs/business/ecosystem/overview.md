@@ -91,7 +91,7 @@ onboarding-service -> Keycloak
 account-service -> customer-service
 ```
 
-Internal calls use service credentials and service discovery where applicable. Services never query another service database.
+Internal calls use purpose-specific service credentials and service discovery where applicable. `account-service` uses its own read-only machine token when validating a customer instead of forwarding its caller's token. Services never query another service database.
 
 ## Boundary Principle
 

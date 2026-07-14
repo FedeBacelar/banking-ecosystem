@@ -15,7 +15,7 @@ This service owns bank accounts, account identifiers, account lifecycle, and ope
 - Expose account, balance, and status history queries.
 - Manage account lifecycle.
 - Consume `customer-service` through Feign using Eureka service discovery.
-- Forward the incoming `Authorization` header to internal Feign calls.
+- Authenticate calls to `customer-service` with the dedicated `account-service` service account.
 - Persist its own data in MySQL through Flyway migrations.
 - Read operational configuration from Config Server.
 - Validate JWT access tokens issued by Keycloak.
@@ -48,7 +48,12 @@ Environment overrides:
 ACCOUNT_DB_URL
 ACCOUNT_DB_USERNAME
 ACCOUNT_DB_PASSWORD
+ACCOUNT_INTERNAL_OAUTH_CLIENT_ID
+ACCOUNT_INTERNAL_OAUTH_CLIENT_SECRET
 ```
+
+The OAuth client uses the `client_credentials` grant. The local client id defaults to
+`account-service`; its secret must be supplied externally outside local development.
 
 ## Run
 

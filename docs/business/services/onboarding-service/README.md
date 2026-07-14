@@ -27,7 +27,7 @@ CREDENTIAL_SETUP_PENDING -> COMPLETED | CREDENTIAL_SETUP_EXPIRED | CREDENTIAL_SE
 EMAIL_VERIFICATION_PENDING | IN_PROGRESS | SUBMITTED | UNDER_AUTOMATED_REVIEW -> EXPIRED
 ```
 
-`REVIEW_FAILED`, `PROVISIONING_FAILED`, and `CREDENTIAL_SETUP_FAILED` represent technical failures, not commercial rejection. Review and provisioning failures have protected operational retry endpoints. Credential setup expiration and failure are terminal in the current applicant-facing contract.
+`REVIEW_FAILED`, `PROVISIONING_FAILED`, and `CREDENTIAL_SETUP_FAILED` represent technical failures, not commercial rejection. Review and provisioning failures have protected operational retry endpoints requiring `ONBOARDING_OPERATE`; that capability is not part of the applicant-facing BFF. Credential setup expiration and failure are terminal in the current applicant-facing contract.
 
 ## Review Model
 
@@ -37,7 +37,7 @@ Every control stores execution mode, execution state, outcome, policy version, p
 
 ## Provisioning Principle
 
-Provisioning is a durable process manager in MySQL. It retries from the first incomplete step and never deletes a customer, account, identity, or Keycloak user as automatic compensation. Downstream creates use idempotency keys derived from the application and step.
+Provisioning is a durable process manager in MySQL. It retries from the first incomplete step and never deletes a customer, account, identity, or Keycloak user as automatic compensation. Downstream creates use idempotency keys derived from the application and step and require purpose-specific `*_PROVISION` roles rather than general maintenance authority.
 
 ## Public Boundary
 

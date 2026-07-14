@@ -3,6 +3,7 @@ package com.fedebacelar.bank.customer.infrastructure.config;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -42,7 +43,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@WebMvcTest
+@WebMvcTest(controllers = {
+        SecurityConfigTest.TestCustomerController.class,
+        SecurityConfigTest.TestCustomerProvisioningController.class,
+        SecurityConfigTest.TestActuatorController.class,
+        SecurityConfigTest.TestDocsController.class
+})
 @ImportAutoConfiguration({
         SecurityAutoConfiguration.class,
         ServletWebSecurityAutoConfiguration.class,
@@ -53,6 +59,7 @@ import org.springframework.web.bind.annotation.RestController;
         CustomerWebMapper.class,
         RequestFingerprint.class,
         SecurityConfigTest.TestCustomerController.class,
+        SecurityConfigTest.TestCustomerProvisioningController.class,
         SecurityConfigTest.TestActuatorController.class,
         SecurityConfigTest.TestDocsController.class
 })
@@ -127,6 +134,47 @@ class SecurityConfigTest {
     }
 
     @Test
+    void shouldRequireTokenToProvisionCustomer() throws Exception {
+        mockMvc.perform(post("/customers/natural-persons"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void shouldAllowCustomerCreationWithCustomerProvisionRole() throws Exception {
+        mockMvc.perform(post("/customers/natural-persons")
+                        .header("Authorization", "Bearer " + tokenWithRoles("CUSTOMER_PROVISION")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldAllowKycApprovalWithCustomerProvisionRole() throws Exception {
+        mockMvc.perform(patch("/customers/customer-1/kyc/approve")
+                        .header("Authorization", "Bearer " + tokenWithRoles("CUSTOMER_PROVISION")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldRejectCustomerCreationWithAdministrativeWriteOnly() throws Exception {
+        mockMvc.perform(post("/customers/natural-persons")
+                        .header("Authorization", "Bearer " + tokenWithRoles("CUSTOMER_WRITE")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldRejectAdministrativeMutationWithCustomerProvisionRole() throws Exception {
+        mockMvc.perform(patch("/customers/customer-1/kyc/reject")
+                        .header("Authorization", "Bearer " + tokenWithRoles("CUSTOMER_PROVISION")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldAllowAdministrativeMutationWithCustomerWriteRole() throws Exception {
+        mockMvc.perform(patch("/customers/customer-1/kyc/reject")
+                        .header("Authorization", "Bearer " + tokenWithRoles("CUSTOMER_WRITE")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void shouldRejectUnsupportedCustomerMethodEvenWithWriteRole() throws Exception {
         mockMvc.perform(delete("/customers/test")
                         .header("Authorization", "Bearer " + tokenWithRoles("CUSTOMER_WRITE")))
@@ -180,6 +228,23 @@ class SecurityConfigTest {
 
         @PatchMapping
         void update() {
+        }
+    }
+
+    @RestController
+    @RequestMapping("/customers")
+    public static class TestCustomerProvisioningController {
+
+        @PostMapping("/natural-persons")
+        void createNaturalPerson() {
+        }
+
+        @PatchMapping("/{customerId}/kyc/approve")
+        void approveKyc() {
+        }
+
+        @PatchMapping("/{customerId}/kyc/reject")
+        void rejectKyc() {
         }
     }
 

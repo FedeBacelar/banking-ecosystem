@@ -62,15 +62,18 @@ Current roles:
 ```txt
 IDENTITY_READ
 IDENTITY_WRITE
+IDENTITY_PROVISION
 ```
 
 Access rules:
 
 ```txt
 GET   /identity-links/** -> IDENTITY_READ
-POST  /identity-links/** -> IDENTITY_WRITE
+POST  /identity-links    -> IDENTITY_PROVISION
 PATCH /identity-links/** -> IDENTITY_WRITE
 ```
+
+`IDENTITY_PROVISION` permits the onboarding orchestrator to create the initial Keycloak-to-customer link without granting later activation or disable operations.
 
 Health/info endpoints are public.
 

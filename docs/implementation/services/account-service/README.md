@@ -18,7 +18,7 @@ Implemented:
 - Query account, balance, and status history.
 - Activate, freeze, unfreeze, and close accounts.
 - Validate customer existence and status through Feign.
-- Forward the incoming `Authorization` header to `customer-service` calls.
+- Authenticate `customer-service` calls with the dedicated `account-service` service account.
 - Configure bank and branch identifier values through properties.
 - Validate request sizes against database limits.
 - Validate JWT access tokens issued by Keycloak.

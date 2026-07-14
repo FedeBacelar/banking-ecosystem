@@ -38,6 +38,8 @@ Owns onboarding applications, applicant continuation access, applicant capture, 
 
 It coordinates other capability owners but does not own the final customer, account, file content, Keycloak credential, notification record, or identity link.
 
+Applicant operations use `ONBOARDING_READ` and `ONBOARDING_WRITE`. Manual retry of failed review or provisioning work is a separate operational capability guarded by `ONBOARDING_OPERATE`; the browser-facing BFF does not receive it.
+
 ## home-banking-bff
 
 Owns the browser-facing contract for the web channel: OAuth2 login integration, server-side browser session, onboarding cookie, CSRF boundary, public DTOs, safe errors, and response composition.
@@ -74,4 +76,4 @@ onboarding-service -> Keycloak Admin API
 account-service -> customer-service
 ```
 
-Browser credentials are not propagated through this graph. The BFF and onboarding orchestrator obtain purpose-specific client-credentials tokens. `account-service` currently forwards its inbound internal bearer token when validating a customer through `customer-service`.
+Browser credentials are not propagated through this graph. The BFF and onboarding orchestrator obtain purpose-specific client-credentials tokens. Provisioning calls use `CUSTOMER_PROVISION`, `ACCOUNT_PROVISION`, and `IDENTITY_PROVISION` instead of the broader write capabilities. When `account-service` validates a customer, it replaces any inbound authorization header with its own client-credentials token containing only `CUSTOMER_READ`.

@@ -72,6 +72,40 @@ class SecurityConfigTest {
                 .andExpect(status().isOk());
     }
 
+    @Test
+    void operationalRetryRequiresAMachineToken() throws Exception {
+        mockMvc.perform(post("/internal/onboarding/applications/application-1/review/retry"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void reviewRetryAcceptsOnboardingOperate() throws Exception {
+        mockMvc.perform(post("/internal/onboarding/applications/application-1/review/retry")
+                        .header("Authorization", "Bearer " + tokenWithRoles("ONBOARDING_OPERATE")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void provisioningRetryAcceptsOnboardingOperate() throws Exception {
+        mockMvc.perform(post("/internal/onboarding/applications/application-1/provisioning/retry")
+                        .header("Authorization", "Bearer " + tokenWithRoles("ONBOARDING_OPERATE")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void operationalRetryRejectsApplicantWriteRole() throws Exception {
+        mockMvc.perform(post("/internal/onboarding/applications/application-1/review/retry")
+                        .header("Authorization", "Bearer " + tokenWithRoles("ONBOARDING_WRITE")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void applicantMutationRejectsOperateRole() throws Exception {
+        mockMvc.perform(post("/internal/onboarding/test")
+                        .header("Authorization", "Bearer " + tokenWithRoles("ONBOARDING_OPERATE")))
+                .andExpect(status().isForbidden());
+    }
+
     private String tokenWithRoles(String... roles) {
         String token = String.join("-", roles).toLowerCase() + "-token";
         Jwt jwt = Jwt.withTokenValue(token)
@@ -96,6 +130,14 @@ class SecurityConfigTest {
 
         @PostMapping("/test")
         void mutate() {
+        }
+
+        @PostMapping("/applications/{applicationId}/review/retry")
+        void retryReview() {
+        }
+
+        @PostMapping("/applications/{applicationId}/provisioning/retry")
+        void retryProvisioning() {
         }
     }
 }

@@ -42,9 +42,13 @@ http://localhost:8080/swagger-ui.html
 Required API roles:
 
 ```txt
-GET        /customers/** -> CUSTOMER_READ
-POST/PATCH /customers/** -> CUSTOMER_WRITE
+GET   /customers/**                   -> CUSTOMER_READ
+POST  /customers/natural-persons      -> CUSTOMER_PROVISION
+PATCH /customers/{customerId}/kyc/approve -> CUSTOMER_PROVISION
+other POST/PATCH /customers/**         -> CUSTOMER_WRITE
 ```
+
+The onboarding orchestrator receives `CUSTOMER_PROVISION`, not the broader `CUSTOMER_WRITE` capability.
 
 Local documentation endpoints are public when `banking.security.public-docs-enabled=true`.
 

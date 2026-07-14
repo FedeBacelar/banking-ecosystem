@@ -36,9 +36,11 @@ http://localhost:8087/swagger-ui.html
 
 ## Security
 
-Inbound internal APIs require `ONBOARDING_READ` or `ONBOARDING_WRITE`. The BFF calls them with its confidential service account.
+Applicant-facing internal APIs require `ONBOARDING_READ` or `ONBOARDING_WRITE`. The BFF calls them with its confidential service account. Review and provisioning retry endpoints instead require `ONBOARDING_OPERATE`, which is not assigned to the BFF.
 
-Outbound orchestration uses the dedicated confidential client `onboarding-orchestrator`. It obtains client-credentials tokens itself and never forwards the BFF or browser token.
+Outbound orchestration uses the dedicated confidential client `onboarding-orchestrator`. It obtains client-credentials tokens itself and never forwards the BFF or browser token. Customer creation/KYC approval, account creation/activation, and identity-link creation are restricted respectively by `CUSTOMER_PROVISION`, `ACCOUNT_PROVISION`, and `IDENTITY_PROVISION`; the orchestrator no longer needs the corresponding broad write roles.
+
+`account-service` also replaces the orchestrator token before consulting `customer-service`, using its own service account with only `CUSTOMER_READ`.
 
 ## Durable Processing
 

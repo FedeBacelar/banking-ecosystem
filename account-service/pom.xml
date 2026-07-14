@@ -62,6 +62,10 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-client</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 		<dependency>
@@ -217,6 +221,11 @@
 						<spring.jpa.open-in-view>false</spring.jpa.open-in-view>
 						<eureka.client.enabled>false</eureka.client.enabled>
 						<spring.security.oauth2.resourceserver.jwt.jwk-set-uri>http://localhost:8090/realms/banking-ecosystem/protocol/openid-connect/certs</spring.security.oauth2.resourceserver.jwt.jwk-set-uri>
+						<spring.security.oauth2.client.registration.account-service.provider>keycloak</spring.security.oauth2.client.registration.account-service.provider>
+						<spring.security.oauth2.client.registration.account-service.client-id>account-service</spring.security.oauth2.client.registration.account-service.client-id>
+						<spring.security.oauth2.client.registration.account-service.client-secret>local-account-secret</spring.security.oauth2.client.registration.account-service.client-secret>
+						<spring.security.oauth2.client.registration.account-service.authorization-grant-type>client_credentials</spring.security.oauth2.client.registration.account-service.authorization-grant-type>
+						<spring.security.oauth2.client.provider.keycloak.token-uri>http://localhost:8090/realms/banking-ecosystem/protocol/openid-connect/token</spring.security.oauth2.client.provider.keycloak.token-uri>
 					</systemPropertyVariables>
 				</configuration>
 			</plugin>

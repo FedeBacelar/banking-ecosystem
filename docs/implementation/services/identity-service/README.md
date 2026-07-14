@@ -66,8 +66,11 @@ PATCH /identity-links/{identityLinkId}/disable
 
 ```txt
 IDENTITY_READ  -> read/resolve identity links
-IDENTITY_WRITE -> create/update identity links
+IDENTITY_WRITE -> activate/disable existing identity links
+IDENTITY_PROVISION -> create the initial onboarding identity link
 ```
+
+`POST /identity-links` requires `IDENTITY_PROVISION`. Later activation or disable operations remain protected by `IDENTITY_WRITE`.
 
 Swagger UI can authenticate against Keycloak using the `banking-swagger` client with Authorization Code and PKCE.
 

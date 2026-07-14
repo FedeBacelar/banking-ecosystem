@@ -36,7 +36,7 @@ POST /applications/{applicationId}/review/retry
 POST /applications/{applicationId}/provisioning/retry
 ```
 
-These protected internal endpoints accept only `REVIEW_FAILED` and `PROVISIONING_FAILED`. They are intentionally absent from the BFF.
+These endpoints require `ONBOARDING_OPERATE` and accept only `REVIEW_FAILED` and `PROVISIONING_FAILED`. The BFF service account does not have that role, and the operations are intentionally absent from its public contract.
 
 ## Token Handling
 

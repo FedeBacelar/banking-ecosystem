@@ -12,6 +12,16 @@ spring:
     open-in-view: false
   security:
     oauth2:
+      client:
+        registration:
+          account-service:
+            provider: keycloak
+            client-id: ${ACCOUNT_INTERNAL_OAUTH_CLIENT_ID:account-service}
+            client-secret: ${ACCOUNT_INTERNAL_OAUTH_CLIENT_SECRET:local-account-secret}
+            authorization-grant-type: client_credentials
+        provider:
+          keycloak:
+            issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/banking-ecosystem}
       resourceserver:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/banking-ecosystem}

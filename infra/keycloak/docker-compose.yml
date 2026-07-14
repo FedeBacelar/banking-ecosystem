@@ -10,6 +10,7 @@ services:
       ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET: ${ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET:-local-onboarding-bff-secret}
       HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET: ${HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET:-local-home-banking-service-secret}
       ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET: ${ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET:-local-onboarding-secret}
+      ACCOUNT_INTERNAL_OAUTH_CLIENT_SECRET: ${ACCOUNT_INTERNAL_OAUTH_CLIENT_SECRET:-local-account-secret}
       BANKING_FRONTEND_URL: ${BANKING_FRONTEND_URL:-http://localhost:4200}
       KEYCLOAK_SMTP_HOST: ${KEYCLOAK_LOCAL_SMTP_HOST:-host.docker.internal}
       KEYCLOAK_SMTP_PORT: ${KEYCLOAK_LOCAL_SMTP_PORT:-1025}
@@ -93,6 +94,136 @@ services:
             -s "secret=$$client_secret"
         }
 
+        ensure_realm_role() {
+          local role_name="$$1"
+          local role_description="$$2"
+          if /opt/keycloak/bin/kcadm.sh get "roles/$$role_name" \
+            -r banking-ecosystem >/dev/null 2>&1; then
+            /opt/keycloak/bin/kcadm.sh update "roles/$$role_name" \
+              -r banking-ecosystem \
+              -s "description=$$role_description"
+          else
+            /opt/keycloak/bin/kcadm.sh create roles \
+              -r banking-ecosystem \
+              -s "name=$$role_name" \
+              -s "description=$$role_description"
+          fi
+        }
+
+        ensure_service_client() {
+          local client_id="$$1"
+          local client_name="$$2"
+          local client_description="$$3"
+          local client_uuid
+          client_uuid=$$(/opt/keycloak/bin/kcadm.sh get clients \
+            -r banking-ecosystem \
+            -q clientId="$$client_id" \
+            --fields id \
+            --format csv \
+            --noquotes)
+          if test -z "$$client_uuid"; then
+            /opt/keycloak/bin/kcadm.sh create clients \
+              -r banking-ecosystem \
+              -s "clientId=$$client_id" \
+              -s "name=$$client_name" \
+              -s "description=$$client_description" \
+              -s 'enabled=true' \
+              -s 'protocol=openid-connect' \
+              -s 'publicClient=false' \
+              -s 'clientAuthenticatorType=client-secret' \
+              -s 'standardFlowEnabled=false' \
+              -s 'implicitFlowEnabled=false' \
+              -s 'directAccessGrantsEnabled=false' \
+              -s 'serviceAccountsEnabled=true'
+            client_uuid=$$(/opt/keycloak/bin/kcadm.sh get clients \
+              -r banking-ecosystem \
+              -q clientId="$$client_id" \
+              --fields id \
+              --format csv \
+              --noquotes)
+          fi
+          test -n "$$client_uuid"
+          /opt/keycloak/bin/kcadm.sh update "clients/$$client_uuid" \
+            -r banking-ecosystem \
+            -s "name=$$client_name" \
+            -s "description=$$client_description" \
+            -s 'enabled=true' \
+            -s 'protocol=openid-connect' \
+            -s 'publicClient=false' \
+            -s 'clientAuthenticatorType=client-secret' \
+            -s 'standardFlowEnabled=false' \
+            -s 'implicitFlowEnabled=false' \
+            -s 'directAccessGrantsEnabled=false' \
+            -s 'serviceAccountsEnabled=true'
+        }
+
+        MANAGED_REALM_ROLES="HOME_BANKING_USER CUSTOMER_READ CUSTOMER_WRITE CUSTOMER_PROVISION ACCOUNT_READ ACCOUNT_WRITE ACCOUNT_PROVISION IDENTITY_READ IDENTITY_WRITE IDENTITY_PROVISION NOTIFICATION_WRITE DOCUMENT_READ DOCUMENT_WRITE ONBOARDING_READ ONBOARDING_WRITE ONBOARDING_OPERATE"
+
+        reconcile_exact_realm_roles() {
+          local username="$$1"
+          shift
+          local desired_roles="$$*"
+          local user_id
+          user_id=$$(/opt/keycloak/bin/kcadm.sh get users \
+            -r banking-ecosystem \
+            -q exact=true \
+            -q username="$$username" \
+            --fields id \
+            --format csv \
+            --noquotes)
+          test -n "$$user_id"
+
+          local current_roles
+          current_roles=$$(/opt/keycloak/bin/kcadm.sh get "users/$$user_id/role-mappings/realm" \
+            -r banking-ecosystem \
+            --fields name \
+            --format csv \
+            --noquotes)
+          for role_name in $$MANAGED_REALM_ROLES; do
+            local expected=false
+            for desired_role in $$desired_roles; do
+              if test "$$desired_role" = "$$role_name"; then
+                expected=true
+                break
+              fi
+            done
+            if printf '%s\n' "$$current_roles" | grep -Fxq "$$role_name"; then
+              if test "$$expected" = true; then
+                continue
+              fi
+              /opt/keycloak/bin/kcadm.sh remove-roles \
+                -r banking-ecosystem \
+                --uid "$$user_id" \
+                --rolename "$$role_name"
+            elif test "$$expected" = true; then
+              /opt/keycloak/bin/kcadm.sh add-roles \
+                -r banking-ecosystem \
+                --uid "$$user_id" \
+                --rolename "$$role_name"
+            fi
+          done
+
+          current_roles=$$(/opt/keycloak/bin/kcadm.sh get "users/$$user_id/role-mappings/realm" \
+            -r banking-ecosystem \
+            --fields name \
+            --format csv \
+            --noquotes)
+          for role_name in $$MANAGED_REALM_ROLES; do
+            local expected=false
+            for desired_role in $$desired_roles; do
+              if test "$$desired_role" = "$$role_name"; then
+                expected=true
+                break
+              fi
+            done
+            if printf '%s\n' "$$current_roles" | grep -Fxq "$$role_name"; then
+              test "$$expected" = true
+            else
+              test "$$expected" = false
+            fi
+          done
+        }
+
         reconcile_browser_client() {
           local client_uuid
           client_uuid=$$(/opt/keycloak/bin/kcadm.sh get clients \
@@ -112,10 +243,34 @@ services:
         }
 
         reconcile_browser_client
+        ensure_realm_role CUSTOMER_PROVISION "Allows onboarding to create a customer record and approve its initial KYC."
+        ensure_realm_role ACCOUNT_PROVISION "Allows onboarding to open and activate the initial account for an approved application."
+        ensure_realm_role IDENTITY_PROVISION "Allows onboarding to link the approved customer with their Keycloak identity."
+        ensure_realm_role ONBOARDING_OPERATE "Allows an operator to execute protected onboarding operations."
+        ensure_service_client account-service "Account Service" "Machine client used by account-service for customer eligibility reads."
         reconcile_client_secret home-banking-bff "$$HOME_BANKING_BFF_OAUTH_CLIENT_SECRET"
         reconcile_client_secret onboarding-bff-service "$$ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET"
         reconcile_client_secret home-banking-bff-service "$$HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET"
         reconcile_client_secret onboarding-orchestrator "$$ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET"
+        reconcile_client_secret account-service "$$ACCOUNT_INTERNAL_OAUTH_CLIENT_SECRET"
+
+        reconcile_exact_realm_roles service-account-onboarding-bff-service \
+          ONBOARDING_READ ONBOARDING_WRITE
+        reconcile_exact_realm_roles service-account-home-banking-bff-service \
+          CUSTOMER_READ ACCOUNT_READ IDENTITY_READ
+        reconcile_exact_realm_roles service-account-onboarding-orchestrator \
+          CUSTOMER_READ CUSTOMER_PROVISION \
+          ACCOUNT_READ ACCOUNT_PROVISION \
+          IDENTITY_READ IDENTITY_PROVISION \
+          DOCUMENT_READ DOCUMENT_WRITE NOTIFICATION_WRITE
+        reconcile_exact_realm_roles service-account-account-service CUSTOMER_READ
+        reconcile_exact_realm_roles banking-admin \
+          CUSTOMER_READ CUSTOMER_WRITE CUSTOMER_PROVISION \
+          ACCOUNT_READ ACCOUNT_WRITE ACCOUNT_PROVISION \
+          IDENTITY_READ IDENTITY_WRITE IDENTITY_PROVISION \
+          NOTIFICATION_WRITE DOCUMENT_READ DOCUMENT_WRITE \
+          ONBOARDING_READ ONBOARDING_WRITE ONBOARDING_OPERATE
+        reconcile_exact_realm_roles home-banking-user HOME_BANKING_USER
     environment:
       KEYCLOAK_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
@@ -123,6 +278,7 @@ services:
       ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET: ${ONBOARDING_BFF_INTERNAL_OAUTH_CLIENT_SECRET:-local-onboarding-bff-secret}
       HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET: ${HOME_BANKING_INTERNAL_OAUTH_CLIENT_SECRET:-local-home-banking-service-secret}
       ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET: ${ONBOARDING_INTERNAL_OAUTH_CLIENT_SECRET:-local-onboarding-secret}
+      ACCOUNT_INTERNAL_OAUTH_CLIENT_SECRET: ${ACCOUNT_INTERNAL_OAUTH_CLIENT_SECRET:-local-account-secret}
       BANKING_FRONTEND_URL: ${BANKING_FRONTEND_URL:-http://localhost:4200}
       KEYCLOAK_SMTP_HOST: ${KEYCLOAK_LOCAL_SMTP_HOST:-host.docker.internal}
       KEYCLOAK_SMTP_PORT: ${KEYCLOAK_LOCAL_SMTP_PORT:-1025}

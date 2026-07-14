@@ -82,6 +82,7 @@ home-banking-bff
 onboarding-bff-service
 home-banking-bff-service
 onboarding-orchestrator
+account-service
 ```
 
 `banking-api` is a local Authorization Code client. Direct Access Grants are disabled.
@@ -90,7 +91,7 @@ onboarding-orchestrator
 
 `home-banking-bff` is a confidential client used by the browser-facing backend with Authorization Code Flow. Its service account is disabled.
 
-`onboarding-bff-service` and `home-banking-bff-service` separate the BFF's machine permissions by purpose. `onboarding-orchestrator` belongs exclusively to `onboarding-service`.
+`onboarding-bff-service` and `home-banking-bff-service` separate the BFF's machine permissions by purpose. `onboarding-orchestrator` belongs exclusively to `onboarding-service`, while `account-service` has its own client for customer eligibility reads.
 
 Current realm roles:
 
@@ -98,15 +99,19 @@ Current realm roles:
 HOME_BANKING_USER
 CUSTOMER_READ
 CUSTOMER_WRITE
+CUSTOMER_PROVISION
 ACCOUNT_READ
 ACCOUNT_WRITE
+ACCOUNT_PROVISION
 IDENTITY_READ
 IDENTITY_WRITE
+IDENTITY_PROVISION
 NOTIFICATION_WRITE
 DOCUMENT_READ
 DOCUMENT_WRITE
 ONBOARDING_READ
 ONBOARDING_WRITE
+ONBOARDING_OPERATE
 ```
 
 These roles represent API capabilities. They are intentionally more specific than generic roles such as `USER` or `ADMIN`.
@@ -134,6 +139,7 @@ browser -> api-gateway /web/** -> home-banking-bff
 home-banking-bff -> Keycloak Authorization Code flow
 home-banking-bff -> internal services with purpose-specific client credentials
 onboarding-service -> owned dependencies with onboarding-orchestrator credentials
+account-service -> customer-service with account-service credentials
 ```
 
 `customer-service`, `account-service`, `identity-service`, `notification-service`, `document-service`, and `onboarding-service` are configured as OAuth2 Resource Servers.
@@ -157,7 +163,7 @@ http://localhost:8084/swagger-ui/oauth2-redirect.html
 http://localhost:8087/swagger-ui/oauth2-redirect.html
 ```
 
-If Keycloak already has an existing Docker volume, the realm import file may not create this client automatically. Create it manually or recreate the local Keycloak volume.
+The realm import creates `banking-swagger` for a fresh realm. The one-shot initializer reconciles the authorization additions on existing volumes, but does not recreate this interactive client if it is manually deleted.
 
 ## BFF Client
 
@@ -178,9 +184,14 @@ Internal BFF calls use purpose-specific confidential clients with client credent
 ```txt
 onboarding-bff-service    -> ONBOARDING_READ, ONBOARDING_WRITE
 home-banking-bff-service  -> CUSTOMER_READ, ACCOUNT_READ, IDENTITY_READ
+account-service           -> CUSTOMER_READ
 ```
 
 The BFF never forwards the browser token to internal services. Applicant data and evidence reach `onboarding-service` through one composite submission; that service owns document and notification orchestration through the dedicated `onboarding-orchestrator` client.
+
+The orchestrator uses `CUSTOMER_PROVISION`, `ACCOUNT_PROVISION`, and `IDENTITY_PROVISION` for the initial approved application. It does not receive the corresponding broad write roles. `account-service` also replaces the inbound bearer token before calling `customer-service`, so its nested lookup carries only its own `CUSTOMER_READ` authority.
+
+Operational review and provisioning retries require `ONBOARDING_OPERATE`. That role belongs to the local operational admin, not the onboarding BFF or orchestrator service accounts.
 
 ## Login Theme
 

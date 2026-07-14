@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @WebMvcTest(controllers = {
         SecurityConfigTest.TestIdentityController.class,
+        SecurityConfigTest.TestIdentityProvisioningController.class,
         SecurityConfigTest.TestActuatorController.class,
         SecurityConfigTest.TestDocsController.class
 })
@@ -43,6 +44,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Import({
         SecurityConfig.class,
         SecurityConfigTest.TestIdentityController.class,
+        SecurityConfigTest.TestIdentityProvisioningController.class,
         SecurityConfigTest.TestActuatorController.class,
         SecurityConfigTest.TestDocsController.class
 })
@@ -79,6 +81,40 @@ class SecurityConfigTest {
     void shouldAllowIdentityWriteWithIdentityWriteRole() throws Exception {
         mockMvc.perform(post("/identity-links/test")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + tokenWithRoles("IDENTITY_WRITE")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldRequireTokenToProvisionIdentityLink() throws Exception {
+        mockMvc.perform(post("/identity-links"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void shouldAllowIdentityLinkCreationWithIdentityProvisionRole() throws Exception {
+        mockMvc.perform(post("/identity-links")
+                        .header("Authorization", "Bearer " + tokenWithRoles("IDENTITY_PROVISION")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldRejectIdentityLinkCreationWithAdministrativeWriteOnly() throws Exception {
+        mockMvc.perform(post("/identity-links")
+                        .header("Authorization", "Bearer " + tokenWithRoles("IDENTITY_WRITE")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldRejectAdministrativeMutationWithIdentityProvisionRole() throws Exception {
+        mockMvc.perform(patch("/identity-links/link-1/disable")
+                        .header("Authorization", "Bearer " + tokenWithRoles("IDENTITY_PROVISION")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldAllowAdministrativeMutationWithIdentityWriteRole() throws Exception {
+        mockMvc.perform(patch("/identity-links/link-1/disable")
                         .header("Authorization", "Bearer " + tokenWithRoles("IDENTITY_WRITE")))
                 .andExpect(status().isOk());
     }
@@ -144,6 +180,19 @@ class SecurityConfigTest {
 
         @PatchMapping
         void update() {
+        }
+    }
+
+    @RestController
+    @RequestMapping("/identity-links")
+    public static class TestIdentityProvisioningController {
+
+        @PostMapping
+        void create() {
+        }
+
+        @PatchMapping("/{identityLinkId}/disable")
+        void disable() {
         }
     }
 

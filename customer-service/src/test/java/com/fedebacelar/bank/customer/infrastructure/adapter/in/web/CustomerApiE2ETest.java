@@ -52,7 +52,7 @@ class CustomerApiE2ETest {
 
     @Test
     void completesNaturalPersonLifecycle() throws Exception {
-        String token = tokenWithRoles("CUSTOMER_READ", "CUSTOMER_WRITE");
+        String token = tokenWithRoles("CUSTOMER_READ", "CUSTOMER_WRITE", "CUSTOMER_PROVISION");
         RestClient client = RestClient.builder()
                 .baseUrl("http://localhost:" + port)
                 .defaultHeader("Authorization", "Bearer " + token)
@@ -93,7 +93,7 @@ class CustomerApiE2ETest {
 
     @Test
     void enforcesIdempotencyKeyPayloadContractWithoutDuplicatingCustomer() throws Exception {
-        String token = tokenWithRoles("CUSTOMER_READ", "CUSTOMER_WRITE");
+        String token = tokenWithRoles("CUSTOMER_READ", "CUSTOMER_WRITE", "CUSTOMER_PROVISION");
         RestClient client = RestClient.builder()
                 .baseUrl("http://localhost:" + port)
                 .defaultHeader("Authorization", "Bearer " + token)
@@ -122,7 +122,7 @@ class CustomerApiE2ETest {
 
     @Test
     void serializesConcurrentRequestsUsingTheSameIdempotencyKey() throws Exception {
-        String token = tokenWithRoles("CUSTOMER_READ", "CUSTOMER_WRITE");
+        String token = tokenWithRoles("CUSTOMER_READ", "CUSTOMER_WRITE", "CUSTOMER_PROVISION");
         RestClient client = RestClient.builder()
                 .baseUrl("http://localhost:" + port)
                 .defaultHeader("Authorization", "Bearer " + token)

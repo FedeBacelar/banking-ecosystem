@@ -3,6 +3,7 @@ package com.fedebacelar.bank.account.infrastructure.config;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -38,7 +39,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@WebMvcTest
+@WebMvcTest(controllers = {
+        SecurityConfigTest.TestAccountController.class,
+        SecurityConfigTest.TestAccountProvisioningController.class,
+        SecurityConfigTest.TestActuatorController.class,
+        SecurityConfigTest.TestDocsController.class
+})
 @ImportAutoConfiguration({
         SecurityAutoConfiguration.class,
         ServletWebSecurityAutoConfiguration.class,
@@ -49,6 +55,7 @@ import org.springframework.web.bind.annotation.RestController;
         AccountWebMapper.class,
         RequestFingerprint.class,
         SecurityConfigTest.TestAccountController.class,
+        SecurityConfigTest.TestAccountProvisioningController.class,
         SecurityConfigTest.TestActuatorController.class,
         SecurityConfigTest.TestDocsController.class
 })
@@ -111,6 +118,47 @@ class SecurityConfigTest {
     }
 
     @Test
+    void shouldRequireTokenToProvisionAccount() throws Exception {
+        mockMvc.perform(post("/accounts"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void shouldAllowAccountOpeningWithAccountProvisionRole() throws Exception {
+        mockMvc.perform(post("/accounts")
+                        .header("Authorization", "Bearer " + tokenWithRoles("ACCOUNT_PROVISION")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldAllowAccountActivationWithAccountProvisionRole() throws Exception {
+        mockMvc.perform(patch("/accounts/account-1/activate")
+                        .header("Authorization", "Bearer " + tokenWithRoles("ACCOUNT_PROVISION")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldRejectAccountOpeningWithAdministrativeWriteOnly() throws Exception {
+        mockMvc.perform(post("/accounts")
+                        .header("Authorization", "Bearer " + tokenWithRoles("ACCOUNT_WRITE")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldRejectAdministrativeMutationWithAccountProvisionRole() throws Exception {
+        mockMvc.perform(patch("/accounts/account-1/freeze")
+                        .header("Authorization", "Bearer " + tokenWithRoles("ACCOUNT_PROVISION")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldAllowAdministrativeMutationWithAccountWriteRole() throws Exception {
+        mockMvc.perform(patch("/accounts/account-1/freeze")
+                        .header("Authorization", "Bearer " + tokenWithRoles("ACCOUNT_WRITE")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void shouldRejectUnsupportedAccountMethodEvenWithWriteRole() throws Exception {
         mockMvc.perform(delete("/accounts/test")
                         .header("Authorization", "Bearer " + tokenWithRoles("ACCOUNT_WRITE")))
@@ -164,6 +212,23 @@ class SecurityConfigTest {
 
         @PatchMapping
         void update() {
+        }
+    }
+
+    @RestController
+    @RequestMapping("/accounts")
+    public static class TestAccountProvisioningController {
+
+        @PostMapping
+        void open() {
+        }
+
+        @PatchMapping("/{accountId}/activate")
+        void activate() {
+        }
+
+        @PatchMapping("/{accountId}/freeze")
+        void freeze() {
         }
     }
 

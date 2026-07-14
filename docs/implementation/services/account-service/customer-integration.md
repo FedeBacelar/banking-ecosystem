@@ -18,15 +18,16 @@ GET /customers/{customerId}
 
 ## Security
 
-The current implementation forwards the incoming `Authorization` header to the Feign call:
+The current implementation removes any incoming `Authorization` header before the Feign call and obtains a client-credentials token for the dedicated `account-service` machine client:
 
 ```txt
-client -> api-gateway -> account-service -> customer-service
+caller token -> account-service
+                account-service token (CUSTOMER_READ) -> customer-service
 ```
 
-This keeps the customer lookup authenticated after business services started validating JWT access tokens directly. The caller token is therefore used transitively for the customer lookup.
+The nested customer lookup is authenticated without propagating the caller's authority. In particular, an onboarding token carrying `ACCOUNT_PROVISION` is never forwarded to `customer-service`.
 
-For the current local setup, account opening requires a token that can write accounts and read the referenced customer. The local `banking-admin` user satisfies this because it has all current API roles.
+Initial account creation and activation require `ACCOUNT_PROVISION` for the inbound request. Customer validation is a separate authorization decision performed with the account service's own `CUSTOMER_READ` token.
 
 ## Why It Exists
 

@@ -1,47 +1,57 @@
 package com.fedebacelar.bank.account.infrastructure.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import com.fedebacelar.bank.account.application.port.out.GetInternalAccessTokenPort;
+import feign.RequestInterceptor;
 import feign.RequestTemplate;
 import java.util.List;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 class FeignAuthorizationConfigTest {
 
     private final FeignAuthorizationConfig config = new FeignAuthorizationConfig();
-
-    @AfterEach
-    void clearRequestContext() {
-        RequestContextHolder.resetRequestAttributes();
-    }
+    private final GetInternalAccessTokenPort accessTokenPort = mock(GetInternalAccessTokenPort.class);
 
     @Test
-    void forwardsCurrentAuthorizationHeaderToFeignRequests() {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer test-token");
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
-
+    void authenticatesFeignRequestsWithTheAccountServiceToken() {
+        when(accessTokenPort.getAccessToken()).thenReturn("account-service-token");
+        RequestInterceptor interceptor = config.accountServiceAuthorizationInterceptor(accessTokenPort);
         RequestTemplate template = new RequestTemplate();
 
-        config.authorizationHeaderForwardingInterceptor().apply(template);
+        interceptor.apply(template);
 
         assertThat(template.headers())
-                .containsEntry(HttpHeaders.AUTHORIZATION, List.of("Bearer test-token"));
+                .containsEntry(HttpHeaders.AUTHORIZATION, List.of("Bearer account-service-token"));
     }
 
     @Test
-    void leavesFeignRequestsUntouchedWhenNoAuthorizationHeaderExists() {
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
-
+    void replacesAnyExistingAuthorizationHeaderInsteadOfForwardingIt() {
+        when(accessTokenPort.getAccessToken()).thenReturn("account-service-token");
+        RequestInterceptor interceptor = config.accountServiceAuthorizationInterceptor(accessTokenPort);
         RequestTemplate template = new RequestTemplate();
+        template.header(HttpHeaders.AUTHORIZATION, "Bearer incoming-user-token");
 
-        config.authorizationHeaderForwardingInterceptor().apply(template);
+        interceptor.apply(template);
 
+        assertThat(template.headers())
+                .containsEntry(HttpHeaders.AUTHORIZATION, List.of("Bearer account-service-token"));
+    }
+
+    @Test
+    void failsClosedWhenTheTechnicalTokenCannotBeObtained() {
+        when(accessTokenPort.getAccessToken()).thenThrow(new IllegalStateException("authorization unavailable"));
+        RequestInterceptor interceptor = config.accountServiceAuthorizationInterceptor(accessTokenPort);
+        RequestTemplate template = new RequestTemplate();
+        template.header(HttpHeaders.AUTHORIZATION, "Bearer incoming-user-token");
+
+        assertThatThrownBy(() -> interceptor.apply(template))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("authorization unavailable");
         assertThat(template.headers()).doesNotContainKey(HttpHeaders.AUTHORIZATION);
     }
 }
