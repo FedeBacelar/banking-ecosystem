@@ -1,6 +1,17 @@
 const keycloakOrigin = (process.env.KEYCLOAK_URL ?? "http://localhost:8090").replace(/\/$/, "");
 const mailpitOrigin = (process.env.MAILPIT_URL ?? "http://localhost:8025").replace(/\/$/, "");
 const realm = "banking-ecosystem";
+const keycloakPublicBase = new URL(
+  `${(process.env.KEYCLOAK_PUBLIC_URL ?? keycloakOrigin).replace(/\/$/, "")}/`,
+);
+const expectedIssuer = new URL(`realms/${realm}`, keycloakPublicBase)
+  .toString()
+  .replace(/\/$/, "");
+const expectedLocalSmtp = {
+  host: process.env.KEYCLOAK_LOCAL_SMTP_HOST ?? "host.docker.internal",
+  port: process.env.KEYCLOAK_LOCAL_SMTP_PORT ?? "1025",
+  from: process.env.KEYCLOAK_LOCAL_SMTP_FROM ?? "no-reply@nerva.local",
+};
 const completionEntryPoint =
   "http://localhost:8085/web/auth/login/onboarding-completion";
 const expectedPasswordPolicy =
@@ -125,6 +136,27 @@ class CookieSession {
   }
 }
 
+const discoveryUrl = `${keycloakOrigin}/realms/${realm}/.well-known/openid-configuration`;
+const discoveryResponse = await fetch(discoveryUrl, {
+  signal: AbortSignal.timeout(10_000),
+});
+assert(discoveryResponse.ok, "The local Keycloak discovery document could not be read.");
+const discovery = await discoveryResponse.json();
+
+const hostileHostDiscoveryResponse = await fetch(discoveryUrl, {
+  headers: { host: "attacker.invalid" },
+  signal: AbortSignal.timeout(10_000),
+});
+assert(
+  hostileHostDiscoveryResponse.ok,
+  "Keycloak rejected the hostname stability verification request.",
+);
+const hostileHostDiscovery = await hostileHostDiscoveryResponse.json();
+assert(
+  discovery.issuer === expectedIssuer && hostileHostDiscovery.issuer === expectedIssuer,
+  "Keycloak issuer metadata changes with the request Host header.",
+);
+
 const tokenResponse = await fetch(
   `${keycloakOrigin}/realms/master/protocol/openid-connect/token`,
   {
@@ -166,6 +198,19 @@ try {
   assert(
     liveRealm.passwordPolicy === expectedPasswordPolicy,
     "The live password policy does not match the credential journey.",
+  );
+  const liveSmtp = liveRealm.smtpServer ?? {};
+  assert(
+    liveSmtp.host === expectedLocalSmtp.host &&
+      String(liveSmtp.port) === expectedLocalSmtp.port &&
+      liveSmtp.from === expectedLocalSmtp.from &&
+      liveSmtp.fromDisplayName === "Nerva Banking" &&
+      String(liveSmtp.auth).toLowerCase() === "false" &&
+      String(liveSmtp.starttls).toLowerCase() === "false" &&
+      String(liveSmtp.ssl).toLowerCase() === "false" &&
+      !String(liveSmtp.user ?? "").trim() &&
+      !String(liveSmtp.password ?? "").trim(),
+    "The live realm is not using the credential-free local Mailpit contract.",
   );
 
   const createResponse = await adminFetch(`/admin/realms/${realm}/users`, {
@@ -244,10 +289,22 @@ try {
   }
 
   const actionLinkMatch = html.match(
-    /href="(http:\/\/localhost:8090\/realms\/banking-ecosystem\/login-actions\/action-token[^"]+)"/,
+    /href="([^"]*\/realms\/banking-ecosystem\/login-actions\/action-token[^"]*)"/,
   );
   assert(actionLinkMatch, "The credential action link is missing from the HTML email.");
   const actionLink = decodeHtmlAttribute(actionLinkMatch[1]);
+  const actionUrl = new URL(actionLink);
+  const expectedActionPath = new URL(
+    `realms/${realm}/login-actions/action-token`,
+    keycloakPublicBase,
+  ).pathname;
+  assert(
+    actionUrl.origin === keycloakPublicBase.origin &&
+      actionUrl.pathname === expectedActionPath &&
+      actionUrl.searchParams.has("key") &&
+      !actionUrl.hash,
+    "The credential email action link does not use the configured Keycloak public URL.",
+  );
 
   const session = new CookieSession();
   let usernamePageResult = await session.follow(actionLink);

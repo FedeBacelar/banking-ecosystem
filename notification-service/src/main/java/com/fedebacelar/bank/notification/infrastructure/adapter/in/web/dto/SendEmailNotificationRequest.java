@@ -12,7 +12,7 @@ public record SendEmailNotificationRequest(
         @NotNull NotificationTemplateCode templateCode,
         Map<@NotBlank @Size(max = 80) String, @NotBlank @Size(max = 2000) String> variables,
         @Size(max = 120) String correlationId,
-        boolean sensitive
+        Boolean sensitive
 ) {
 }
 

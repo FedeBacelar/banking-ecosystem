@@ -56,13 +56,36 @@ docker compose --env-file infra/mysql/.env -f infra/mysql/docker-compose.yml up 
 
 Local `.env` files must not be committed.
 
+Start Mailpit before the components that send customer email:
+
+```powershell
+docker compose -f infra/mailpit/docker-compose.yml up -d
+```
+
+Mailpit captures messages instead of sending them to Internet recipients:
+
+```txt
+SMTP: localhost:1025
+Inbox: http://localhost:8025
+```
+
+It is the local SMTP default for both `notification-service` and Keycloak.
+
 Start Keycloak local infrastructure:
 
 ```powershell
 docker compose -f infra/keycloak/docker-compose.yml up -d
 ```
 
-Create ignored `infra/keycloak/.env` from `.env.example` to enable Keycloak credential emails. The `keycloak-realm-init` container applies the restricted banking user profile and is expected to stop with exit code `0` after startup.
+Keycloak credential email works with Mailpit without real SMTP credentials. An
+ignored `infra/keycloak/.env` may hold local-only overrides copied from
+`.env.example`, but the normal local journey must keep the Mailpit host and
+empty SMTP credentials. A deployed environment injects provider credentials
+from its runtime or secrets manager instead of storing them in a repository
+`.env` file.
+
+The `keycloak-realm-init` container applies the restricted banking user profile
+and is expected to stop with exit code `0` after startup.
 
 Keycloak admin console:
 
@@ -80,19 +103,6 @@ MinIO console:
 
 ```txt
 http://localhost:9001
-```
-
-Start Mailpit for local email delivery:
-
-```powershell
-docker compose -f infra/mailpit/docker-compose.yml up -d
-```
-
-Mailpit captures messages instead of sending them to Internet recipients:
-
-```txt
-SMTP: localhost:1025
-Inbox: http://localhost:8025
 ```
 
 ## Run Locally
@@ -176,11 +186,22 @@ cd ..\notification-service
 .\mvnw.cmd spring-boot:run
 ```
 
-The local defaults send email to Mailpit without credentials or TLS. An
-optional ignored `notification-service/.env` can override them; operating-system
-environment variables still take precedence. Real SMTP environments must
-explicitly provide the provider host, port, credentials, authentication,
-STARTTLS, and sender.
+The local defaults send email to Mailpit without credentials or TLS. If an
+ignored `notification-service/.env` is present, it should be copied from the
+safe example and remain configured for Mailpit during the normal local journey.
+Operating-system environment variables still take precedence. A deployed
+environment must inject its provider host, port, credentials, authentication,
+STARTTLS, and sender externally.
+
+Authenticated SMTP additionally requires mandatory STARTTLS or implicit SSL,
+and all SMTP operations use finite timeouts. Invalid combinations fail at
+startup without exposing configuration values.
+
+Customer email links are accepted only for configured exact origins. Local
+development uses the Angular origin for onboarding links and the Keycloak
+identity origin for identity links; wildcard hosts and suffix matches are not
+part of the contract. Keycloak constructs and signs its own credential action
+link using the fixed public URL configured by `KEYCLOAK_PUBLIC_URL`.
 
 Notification Swagger:
 

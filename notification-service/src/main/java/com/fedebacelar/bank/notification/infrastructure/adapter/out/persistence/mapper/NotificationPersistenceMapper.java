@@ -30,6 +30,7 @@ public class NotificationPersistenceMapper {
         entity.setTemplateCode(notification.templateCode());
         entity.setVariablesJson(toJson(notification.variables()));
         entity.setCorrelationId(notification.correlationId());
+        entity.setRequestFingerprint(notification.requestFingerprint());
         entity.setSubject(notification.subject());
         entity.setBody(notification.body());
         entity.setHtmlBody(notification.htmlBody());
@@ -51,6 +52,7 @@ public class NotificationPersistenceMapper {
                 entity.getTemplateCode(),
                 fromJson(entity.getVariablesJson()),
                 entity.getCorrelationId(),
+                entity.getRequestFingerprint(),
                 entity.getSubject(),
                 entity.getBody(),
                 entity.getHtmlBody(),

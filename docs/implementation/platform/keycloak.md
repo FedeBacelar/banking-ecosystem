@@ -21,7 +21,10 @@ Current capabilities:
 - Provides separate BFF, onboarding-orchestrator, and account-service machine clients.
 - Provides read, general write, provisioning, and onboarding-operation capabilities without sharing browser tokens.
 - Issues JWT access tokens validated by `api-gateway`, `customer-service`, `account-service`, `identity-service`, `notification-service`, `document-service`, and `onboarding-service`.
-- Provides a local `banking` login theme for the browser-facing authentication flow.
+- Provides local `banking` login and email themes for browser authentication and
+  credential setup.
+- Uses Mailpit as the credential-free local SMTP default.
+- Fixes the complete `KEYCLOAK_PUBLIC_URL` used to generate signed action links.
 
 ## Local Runtime
 
@@ -49,6 +52,13 @@ Local development:
 Gateway:  http://localhost:8085
 Keycloak: http://localhost:8090
 ```
+
+`KEYCLOAK_PUBLIC_URL` is a configured complete public URL, not a value derived
+from an incoming request host. Its local value is `http://localhost:8090`. This
+keeps action-email links canonical. The Angular frontend origin and Keycloak
+identity origin are configured as separate exact origins wherever notification
+links cross those boundaries; wildcard and hostname-suffix matching are not
+accepted.
 
 Deployment boundary model:
 
@@ -82,6 +92,17 @@ Login theme:
 ```txt
 infra/keycloak/themes/banking/login
 ```
+
+Email theme:
+
+```txt
+infra/keycloak/themes/banking/email
+```
+
+The local `.env.example` is safe for Mailpit and contains no SMTP username or
+password. Ignored local `.env` files are for credential-free development
+overrides, not real provider credentials. Deployed environments inject SMTP and
+machine-client secrets through their runtime or secrets manager.
 
 ## Start
 
@@ -276,7 +297,16 @@ It also receives only the Keycloak realm-management roles required to query and 
 
 Approved applicants are created with provisional username `pending-{applicationId}`, verified email, customer realm roles, and required actions `UPDATE_PROFILE` and `UPDATE_PASSWORD`.
 
-Keycloak sends the action link itself through `execute-actions-email`; identity tokens are not transported through `notification-service`. SMTP values and the orchestrator secret are environment placeholders. Local values live in ignored `infra/keycloak/.env`; safe names live in `.env.example`.
+Keycloak sends the action link itself through `execute-actions-email`; identity
+tokens are not transported through `notification-service`. The signed URL is
+built from `KEYCLOAK_PUBLIC_URL`, so it does not trust an incoming request host.
+The action client is `home-banking-bff`, whose exact post-action redirect is
+shown below.
+
+Local Keycloak SMTP targets Mailpit without credentials, authentication,
+STARTTLS, or SSL. SMTP values and the orchestrator secret remain environment
+placeholders in versioned configuration. A deployed environment injects real
+secrets externally rather than storing them in `infra/keycloak/.env`.
 
 The one-shot `keycloak-realm-init` container applies `banking-user-profile.json` after realm startup. The profile permits the applicant to choose the username while email, first name, and last name remain visible but user read-only. Unmanaged attributes remain on Keycloak's strict `DISABLED` default; the managed profile does not enable arbitrary user attributes.
 
@@ -326,7 +356,11 @@ Expired login page
 Logout confirmation
 ```
 
-No custom email theme is configured. Identity emails currently use Keycloak's inherited email templates with the configured realm sender.
+The `banking` email theme owns the credential invitation subject, responsive
+HTML, and plain-text alternative. It presents the action link generated and
+signed by Keycloak; neither the theme nor `notification-service` rebuilds that
+URL. The academic disclaimer remains available when images or HTML styling are
+not rendered.
 
 Public self-registration, public password recovery, and Keycloak remember-me are disabled in the imported realm. In a banking product, those flows should be modeled as controlled customer operations before exposing them from the login screen.
 
@@ -336,4 +370,7 @@ The browser-facing login should be tested through the BFF:
 http://localhost:8085/web/auth/login/home
 ```
 
-`keycloak-realm-init` reconciles the theme, Spanish locale, browser URLs, client secrets, capability roles, the `account-service` machine client, and exact application-role mappings for both new realms and existing local volumes.
+`keycloak-realm-init` reconciles the login and email themes, Spanish locale,
+fixed public identity URL, browser URLs, local Mailpit SMTP settings, client
+secrets, capability roles, the `account-service` machine client, and exact
+application-role mappings for both new realms and existing local volumes.

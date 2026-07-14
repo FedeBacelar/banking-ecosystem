@@ -1,6 +1,7 @@
 package com.fedebacelar.bank.onboarding.infrastructure.adapter.out.keycloak;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -84,9 +85,61 @@ class KeycloakCredentialProvisioningAdapterTest {
         );
     }
 
+    @Test
+    void acceptsAnHttpsCredentialCompletionRedirect() {
+        KeycloakAdminFeignClient client = mock(KeycloakAdminFeignClient.class);
+        String redirectUri = "https://bank.nerva.example/web/auth/login/onboarding-completion";
+
+        adapter(client, redirectUri).sendCredentialSetupEmail("keycloak-user-id");
+
+        verify(client).executeActionsEmail(
+                "banking-ecosystem",
+                "keycloak-user-id",
+                "home-banking-bff",
+                redirectUri,
+                Math.toIntExact(Duration.ofHours(24).toSeconds()),
+                List.of("UPDATE_PROFILE", "UPDATE_PASSWORD")
+        );
+    }
+
+    @Test
+    void rejectsUnsafeOrNonCanonicalCredentialCompletionRedirects() {
+        KeycloakAdminFeignClient client = mock(KeycloakAdminFeignClient.class);
+        List<String> invalidRedirectUris = List.of(
+                "/web/auth/login/onboarding-completion",
+                "ftp://localhost:8085/web/auth/login/onboarding-completion",
+                "http://bank.nerva.example/web/auth/login/onboarding-completion",
+                "http://user@localhost:8085/web/auth/login/onboarding-completion",
+                "http://localhost:8085/web/auth/login/onboarding-completion?returnTo=/app",
+                "http://localhost:8085/web/auth/login/onboarding-completion#fragment",
+                "http://localhost:8085/web/auth/login/onboarding-completion/",
+                "http://localhost:8085/web/auth/login/%6fnboarding-completion",
+                "http://localhost.:8085/web/auth/login/onboarding-completion",
+                "http://local%68ost:8085/web/auth/login/onboarding-completion",
+                "http://localhost:8085\\@attacker.example/web/auth/login/onboarding-completion",
+                "http://localhost:0/web/auth/login/onboarding-completion",
+                "http://localhost:65536/web/auth/login/onboarding-completion",
+                "http://localhost:not-a-port/web/auth/login/onboarding-completion"
+        );
+
+        invalidRedirectUris.forEach(redirectUri -> assertThatThrownBy(
+                () -> adapter(client, redirectUri)
+        ).as("redirect URI %s", redirectUri)
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("onboarding.keycloak.credential-redirect-uri"));
+    }
+
     private KeycloakCredentialProvisioningAdapter adapter(KeycloakAdminFeignClient client) {
-        return new KeycloakCredentialProvisioningAdapter(client, "banking-ecosystem", "home-banking-bff",
-                "http://localhost:8085/web/auth/login/onboarding-completion", Duration.ofHours(24));
+        return adapter(client, "http://localhost:8085/web/auth/login/onboarding-completion");
+    }
+
+    private KeycloakCredentialProvisioningAdapter adapter(
+            KeycloakAdminFeignClient client,
+            String redirectUri
+    ) {
+        return new KeycloakCredentialProvisioningAdapter(
+                client, "banking-ecosystem", "home-banking-bff", redirectUri, Duration.ofHours(24)
+        );
     }
 
     private ApplicantData applicant(UUID applicationId) {

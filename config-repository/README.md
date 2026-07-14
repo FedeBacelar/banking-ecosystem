@@ -37,6 +37,15 @@ NOTIFICATION_DB_PASSWORD
 NOTIFICATION_SMTP_USERNAME
 NOTIFICATION_SMTP_PASSWORD
 NOTIFICATION_SMTP_FROM
+NOTIFICATION_SMTP_AUTH
+NOTIFICATION_SMTP_STARTTLS
+NOTIFICATION_SMTP_STARTTLS_REQUIRED
+NOTIFICATION_SMTP_SSL
+NOTIFICATION_SMTP_CONNECTION_TIMEOUT_MS
+NOTIFICATION_SMTP_READ_TIMEOUT_MS
+NOTIFICATION_SMTP_WRITE_TIMEOUT_MS
+NOTIFICATION_MAGIC_LINK_ALLOWED_ORIGINS
+NOTIFICATION_KEYCLOAK_ACTION_ALLOWED_ORIGINS
 DOCUMENT_DB_PASSWORD
 DOCUMENT_STORAGE_ENDPOINT
 DOCUMENT_STORAGE_ACCESS_KEY
@@ -61,3 +70,29 @@ HOME_BANKING_BFF_ONBOARDING_COOKIE_SECURE
 ```
 
 Local development may use safe defaults, but real credentials must come from outside the repository.
+
+Mailpit is the credential-free SMTP default for both `notification-service` and
+Keycloak. Ignored local `.env` files are for safe development overrides and
+must not be used as the normal storage location for a real SMTP account. A
+deployed environment injects provider credentials from its runtime or secrets
+manager.
+
+The notification action-link settings are allowlists of complete origins, not
+host fragments. Every entry must contain exactly scheme, host, and effective
+port, without user information, path, query, fragment, or wildcard. Frontend
+and identity origins are configured separately because they are different trust
+boundaries. The template supplies the exact path and accepted URL shape.
+
+Template metadata also owns its complete variable set and audit sensitivity.
+Requests with undeclared variables are rejected, and callers cannot opt a
+sensitive template out of persistence redaction. The legacy request flag may
+add redaction for compatibility, but never remove the template requirement.
+
+Changing the public onboarding origin is one atomic deployment change:
+`ONBOARDING_FRONTEND_MAGIC_LINK_BASE_URL` and
+`NOTIFICATION_MAGIC_LINK_ALLOWED_ORIGINS` must include the same origin before
+traffic moves. The end-to-end onboarding check verifies that contract.
+
+Authenticated SMTP must use either mandatory STARTTLS or implicit SSL.
+Authentication, username, and password are enabled together; finite connection,
+read, and write timeouts are mandatory. Invalid combinations fail at startup.

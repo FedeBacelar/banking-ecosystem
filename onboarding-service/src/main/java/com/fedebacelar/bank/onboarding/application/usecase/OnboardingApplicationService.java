@@ -9,6 +9,7 @@ import com.fedebacelar.bank.onboarding.application.port.in.GetOnboardingApplicat
 import com.fedebacelar.bank.onboarding.application.port.in.StartOnboardingApplicationUseCase;
 import com.fedebacelar.bank.onboarding.application.port.in.ValidateContinuationUseCase;
 import com.fedebacelar.bank.onboarding.application.port.out.MagicLinkDeliveryRepositoryPort;
+import com.fedebacelar.bank.onboarding.application.port.out.MagicLinkFactoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingApplicationRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingEmailRequestGuardPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingStatusHistoryRepositoryPort;
@@ -32,8 +33,6 @@ import com.fedebacelar.bank.onboarding.domain.model.OnboardingApplication;
 import com.fedebacelar.bank.onboarding.domain.model.MagicLinkDelivery;
 import com.fedebacelar.bank.onboarding.domain.model.OnboardingStatusHistory;
 import com.fedebacelar.bank.onboarding.domain.model.OnboardingWorkItem;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -65,12 +64,12 @@ public class OnboardingApplicationService implements
     private final MagicLinkDeliveryRepositoryPort deliveryRepository;
     private final OnboardingWorkItemRepositoryPort workItemRepository;
     private final PayloadCipherPort payloadCipher;
+    private final MagicLinkFactoryPort magicLinkFactory;
     private final Clock clock;
     private final Duration magicLinkTtl;
     private final Duration continuationTtl;
     private final Duration applicationTtl;
     private final Duration magicLinkRequestCooldown;
-    private final String frontendMagicLinkBaseUrl;
     private final OnboardingReviewPolicyPort reviewPolicy;
 
     public OnboardingApplicationService(
@@ -82,13 +81,13 @@ public class OnboardingApplicationService implements
             MagicLinkDeliveryRepositoryPort deliveryRepository,
             OnboardingWorkItemRepositoryPort workItemRepository,
             PayloadCipherPort payloadCipher,
+            MagicLinkFactoryPort magicLinkFactory,
             Clock clock,
             OnboardingReviewPolicyPort reviewPolicy,
             @Value("${onboarding.magic-link.ttl-minutes:30}") long magicLinkTtlMinutes,
             @Value("${onboarding.continuation.ttl-minutes:120}") long continuationTtlMinutes,
             @Value("${onboarding.application.ttl-days:15}") long applicationTtlDays,
-            @Value("${onboarding.magic-link.request-cooldown:PT1M}") Duration magicLinkRequestCooldown,
-            @Value("${onboarding.frontend.magic-link-base-url:http://localhost:4200/onboarding/continue}") String frontendMagicLinkBaseUrl
+            @Value("${onboarding.magic-link.request-cooldown:PT1M}") Duration magicLinkRequestCooldown
     ) {
         this.repository = repository;
         this.statusHistoryRepository = statusHistoryRepository;
@@ -98,13 +97,13 @@ public class OnboardingApplicationService implements
         this.deliveryRepository = deliveryRepository;
         this.workItemRepository = workItemRepository;
         this.payloadCipher = payloadCipher;
+        this.magicLinkFactory = magicLinkFactory;
         this.clock = clock;
         this.reviewPolicy = reviewPolicy;
         this.magicLinkTtl = Duration.ofMinutes(magicLinkTtlMinutes);
         this.continuationTtl = Duration.ofMinutes(continuationTtlMinutes);
         this.applicationTtl = Duration.ofDays(applicationTtlDays);
         this.magicLinkRequestCooldown = magicLinkRequestCooldown;
-        this.frontendMagicLinkBaseUrl = frontendMagicLinkBaseUrl;
     }
 
     @Override
@@ -171,7 +170,7 @@ public class OnboardingApplicationService implements
     }
 
     private void enqueueMagicLink(OnboardingApplication application, String token, Instant now) {
-        String encryptedMagicLink = payloadCipher.encrypt(magicLink(token));
+        String encryptedMagicLink = payloadCipher.encrypt(magicLinkFactory.create(token));
         MagicLinkDelivery delivery = deliveryRepository.findByApplicationId(application.id())
                 .map(existing -> existing.replace(
                         application.email(), encryptedMagicLink, application.magicLinkExpiresAt(), now
@@ -268,9 +267,5 @@ public class OnboardingApplicationService implements
         return repository.findById(applicationId)
                 .map(OnboardingApplicationDetailsMapper::toDetails)
                 .orElseThrow(() -> new OnboardingApplicationNotFoundException(applicationId));
-    }
-
-    private String magicLink(String token) {
-        return frontendMagicLinkBaseUrl + "#token=" + URLEncoder.encode(token, StandardCharsets.UTF_8);
     }
 }

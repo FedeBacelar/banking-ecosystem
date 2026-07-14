@@ -37,6 +37,9 @@ public class NotificationEntity {
     @Column(length = 120)
     private String correlationId;
 
+    @Column(length = 64)
+    private String requestFingerprint;
+
     @Column(nullable = false, length = 255)
     private String subject;
 
@@ -117,6 +120,14 @@ public class NotificationEntity {
 
     public void setCorrelationId(String correlationId) {
         this.correlationId = correlationId;
+    }
+
+    public String getRequestFingerprint() {
+        return requestFingerprint;
+    }
+
+    public void setRequestFingerprint(String requestFingerprint) {
+        this.requestFingerprint = requestFingerprint;
     }
 
     public String getSubject() {

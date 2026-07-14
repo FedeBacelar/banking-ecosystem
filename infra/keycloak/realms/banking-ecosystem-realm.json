@@ -22,9 +22,9 @@
     "port": "${KEYCLOAK_SMTP_PORT}",
     "from": "${KEYCLOAK_SMTP_FROM}",
     "fromDisplayName": "Nerva Banking",
-    "auth": "true",
-    "starttls": "true",
-    "ssl": "false",
+    "auth": "${KEYCLOAK_SMTP_AUTH}",
+    "starttls": "${KEYCLOAK_SMTP_STARTTLS}",
+    "ssl": "${KEYCLOAK_SMTP_SSL}",
     "user": "${KEYCLOAK_SMTP_USERNAME}",
     "password": "${KEYCLOAK_SMTP_PASSWORD}"
   },

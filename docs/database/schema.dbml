@@ -353,8 +353,10 @@ Table notification_db.notification {
   template_code notification_template_code [not null]
   variables_json json [not null]
   correlation_id varchar(120)
+  request_fingerprint char(64)
   subject varchar(255) [not null]
   body text [not null]
+  html_body text
   status notification_status [not null]
   attempt_count int [not null, default: 0]
   last_error text
@@ -369,9 +371,10 @@ Table notification_db.notification {
     status [name: 'idx_notification_status']
     correlation_id [name: 'idx_notification_correlation_id']
     created_at [name: 'idx_notification_created_at']
+    (template_code, correlation_id) [unique, name: 'uk_notification_template_correlation']
   }
 
-  Note: 'Notification request and delivery state persisted by notification-service.'
+  Note: 'Notification delivery audit persisted by notification-service. Sensitive variables and rendered bodies are redacted; request_fingerprint binds exact idempotent replays without retaining the payload.'
 }
 
 Table document_db.document {

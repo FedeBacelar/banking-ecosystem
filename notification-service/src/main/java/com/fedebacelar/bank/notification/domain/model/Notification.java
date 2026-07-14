@@ -14,6 +14,7 @@ public record Notification(
         NotificationTemplateCode templateCode,
         Map<String, String> variables,
         String correlationId,
+        String requestFingerprint,
         String subject,
         String body,
         String htmlBody,
@@ -31,6 +32,7 @@ public record Notification(
             NotificationTemplateCode templateCode,
             Map<String, String> variables,
             String correlationId,
+            String requestFingerprint,
             RenderedNotification renderedNotification,
             Instant now
     ) {
@@ -41,6 +43,7 @@ public record Notification(
                 templateCode,
                 Map.copyOf(variables),
                 correlationId,
+                requestFingerprint,
                 renderedNotification.subject(),
                 renderedNotification.textBody(),
                 renderedNotification.htmlBody(),
@@ -62,6 +65,7 @@ public record Notification(
                 templateCode,
                 variables,
                 correlationId,
+                requestFingerprint,
                 subject,
                 body,
                 htmlBody,
@@ -78,6 +82,7 @@ public record Notification(
     public Notification prepareDelivery(
             Map<String, String> newVariables,
             RenderedNotification renderedNotification,
+            String newRequestFingerprint,
             Instant now
     ) {
         return new Notification(
@@ -87,6 +92,7 @@ public record Notification(
                 templateCode,
                 Map.copyOf(newVariables),
                 correlationId,
+                requestFingerprint == null ? newRequestFingerprint : requestFingerprint,
                 renderedNotification.subject(),
                 renderedNotification.textBody(),
                 renderedNotification.htmlBody(),
@@ -108,6 +114,7 @@ public record Notification(
                 templateCode,
                 Map.of(),
                 correlationId,
+                requestFingerprint,
                 subject,
                 "[REDACTED]",
                 "[REDACTED]",
@@ -129,6 +136,7 @@ public record Notification(
                 templateCode,
                 variables,
                 correlationId,
+                requestFingerprint,
                 subject,
                 body,
                 htmlBody,
@@ -140,6 +148,12 @@ public record Notification(
                 now,
                 version
         );
+    }
+
+    public boolean contentRedacted() {
+        return variables.isEmpty()
+                && "[REDACTED]".equals(body)
+                && "[REDACTED]".equals(htmlBody);
     }
 }
 

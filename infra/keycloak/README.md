@@ -4,7 +4,10 @@ Local Keycloak infrastructure for the banking ecosystem.
 
 Keycloak is the local Identity Provider for API security work. It imports a development realm used by `api-gateway` and protected backend services.
 
-The included credentials are development defaults. To override them, create a local `.env` file from `.env.example`. Local `.env` files must not be committed.
+The included credentials are development defaults. To override machine-client
+values locally, create a `.env` file from `.env.example`. Local `.env` files
+must not be committed. The normal local SMTP flow remains credential-free and
+uses Mailpit; do not store a real SMTP account in this workspace file.
 
 The local realm uses the `banking` login and email themes located in:
 
@@ -18,6 +21,7 @@ infra/keycloak/themes/banking/email
 From the repository root:
 
 ```powershell
+docker compose -f infra/mailpit/docker-compose.yml up -d
 docker compose -f infra/keycloak/docker-compose.yml up -d
 ```
 
@@ -27,9 +31,25 @@ With custom local variables:
 docker compose --env-file infra/keycloak/.env -f infra/keycloak/docker-compose.yml up -d
 ```
 
-Create the ignored `.env` from `.env.example` to configure Keycloak SMTP and override the local machine-client secrets. The development defaults match the service configuration; any override must also be supplied to the corresponding Java process. Realm JSON keeps placeholders only, and the one-shot initializer reconciles client secrets on every infrastructure start so existing volumes can receive rotations safely.
+The default Keycloak SMTP target is Mailpit. An ignored `.env` copied from the
+example may override local machine-client secrets and other development
+settings, but its SMTP values should stay on Mailpit with empty credentials.
+Production SMTP credentials are injected by the deployment runtime or a secrets
+manager, never copied into the repository workspace.
+
+The development machine-client defaults match the service configuration; any
+override must also be supplied to the corresponding Java process. Realm JSON
+keeps secret placeholders only, and the one-shot initializer reconciles client
+secrets on every infrastructure start so existing volumes can receive rotations
+safely.
 
 The one-shot `banking-keycloak-realm-init` container applies the restricted banking User Profile after the realm becomes healthy. Its expected steady state is `Exited (0)`.
+
+Keycloak's local public identity URL is fixed to the complete
+`http://localhost:8090` origin through `KEYCLOAK_PUBLIC_URL`. It uses that
+canonical URL when it creates signed action links instead of deriving customer
+email links from an incoming request host. A deployed environment must set its
+own complete HTTPS `KEYCLOAK_PUBLIC_URL`.
 
 ## Stop
 
@@ -209,6 +229,11 @@ For local theme development, Docker Compose disables Keycloak theme/template/sta
 
 `BANKING_FRONTEND_URL` controls the theme's `Volver al inicio` link and the interactive client's browser URLs. Use an origin without a trailing slash; the local default is `http://localhost:4200`.
 
+The frontend and identity origins used by notification action-link validation
+are independent exact origins. They contain scheme, host, and effective port;
+wildcard hosts and suffix matching are not supported. The identity origin must
+match `KEYCLOAK_PUBLIC_URL`.
+
 The one-shot `keycloak-realm-init` container reconciles the login and email themes, Spanish locale, credential-action order, password policy, browser URLs, SMTP sender, and client secrets on every infrastructure start. This also updates existing local volumes.
 
 ## Credential password policy
@@ -233,6 +258,16 @@ HTML and plain-text alternative. Copy describes the two customer actions
 without exposing Keycloak action identifiers or administrative language, and
 the academic disclaimer remains visible even when images are unavailable.
 
+Keycloak owns the complete credential action URL. `execute-actions-email`
+creates and signs the link from `KEYCLOAK_PUBLIC_URL`, while the
+`home-banking-bff` client constrains the post-action redirect to
+`http://localhost:8085/web/auth/login/onboarding-completion`. The theme only
+presents the generated URL; `notification-service` does not reconstruct it.
+
+Locally, Keycloak sends this message to Mailpit without SMTP authentication,
+STARTTLS, or SSL. Real SMTP settings are deployment secrets and do not belong in
+the ignored local `.env` used by the development journey.
+
 Verify the static theme contract, or include the rendered local Keycloak page when the container is running:
 
 ```powershell
@@ -253,6 +288,7 @@ Manual verification path:
 
 ```txt
 Realm settings -> Themes -> Login theme -> banking
+Realm settings -> Themes -> Email theme -> banking
 ```
 
 ## Public Boundary Check

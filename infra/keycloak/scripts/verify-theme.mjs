@@ -93,6 +93,7 @@ const emailMessages = await readFile(
   "utf8",
 );
 const compose = await readFile(path.join(keycloakDirectory, "docker-compose.yml"), "utf8");
+const envExample = await readFile(path.join(keycloakDirectory, ".env.example"), "utf8");
 const userProfile = JSON.parse(
   await readFile(path.join(keycloakDirectory, "realms", "banking-user-profile.json"), "utf8"),
 );
@@ -124,6 +125,21 @@ assert(realm.defaultLocale === "es", "Spanish is not the default realm locale.")
 assert(
   JSON.stringify(realm.supportedLocales) === JSON.stringify(["es"]),
   "The customer realm must support Spanish only.",
+);
+assert(
+  JSON.stringify(realm.smtpServer) ===
+    JSON.stringify({
+      host: "${KEYCLOAK_SMTP_HOST}",
+      port: "${KEYCLOAK_SMTP_PORT}",
+      from: "${KEYCLOAK_SMTP_FROM}",
+      fromDisplayName: "Nerva Banking",
+      auth: "${KEYCLOAK_SMTP_AUTH}",
+      starttls: "${KEYCLOAK_SMTP_STARTTLS}",
+      ssl: "${KEYCLOAK_SMTP_SSL}",
+      user: "${KEYCLOAK_SMTP_USERNAME}",
+      password: "${KEYCLOAK_SMTP_PASSWORD}",
+    }),
+  "The fresh realm import must obtain every SMTP value from its environment.",
 );
 assert(/^locales=es$/m.test(themeProperties), "The login theme must expose Spanish only.");
 assert(/^locales=es$/m.test(emailThemeProperties), "The email theme must expose Spanish only.");
@@ -239,12 +255,35 @@ assert(
   "The repository-owned UTF-8 password blocklist is missing its deterministic checks.",
 );
 assert(
+  compose.includes("KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8090}") &&
+    compose.includes('KC_HOSTNAME_STRICT: "true"'),
+  "Keycloak must publish a stable strict hostname for issuer metadata and email links.",
+);
+assert(
+  /^KEYCLOAK_PUBLIC_URL=http:\/\/localhost:8090$/m.test(envExample) &&
+    /^KEYCLOAK_LOCAL_SMTP_HOST=host\.docker\.internal$/m.test(envExample) &&
+    /^KEYCLOAK_LOCAL_SMTP_PORT=1025$/m.test(envExample) &&
+    /^KEYCLOAK_LOCAL_SMTP_FROM=no-reply@nerva\.local$/m.test(envExample) &&
+    /^KEYCLOAK_LOCAL_SMTP_USERNAME=$/m.test(envExample) &&
+    /^KEYCLOAK_LOCAL_SMTP_PASSWORD=$/m.test(envExample) &&
+    /^KEYCLOAK_LOCAL_SMTP_AUTH=false$/m.test(envExample) &&
+    /^KEYCLOAK_LOCAL_SMTP_STARTTLS=false$/m.test(envExample) &&
+    /^KEYCLOAK_LOCAL_SMTP_SSL=false$/m.test(envExample) &&
+    !envExample.includes("smtp.gmail.com") &&
+    !/^KEYCLOAK_SMTP_(?:HOST|PORT|FROM|USERNAME|PASSWORD)=/m.test(envExample),
+  "The example environment must describe the secret-free local Mailpit contract.",
+);
+assert(
   compose.includes("./password-blacklists:/opt/keycloak/data/password-blacklists:ro") &&
     compose.includes("-s 'emailTheme=banking'") &&
     compose.includes(`-s 'passwordPolicy=${expectedPasswordPolicy}'`) &&
     compose.includes("authentication/required-actions/UPDATE_PROFILE") &&
     compose.includes("authentication/required-actions/UPDATE_PASSWORD") &&
-    compose.includes('\\"fromDisplayName\\":\\"Nerva Banking\\"'),
+    compose.includes('\\"fromDisplayName\\":\\"Nerva Banking\\"') &&
+    compose.includes('\\"auth\\":\\"$${KEYCLOAK_SMTP_AUTH}\\"') &&
+    compose.includes('\\"starttls\\":\\"$${KEYCLOAK_SMTP_STARTTLS}\\"') &&
+    compose.includes('\\"ssl\\":\\"$${KEYCLOAK_SMTP_SSL}\\"') &&
+    compose.includes('if test -n "$${KEYCLOAK_SMTP_USERNAME}"; then'),
   "The realm initializer does not reconcile email, credential actions, password or sender configuration.",
 );
 

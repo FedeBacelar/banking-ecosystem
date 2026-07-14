@@ -2,6 +2,7 @@ package com.fedebacelar.bank.notification.infrastructure.adapter.in.web.error;
 
 import com.fedebacelar.bank.notification.domain.exception.InvalidTemplateVariableException;
 import com.fedebacelar.bank.notification.domain.exception.MissingTemplateVariableException;
+import com.fedebacelar.bank.notification.domain.exception.NotificationRequestConflictException;
 import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
 import org.springframework.http.HttpStatus;
@@ -36,6 +37,14 @@ public class GlobalExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "The notification was modified by another request. Retry the operation with the latest notification state.");
         problem.setType(URI.create("https://bank.fedebacelar.com/problems/concurrent-notification-update"));
         problem.setTitle("Concurrent notification update");
+        return problem;
+    }
+
+    @ExceptionHandler(NotificationRequestConflictException.class)
+    ProblemDetail handleNotificationRequestConflict(NotificationRequestConflictException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
+        problem.setType(URI.create("https://bank.fedebacelar.com/problems/notification-request-conflict"));
+        problem.setTitle("Notification request conflict");
         return problem;
     }
 

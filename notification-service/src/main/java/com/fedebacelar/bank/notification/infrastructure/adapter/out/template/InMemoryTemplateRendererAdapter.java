@@ -5,8 +5,6 @@ import com.fedebacelar.bank.notification.domain.enums.NotificationTemplateCode;
 import com.fedebacelar.bank.notification.domain.exception.InvalidTemplateVariableException;
 import com.fedebacelar.bank.notification.domain.exception.MissingTemplateVariableException;
 import com.fedebacelar.bank.notification.domain.model.RenderedNotification;
-import java.net.URI;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -18,6 +16,13 @@ import org.springframework.web.util.HtmlUtils;
 public class InMemoryTemplateRendererAdapter implements TemplateRendererPort {
 
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{\\{([A-Za-z][A-Za-z0-9]*)}}");
+    private static final Pattern HUMAN_FIRST_NAME_PATTERN = Pattern.compile(
+            "[\\p{L}\\p{M}](?:[\\p{L}\\p{M}\\p{Zs}.'’-]*[\\p{L}\\p{M}.])?"
+    );
+    private static final Pattern POSITIVE_INTEGER_PATTERN = Pattern.compile("[1-9][0-9]*");
+    private static final int MAX_FIRST_NAME_CODE_POINTS = 80;
+    private static final int MAX_EXPIRATION_MINUTES = 1_440;
+    private static final int MAX_EXPIRATION_HOURS = 168;
     private static final String ACADEMIC_NOTICE_TEXT = """
             Proyecto académico
             Nerva Banking no es una entidad financiera ni abre cuentas reales. Usá únicamente datos y documentos de prueba.
@@ -194,6 +199,12 @@ public class InMemoryTemplateRendererAdapter implements TemplateRendererPort {
             )
     );
 
+    private final EmailActionLinkPolicy actionLinkPolicy;
+
+    public InMemoryTemplateRendererAdapter(EmailActionLinkPolicy actionLinkPolicy) {
+        this.actionLinkPolicy = actionLinkPolicy;
+    }
+
     @Override
     public RenderedNotification render(NotificationTemplateCode templateCode, Map<String, String> variables) {
         TemplateDefinition template = TEMPLATES.get(templateCode);
@@ -223,33 +234,80 @@ public class InMemoryTemplateRendererAdapter implements TemplateRendererPort {
                 throw new MissingTemplateVariableException(templateCode, requiredVariable);
             }
         }
+        for (String suppliedVariable : variables.keySet()) {
+            if (!template.requiredVariables().contains(suppliedVariable)) {
+                // Map keys are caller-controlled too. Do not reflect an unexpected key in
+                // errors because it could itself contain a token or personal information.
+                throw new InvalidTemplateVariableException(templateCode, "variables");
+            }
+        }
+        validateSemanticVariables(templateCode, variables);
         for (String linkVariable : template.linkVariables()) {
-            if (!isAllowedLink(variables.get(linkVariable))) {
+            if (!actionLinkPolicy.allows(templateCode, linkVariable, variables.get(linkVariable))) {
                 throw new InvalidTemplateVariableException(templateCode, linkVariable);
             }
         }
     }
 
-    private boolean isAllowedLink(String value) {
-        try {
-            URI uri = URI.create(value);
-            if (!uri.isAbsolute() || uri.getHost() == null || uri.getUserInfo() != null) {
-                return false;
+    private void validateSemanticVariables(
+            NotificationTemplateCode templateCode,
+            Map<String, String> variables
+    ) {
+        switch (templateCode) {
+            case ONBOARDING_EMAIL_MAGIC_LINK -> validatePositiveInteger(
+                    templateCode,
+                    "expiresInMinutes",
+                    variables.get("expiresInMinutes"),
+                    MAX_EXPIRATION_MINUTES
+            );
+            case ONBOARDING_APPROVED_CREDENTIAL_INVITATION -> {
+                validateHumanFirstName(templateCode, variables.get("firstName"));
+                validatePositiveInteger(
+                        templateCode,
+                        "expiresInHours",
+                        variables.get("expiresInHours"),
+                        MAX_EXPIRATION_HOURS
+                );
             }
-            String scheme = uri.getScheme().toLowerCase(Locale.ROOT);
-            if ("https".equals(scheme)) {
-                return true;
-            }
-            return "http".equals(scheme) && isLoopbackHost(uri.getHost());
-        } catch (IllegalArgumentException exception) {
-            return false;
+            case ONBOARDING_REJECTED, ONBOARDING_COMPLETED ->
+                    validateHumanFirstName(templateCode, variables.get("firstName"));
         }
     }
 
-    private boolean isLoopbackHost(String host) {
-        return "localhost".equalsIgnoreCase(host)
-                || "127.0.0.1".equals(host)
-                || "::1".equals(host);
+    private void validateHumanFirstName(NotificationTemplateCode templateCode, String value) {
+        boolean valid = isTrimmed(value)
+                && value.codePointCount(0, value.length()) <= MAX_FIRST_NAME_CODE_POINTS
+                && HUMAN_FIRST_NAME_PATTERN.matcher(value).matches()
+                && value.codePoints().anyMatch(Character::isLetter);
+        if (!valid) {
+            throw new InvalidTemplateVariableException(templateCode, "firstName");
+        }
+    }
+
+    private boolean isTrimmed(String value) {
+        int first = value.codePointAt(0);
+        int last = value.codePointBefore(value.length());
+        return Character.getType(first) != Character.SPACE_SEPARATOR
+                && Character.getType(last) != Character.SPACE_SEPARATOR;
+    }
+
+    private void validatePositiveInteger(
+            NotificationTemplateCode templateCode,
+            String variableName,
+            String value,
+            int maximum
+    ) {
+        if (!POSITIVE_INTEGER_PATTERN.matcher(value).matches()) {
+            throw new InvalidTemplateVariableException(templateCode, variableName);
+        }
+        try {
+            int parsed = Integer.parseInt(value);
+            if (parsed > maximum) {
+                throw new InvalidTemplateVariableException(templateCode, variableName);
+            }
+        } catch (NumberFormatException exception) {
+            throw new InvalidTemplateVariableException(templateCode, variableName);
+        }
     }
 
     private String htmlDocument(TemplateDefinition template) {

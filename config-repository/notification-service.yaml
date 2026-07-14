@@ -23,6 +23,12 @@ spring:
           auth: ${NOTIFICATION_SMTP_AUTH:false}
           starttls:
             enable: ${NOTIFICATION_SMTP_STARTTLS:false}
+            required: ${NOTIFICATION_SMTP_STARTTLS_REQUIRED:false}
+          ssl:
+            enable: ${NOTIFICATION_SMTP_SSL:false}
+          connectiontimeout: ${NOTIFICATION_SMTP_CONNECTION_TIMEOUT_MS:5000}
+          timeout: ${NOTIFICATION_SMTP_READ_TIMEOUT_MS:10000}
+          writetimeout: ${NOTIFICATION_SMTP_WRITE_TIMEOUT_MS:10000}
   security:
     oauth2:
       resourceserver:
@@ -30,6 +36,9 @@ spring:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/banking-ecosystem}
 
 notification:
+  action-links:
+    onboarding-allowed-origins: ${NOTIFICATION_MAGIC_LINK_ALLOWED_ORIGINS:http://localhost:4200}
+    keycloak-allowed-origins: ${NOTIFICATION_KEYCLOAK_ACTION_ALLOWED_ORIGINS:http://localhost:8090}
   email:
     from: ${NOTIFICATION_SMTP_FROM:no-reply@nerva.local}
     from-name: ${NOTIFICATION_SMTP_FROM_NAME:Nerva Banking}

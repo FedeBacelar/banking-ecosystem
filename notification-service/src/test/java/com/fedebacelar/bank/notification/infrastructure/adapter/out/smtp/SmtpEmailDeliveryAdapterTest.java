@@ -36,6 +36,7 @@ class SmtpEmailDeliveryAdapterTest {
                 NotificationTemplateCode.ONBOARDING_EMAIL_MAGIC_LINK,
                 Map.of(),
                 "delivery-example",
+                "a".repeat(64),
                 new RenderedNotification(
                         "Continuá tu solicitud",
                         "Texto para clientes sin HTML.",

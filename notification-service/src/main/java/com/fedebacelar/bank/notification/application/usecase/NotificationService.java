@@ -9,11 +9,13 @@ import com.fedebacelar.bank.notification.application.port.out.TemplateRendererPo
 import com.fedebacelar.bank.notification.application.view.NotificationDetails;
 import com.fedebacelar.bank.notification.domain.enums.NotificationStatus;
 import com.fedebacelar.bank.notification.domain.exception.EmailDeliveryException;
+import com.fedebacelar.bank.notification.domain.exception.NotificationRequestConflictException;
 import com.fedebacelar.bank.notification.domain.model.Notification;
 import com.fedebacelar.bank.notification.domain.model.RenderedNotification;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -38,22 +40,32 @@ public class NotificationService implements SendEmailNotificationUseCase {
 
     @Override
     public NotificationDetails send(SendEmailNotificationCommand command) {
+        Map<String, String> variables = command.variables() == null ? Map.of() : command.variables();
+        RenderedNotification rendered = templateRenderer.render(command.templateCode(), variables);
+        String requestFingerprint = NotificationRequestFingerprint.calculate(
+                command.recipient(), command.templateCode(), variables
+        );
+        boolean redactContent = command.templateCode().requiresRedaction() || command.sensitive();
         Notification existing = existing(command);
+        validateReplay(existing, command.recipient(), requestFingerprint);
+
         if (existing != null && existing.status() == NotificationStatus.SENT) {
-            return NotificationDetailsMapper.toDetails(existing);
+            Notification auditRecord = redactIfRequired(existing, redactContent);
+            if (auditRecord != existing) {
+                auditRecord = repository.save(auditRecord);
+            }
+            return NotificationDetailsMapper.toDetails(auditRecord);
         }
 
         Instant now = Instant.now(clock);
-        Map<String, String> variables = command.variables() == null ? Map.of() : command.variables();
-        RenderedNotification rendered = templateRenderer.render(command.templateCode(), variables);
         Notification delivery = existing == null
                 ? Notification.createEmail(
                         command.recipient(), command.templateCode(), variables,
-                        command.correlationId(), rendered, now
+                        command.correlationId(), requestFingerprint, rendered, now
                 )
-                : existing.prepareDelivery(variables, rendered, now);
+                : existing.prepareDelivery(variables, rendered, requestFingerprint, now);
 
-        Notification auditRecord = command.sensitive() ? delivery.redactContent() : delivery;
+        Notification auditRecord = redactIfRequired(delivery, redactContent);
         auditRecord = repository.save(auditRecord);
 
         try {
@@ -66,6 +78,29 @@ public class NotificationService implements SendEmailNotificationUseCase {
         }
 
         return NotificationDetailsMapper.toDetails(auditRecord);
+    }
+
+    private void validateReplay(
+            Notification existing,
+            String recipient,
+            String requestFingerprint
+    ) {
+        if (existing == null) {
+            return;
+        }
+        if (!Objects.equals(existing.recipient(), recipient)) {
+            throw new NotificationRequestConflictException();
+        }
+        if (existing.requestFingerprint() != null
+                && !existing.requestFingerprint().equals(requestFingerprint)) {
+            throw new NotificationRequestConflictException();
+        }
+    }
+
+    private Notification redactIfRequired(Notification notification, boolean required) {
+        return required && !notification.contentRedacted()
+                ? notification.redactContent()
+                : notification;
     }
 
     private Notification existing(SendEmailNotificationCommand command) {

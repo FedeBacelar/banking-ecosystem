@@ -14,6 +14,7 @@ import com.fedebacelar.bank.onboarding.application.command.ConsumeMagicLinkComma
 import com.fedebacelar.bank.onboarding.application.command.StartOnboardingApplicationCommand;
 import com.fedebacelar.bank.onboarding.application.command.ValidateContinuationCommand;
 import com.fedebacelar.bank.onboarding.application.port.out.MagicLinkDeliveryRepositoryPort;
+import com.fedebacelar.bank.onboarding.application.port.out.MagicLinkFactoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingApplicationRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingEmailRequestGuardPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingReviewPolicyPort;
@@ -53,6 +54,7 @@ class OnboardingApplicationServiceTest {
     private final MagicLinkDeliveryRepositoryPort deliveries = mock(MagicLinkDeliveryRepositoryPort.class);
     private final OnboardingWorkItemRepositoryPort workItems = mock(OnboardingWorkItemRepositoryPort.class);
     private final PayloadCipherPort cipher = mock(PayloadCipherPort.class);
+    private final MagicLinkFactoryPort magicLinks = mock(MagicLinkFactoryPort.class);
     private final OnboardingReviewPolicyPort reviewPolicy = mock(OnboardingReviewPolicyPort.class);
     private final OnboardingApplicationService service = new OnboardingApplicationService(
             applications,
@@ -63,13 +65,13 @@ class OnboardingApplicationServiceTest {
             deliveries,
             workItems,
             cipher,
+            magicLinks,
             Clock.fixed(NOW, ZoneOffset.UTC),
             reviewPolicy,
             30,
             120,
             15,
-            REQUEST_COOLDOWN,
-            "http://localhost:4200/onboarding/continue"
+            REQUEST_COOLDOWN
     );
 
     @BeforeEach
@@ -87,6 +89,8 @@ class OnboardingApplicationServiceTest {
     void shouldPersistApplicationAndMagicLinkOutboxWithoutSendingEmailInline() {
         when(requestGuard.acquireAndRegister("person@example.com", NOW, REQUEST_COOLDOWN)).thenReturn(true);
         when(tokens.generate()).thenReturn("magic-token");
+        when(magicLinks.create("magic-token"))
+                .thenReturn("http://localhost:4200/onboarding/continue#token=magic-token");
         when(cipher.encrypt("http://localhost:4200/onboarding/continue#token=magic-token"))
                 .thenReturn("encrypted-link");
 
@@ -112,7 +116,7 @@ class OnboardingApplicationServiceTest {
         var result = service.start(new StartOnboardingApplicationCommand(existing.email()));
 
         assertThat(result.id()).isEqualTo(existing.id());
-        verifyNoInteractions(tokens, cipher, deliveries, workItems);
+        verifyNoInteractions(tokens, magicLinks, cipher, deliveries, workItems);
         verify(applications, never()).save(any());
     }
 
@@ -129,6 +133,8 @@ class OnboardingApplicationServiceTest {
         when(applications.findFirstByEmailAndStatusInOrderByCreatedAtDesc(anyString(), any()))
                 .thenReturn(Optional.of(existing));
         when(tokens.generate()).thenReturn("new-magic-token");
+        when(magicLinks.create("new-magic-token"))
+                .thenReturn("http://localhost:4200/onboarding/continue#token=new-magic-token");
         when(cipher.encrypt(anyString())).thenReturn("new-encrypted-link");
         when(deliveries.findByApplicationId(existing.id())).thenReturn(Optional.of(previousDelivery));
         when(workItems.findByApplicationIdAndJobType(existing.id(), WorkflowJobType.MAGIC_LINK_DELIVERY))
@@ -238,7 +244,7 @@ class OnboardingApplicationServiceTest {
         var result = service.start(new StartOnboardingApplicationCommand(provisioning.email()));
 
         assertThat(result.status()).isEqualTo(OnboardingApplicationStatus.PROVISIONING);
-        verifyNoInteractions(tokens, cipher, deliveries, workItems);
+        verifyNoInteractions(tokens, magicLinks, cipher, deliveries, workItems);
         verify(applications, never()).save(any());
     }
 

@@ -7,6 +7,7 @@ import com.fedebacelar.bank.onboarding.domain.model.ApplicantData;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.out.keycloak.dto.KeycloakRoleResponse;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.out.keycloak.dto.KeycloakUserRequest;
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.out.keycloak.dto.KeycloakUserResponse;
+import com.fedebacelar.bank.onboarding.infrastructure.validation.OutboundLinkUriValidator;
 import feign.FeignException;
 import java.net.URI;
 import java.time.Duration;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Component;
 public class KeycloakCredentialProvisioningAdapter implements CredentialProvisioningPort {
     private static final List<String> REQUIRED_ACTIONS = List.of("UPDATE_PROFILE", "UPDATE_PASSWORD");
     private static final List<String> CUSTOMER_ROLES = List.of("HOME_BANKING_USER");
+    private static final String CREDENTIAL_COMPLETION_PATH = "/web/auth/login/onboarding-completion";
     private final KeycloakAdminFeignClient client;
     private final String realm;
     private final String actionClientId;
@@ -37,7 +39,11 @@ public class KeycloakCredentialProvisioningAdapter implements CredentialProvisio
         this.client = client;
         this.realm = realm;
         this.actionClientId = actionClientId;
-        this.redirectUri = redirectUri;
+        this.redirectUri = OutboundLinkUriValidator.validate(
+                redirectUri,
+                "onboarding.keycloak.credential-redirect-uri",
+                CREDENTIAL_COMPLETION_PATH
+        ).toASCIIString();
         this.lifespanSeconds = Math.toIntExact(lifespan.toSeconds());
     }
 
