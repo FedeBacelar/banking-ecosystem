@@ -1,6 +1,7 @@
 package com.fedebacelar.bank.onboarding.infrastructure.adapter.out.observability;
 
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTelemetryPort;
+import com.fedebacelar.bank.onboarding.domain.enums.ProvisioningStepType;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.OpenTelemetry;
@@ -11,6 +12,8 @@ import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.Locale;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -78,12 +81,21 @@ public class MicrometerOnboardingTelemetryAdapter implements OnboardingTelemetry
 
     @Override
     public void observeWorkerExecution(WorkType workType, Runnable execution) {
+        observeIndependentWorker(workType.metricValue(), execution);
+    }
+
+    @Override
+    public void observeExpirationExecution(Runnable execution) {
+        observeIndependentWorker("expiration", execution);
+    }
+
+    private void observeIndependentWorker(String jobType, Runnable execution) {
         Span span;
         try {
-            span = tracer.spanBuilder("onboarding.worker." + workType.metricValue())
+            span = tracer.spanBuilder("onboarding.worker." + jobType)
                     .setSpanKind(SpanKind.INTERNAL)
                     .setNoParent()
-                    .setAttribute("nerva.job.type", workType.metricValue())
+                    .setAttribute("nerva.job.type", jobType)
                     .startSpan();
         } catch (RuntimeException telemetryFailure) {
             execution.run();
@@ -103,6 +115,48 @@ public class MicrometerOnboardingTelemetryAdapter implements OnboardingTelemetry
             execution.run();
         } catch (RuntimeException | Error executionFailure) {
             safeSpanFailure(span, executionFailure);
+            throw executionFailure;
+        } finally {
+            safeClose(scope);
+            safeEnd(span);
+        }
+    }
+
+    @Override
+    public <T> T observeProvisioningStep(ProvisioningStepType stepType, Supplier<T> execution) {
+        String step = stepType.name().toLowerCase(Locale.ROOT);
+        Span span;
+        try {
+            span = tracer.spanBuilder("onboarding.provisioning." + step)
+                    .setSpanKind(SpanKind.INTERNAL)
+                    .setAttribute("nerva.provisioning.step", step)
+                    .startSpan();
+        } catch (RuntimeException telemetryFailure) {
+            return execution.get();
+        }
+
+        Scope scope;
+        try {
+            scope = span.makeCurrent();
+        } catch (RuntimeException telemetryFailure) {
+            safeEnd(span);
+            return execution.get();
+        }
+
+        try {
+            T result = execution.get();
+            recordSafely(() -> LOGGER.atInfo()
+                    .addKeyValue("event.name", "onboarding.provisioning.step.succeeded")
+                    .addKeyValue("provisioning.step", step)
+                    .log("Onboarding provisioning step completed"));
+            return result;
+        } catch (RuntimeException | Error executionFailure) {
+            safeSpanFailure(span, executionFailure);
+            recordSafely(() -> LOGGER.atWarn()
+                    .addKeyValue("event.name", "onboarding.provisioning.step.failed")
+                    .addKeyValue("provisioning.step", step)
+                    .addKeyValue("error.type", executionFailure.getClass().getSimpleName())
+                    .log("Onboarding provisioning step failed"));
             throw executionFailure;
         } finally {
             safeClose(scope);

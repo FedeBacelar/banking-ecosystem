@@ -66,6 +66,8 @@ otel:
     export:
       timeout: 3000
   instrumentation:
+    spring-scheduling:
+      enabled: false
     common:
       db:
         query-sanitization:

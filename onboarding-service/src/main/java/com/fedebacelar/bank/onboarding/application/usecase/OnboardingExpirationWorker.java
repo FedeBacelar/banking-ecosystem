@@ -2,6 +2,7 @@ package com.fedebacelar.bank.onboarding.application.usecase;
 
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingApplicationRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingStatusHistoryRepositoryPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTelemetryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingUniquenessReservationPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingWorkItemRepositoryPort;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingActorType;
@@ -13,6 +14,7 @@ import com.fedebacelar.bank.onboarding.domain.model.OnboardingStatusHistory;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -33,6 +35,7 @@ public class OnboardingExpirationWorker {
     private final OnboardingStatusHistoryRepositoryPort history;
     private final OnboardingUniquenessReservationPort reservations;
     private final OnboardingWorkItemRepositoryPort workItems;
+    private final OnboardingTelemetryPort telemetry;
     private final TransactionTemplate transactions;
     private final Clock clock;
     private final int batchSize;
@@ -42,6 +45,7 @@ public class OnboardingExpirationWorker {
             OnboardingStatusHistoryRepositoryPort history,
             OnboardingUniquenessReservationPort reservations,
             OnboardingWorkItemRepositoryPort workItems,
+            OnboardingTelemetryPort telemetry,
             TransactionTemplate transactions,
             Clock clock,
             @Value("${onboarding.expiration.batch-size:100}") int batchSize
@@ -50,6 +54,7 @@ public class OnboardingExpirationWorker {
         this.history = history;
         this.reservations = reservations;
         this.workItems = workItems;
+        this.telemetry = telemetry;
         this.transactions = transactions;
         this.clock = clock;
         this.batchSize = batchSize;
@@ -58,8 +63,21 @@ public class OnboardingExpirationWorker {
     @Scheduled(fixedDelayString = "${onboarding.expiration.worker-delay:PT1M}")
     public void expireApplications() {
         Instant now = Instant.now(clock);
-        applications.findExpiredActiveApplications(now, EXPIRABLE, batchSize)
-                .forEach(application -> transactions.executeWithoutResult(status -> expire(application.id(), now)));
+        List<OnboardingApplication> expired;
+        try {
+            expired = applications.findExpiredActiveApplications(now, EXPIRABLE, batchSize);
+        } catch (RuntimeException failure) {
+            telemetry.observeExpirationExecution(() -> {
+                throw failure;
+            });
+            throw failure;
+        }
+        if (expired.isEmpty()) {
+            return;
+        }
+        telemetry.observeExpirationExecution(() -> expired.forEach(
+                application -> transactions.executeWithoutResult(status -> expire(application.id(), now))
+        ));
     }
 
     private void expire(java.util.UUID applicationId, Instant now) {

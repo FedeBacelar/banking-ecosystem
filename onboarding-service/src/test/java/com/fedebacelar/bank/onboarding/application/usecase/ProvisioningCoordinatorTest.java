@@ -42,6 +42,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.TransactionStatus;
@@ -80,6 +81,8 @@ class ProvisioningCoordinatorTest {
             ((Consumer<TransactionStatus>) invocation.getArgument(0)).accept(null);
             return null;
         }).when(transactions).executeWithoutResult(any());
+        when(telemetry.observeProvisioningStep(any(), any())).thenAnswer(invocation ->
+                ((Supplier<?>) invocation.getArgument(1)).get());
 
         OnboardingApplication application = OnboardingApplication.start(
                 "person@example.com", "magic", NOW.plusSeconds(1800), NOW.plus(Duration.ofDays(15)), NOW.minusSeconds(100)

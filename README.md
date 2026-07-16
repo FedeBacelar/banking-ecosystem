@@ -113,11 +113,13 @@ docker compose -f infra/observability/docker-compose.yml up -d
 ```
 
 Grafana is available at `http://localhost:3000`. Start API Gateway, Home Banking
-BFF, Onboarding, and Notification with the `observability` Spring profile to
-populate the provisioned `Nerva · Onboarding` dashboard. The applications keep
-OpenTelemetry disabled by default, and remain functional if the local stack is
-not running. See `infra/observability/README.md` for credentials, endpoints,
-retention, and verification commands.
+BFF, Onboarding, Notification, Document, Customer, Account, and Identity with
+the `observability` Spring profile to populate the provisioned `00 · Resumen
+operativo`, `10 · Onboarding`, and `90 · Diagnóstico por servicio` dashboards
+inside the `Nerva` folder. The applications keep OpenTelemetry disabled by
+default and remain functional if the local stack is not running. See
+`infra/observability/README.md` for credentials, endpoints, retention, and
+verification commands.
 
 ## Run Locally
 

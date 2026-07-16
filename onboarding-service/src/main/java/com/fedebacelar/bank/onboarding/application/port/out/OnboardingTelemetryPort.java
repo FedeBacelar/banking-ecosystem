@@ -1,7 +1,9 @@
 package com.fedebacelar.bank.onboarding.application.port.out;
 
 import com.fedebacelar.bank.onboarding.domain.enums.WorkflowJobType;
+import com.fedebacelar.bank.onboarding.domain.enums.ProvisioningStepType;
 import java.util.Locale;
+import java.util.function.Supplier;
 
 public interface OnboardingTelemetryPort {
 
@@ -49,4 +51,8 @@ public interface OnboardingTelemetryPort {
     void recordWorkOutcome(WorkType workType, WorkOutcome outcome);
 
     void observeWorkerExecution(WorkType workType, Runnable execution);
+
+    void observeExpirationExecution(Runnable execution);
+
+    <T> T observeProvisioningStep(ProvisioningStepType stepType, Supplier<T> execution);
 }

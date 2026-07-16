@@ -2,11 +2,26 @@
   "annotations": {
     "list": []
   },
+  "description": "Recorrido observable de la solicitud, sus automatizaciones y la preparación del acceso.",
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
-  "links": [],
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "nerva-navigation"
+      ],
+      "targetBlank": false,
+      "title": "Navegación Nerva",
+      "tooltip": "Abrir otro dashboard de Nerva",
+      "type": "dashboards"
+    }
+  ],
   "panels": [
     {
       "collapsed": false,
@@ -17,8 +32,7 @@
         "y": 0
       },
       "id": 1,
-      "panels": [],
-      "title": "Estado del ecosistema",
+      "title": "Estado del recorrido",
       "type": "row"
     },
     {
@@ -29,40 +43,25 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "fixedColor": "blue",
+            "mode": "fixed"
           },
-          "decimals": 1,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 95
-              },
-              {
-                "color": "green",
-                "value": 100
-              }
-            ]
-          },
-          "unit": "percent"
+          "decimals": 0,
+          "noValue": "0",
+          "unit": "short"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 6,
-        "w": 4,
+        "h": 5,
+        "w": 8,
         "x": 0,
         "y": 1
       },
       "id": 2,
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
@@ -78,14 +77,15 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "100 * sum(up{job=~\"$job\"}) / count(up{job=~\"$job\"})",
+          "expr": "sum(nerva_onboarding_work_pending{job_type!=\"credential_reconciliation\"})",
           "instant": true,
-          "legendFormat": "Disponibilidad",
+          "legendFormat": "Pendientes",
           "range": false,
           "refId": "A"
         }
       ],
-      "title": "Servicios disponibles",
+      "description": "Tareas automáticas todavía no finalizadas. Excluye solicitudes que esperan que la persona complete sus credenciales.",
+      "title": "Trabajo automático",
       "type": "stat"
     },
     {
@@ -95,223 +95,104 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 7,
-        "x": 4,
-        "y": 1
-      },
-      "id": 3,
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "editorMode": "code",
-          "expr": "sum by (job) (rate(http_server_requests_seconds_count{job=~\"$job\",uri!~\".*actuator.*\"}[5m]))",
-          "legendFormat": "{{job}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Solicitudes por segundo",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
           "color": {
-            "mode": "palette-classic"
+            "fixedColor": "blue",
+            "mode": "fixed"
           },
-          "unit": "reqps"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 6,
-        "x": 11,
-        "y": 1
-      },
-      "id": 4,
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "editorMode": "code",
-          "expr": "sum by (job) (rate(http_server_requests_seconds_count{job=~\"$job\",status=~\"5..\",uri!~\".*actuator.*\"}[5m]))",
-          "legendFormat": "{{job}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Errores 5xx",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
+          "decimals": 0,
+          "noValue": "0 s",
           "unit": "s"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 6,
-        "w": 7,
-        "x": 17,
+        "h": 5,
+        "w": 8,
+        "x": 8,
         "y": 1
       },
-      "id": 5,
+      "id": 3,
       "options": {
-        "legend": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
+        "textMode": "auto",
+        "wideLayout": true
       },
       "targets": [
         {
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum by (job, le) (rate(http_server_requests_seconds_bucket{job=~\"$job\",uri!~\".*actuator.*\"}[5m])))",
-          "legendFormat": "{{job}}",
-          "range": true,
+          "expr": "(max(nerva_onboarding_work_oldest_age_seconds{job_type!=\"credential_reconciliation\"}) or vector(0))",
+          "instant": true,
+          "legendFormat": "Antigüedad",
+          "range": false,
           "refId": "A"
         }
       ],
-      "title": "Latencia p95",
-      "type": "timeseries"
+      "description": "Antigüedad del trabajo automático pendiente más viejo. Excluye la espera de credenciales del cliente.",
+      "title": "Mayor espera automática",
+      "type": "stat"
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Solicitudes cuya cuenta ya fue preparada y esperan que la persona termine de crear su acceso.",
       "fieldConfig": {
         "defaults": {
-          "max": 100,
-          "min": 0,
-          "unit": "percent"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 12,
-        "x": 0,
-        "y": 7
-      },
-      "id": 6,
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "editorMode": "code",
-          "expr": "100 * sum by (job) (jvm_memory_used_bytes{job=~\"$job\",area=\"heap\"}) / sum by (job) (jvm_memory_max_bytes{job=~\"$job\",area=\"heap\"} > 0)",
-          "legendFormat": "{{job}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Uso del heap JVM",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
+          "decimals": 0,
+          "noValue": "0",
           "unit": "short"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 6,
-        "w": 12,
-        "x": 12,
-        "y": 7
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 1
       },
-      "id": 7,
+      "id": 4,
       "options": {
-        "legend": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
+        "textMode": "auto",
+        "wideLayout": true
       },
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum by (job) (hikaricp_connections_active{job=~\"$job\"})",
-          "legendFormat": "{{job}}",
-          "range": true,
+          "expr": "sum(nerva_onboarding_work_pending{job_type=\"credential_reconciliation\"})",
+          "instant": true,
+          "legendFormat": "Accesos pendientes",
+          "range": false,
           "refId": "A"
         }
       ],
-      "title": "Conexiones de base activas",
-      "type": "timeseries"
+      "title": "Accesos por finalizar",
+      "type": "stat"
     },
     {
       "collapsed": false,
@@ -319,11 +200,10 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 13
+        "y": 6
       },
-      "id": 8,
-      "panels": [],
-      "title": "Recorrido del cliente",
+      "id": 5,
+      "title": "Solicitud y comunicaciones",
       "type": "row"
     },
     {
@@ -347,20 +227,21 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 6,
-        "w": 8,
+        "h": 9,
+        "w": 24,
         "x": 0,
-        "y": 14
+        "y": 7
       },
-      "id": 9,
+      "id": 6,
       "options": {
         "legend": {
           "calcs": [
-            "sum"
+            "lastNotNull"
           ],
           "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
+          "placement": "right",
+          "showLegend": true,
+          "width": 260
         },
         "tooltip": {
           "mode": "multi",
@@ -376,7 +257,8 @@
           "refId": "A"
         }
       ],
-      "title": "Solicitudes",
+      "description": "Eventos de creación, envío, rechazo y finalización observados en cada intervalo. No representa una cohorte de conversión.",
+      "title": "Eventos de solicitudes por intervalo",
       "type": "timeseries"
     },
     {
@@ -400,73 +282,21 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 8,
-        "y": 14
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 16
       },
-      "id": 10,
+      "id": 7,
       "options": {
         "legend": {
           "calcs": [
-            "sum"
+            "lastNotNull"
           ],
           "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "editorMode": "code",
-          "expr": "sum by (job_type, outcome) (increase(nerva_onboarding_work_executions_total[$__rate_interval]))",
-          "legendFormat": "{{job_type}} · {{outcome}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Ejecuciones de trabajo",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "drawStyle": "bars",
-            "fillOpacity": 60,
-            "lineWidth": 1,
-            "stacking": {
-              "group": "A",
-              "mode": "normal"
-            }
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 16,
-        "y": 14
-      },
-      "id": 11,
-      "options": {
-        "legend": {
-          "calcs": [
-            "sum"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
+          "placement": "right",
+          "showLegend": true,
+          "width": 280
         },
         "tooltip": {
           "mode": "multi",
@@ -482,7 +312,8 @@
           "refId": "A"
         }
       ],
-      "title": "Notificaciones",
+      "description": "Entregas de correo por plantilla y resultado observadas en cada intervalo.",
+      "title": "Entrega de correos por intervalo",
       "type": "timeseries"
     },
     {
@@ -492,44 +323,65 @@
       },
       "fieldConfig": {
         "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 1,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            }
+          },
           "unit": "short"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
-        "w": 6,
+        "h": 11,
+        "w": 24,
         "x": 0,
-        "y": 20
+        "y": 26
       },
-      "id": 12,
+      "id": 8,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
+        "legend": {
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "",
-          "values": false
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "width": 340
         },
-        "textMode": "auto",
-        "wideLayout": true
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(nerva_onboarding_work_pending)",
-          "instant": true,
-          "legendFormat": "Pendientes",
-          "range": false,
+          "expr": "sum by (job_type, outcome) (increase(nerva_onboarding_work_executions_total{job_type!=\"credential_reconciliation\"}[$__rate_interval]))",
+          "legendFormat": "{{job_type}} · {{outcome}}",
+          "range": true,
           "refId": "A"
         }
       ],
-      "title": "Trabajo pendiente",
-      "type": "stat"
+      "description": "Ejecuciones de workers automáticos por tipo y resultado. La espera de credenciales se muestra por separado.",
+      "title": "Procesamiento automático por intervalo",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 37
+      },
+      "id": 9,
+      "title": "Preparación de la cuenta",
+      "type": "row"
     },
     {
       "datasource": {
@@ -538,151 +390,570 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "s"
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
-        "w": 6,
-        "x": 6,
-        "y": 20
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 38
       },
-      "id": 13,
+      "id": 10,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true,
+          "width": 240
         },
-        "textMode": "auto",
-        "wideLayout": true
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "targets": [
         {
           "editorMode": "code",
-          "expr": "max(nerva_onboarding_work_oldest_age_seconds)",
-          "instant": true,
-          "legendFormat": "Antigüedad",
-          "range": false,
+          "expr": "(sum(increase(http_server_requests_seconds_count{job=\"document-service\",method=\"POST\",uri=\"/internal/documents\",status=~\"2..\"}[$__rate_interval]))) or vector(0)",
+          "legendFormat": "Documento guardado",
+          "range": true,
           "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "(sum(increase(http_server_requests_seconds_count{job=\"customer-service\",method=\"POST\",uri=\"/customers/natural-persons\",status=~\"2..\"}[$__rate_interval]))) or vector(0)",
+          "legendFormat": "Cliente creado",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "editorMode": "code",
+          "expr": "(sum(increase(http_server_requests_seconds_count{job=\"customer-service\",method=\"PATCH\",uri=\"/customers/{customerId}/kyc/approve\",status=~\"2..\"}[$__rate_interval]))) or vector(0)",
+          "legendFormat": "Identidad validada",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "editorMode": "code",
+          "expr": "(sum(increase(http_server_requests_seconds_count{job=\"account-service\",method=\"POST\",uri=\"/accounts\",status=~\"2..\"}[$__rate_interval]))) or vector(0)",
+          "legendFormat": "Cuenta abierta",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "editorMode": "code",
+          "expr": "(sum(increase(http_server_requests_seconds_count{job=\"identity-service\",method=\"POST\",uri=\"/identity-links\",status=~\"2..\"}[$__rate_interval]))) or vector(0)",
+          "legendFormat": "Acceso vinculado",
+          "range": true,
+          "refId": "E"
+        },
+        {
+          "editorMode": "code",
+          "expr": "(sum(increase(http_server_requests_seconds_count{job=\"account-service\",method=\"PATCH\",uri=\"/accounts/{accountId}/activate\",status=~\"2..\"}[$__rate_interval]))) or vector(0)",
+          "legendFormat": "Cuenta activada",
+          "range": true,
+          "refId": "F"
         }
       ],
-      "title": "Pendiente más antiguo",
-      "type": "stat"
+      "description": "Operaciones internas exitosas durante el período. No representa una conversión por cohorte.",
+      "title": "Operaciones de preparación exitosas",
+      "type": "timeseries"
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0
+        },
+        "overrides": []
       },
       "gridPos": {
-        "h": 7,
+        "h": 9,
         "w": 12,
-        "x": 12,
-        "y": 20
+        "x": 0,
+        "y": 49
       },
-      "id": 14,
+      "id": 11,
       "options": {
-        "dedupStrategy": "none",
-        "enableInfiniteScrolling": false,
-        "enableLogDetails": true,
-        "prettifyLogMessage": false,
-        "showCommonLabels": false,
-        "showLabels": false,
-        "showTime": true,
-        "sortOrder": "Descending",
-        "wrapLogMessage": true
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true,
+          "width": 220
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (job, status) (increase(http_server_requests_seconds_count{job=~\"document-service|customer-service|account-service|identity-service\",status=~\"[45]..\",uri!~\".*actuator.*\"}[$__rate_interval])) or on (job) label_replace(sum by (job) (0 * up{job=~\"document-service|customer-service|account-service|identity-service\"}), \"status\", \"sin errores\", \"job\", \".*\")",
+          "legendFormat": "{{job}} · {{status}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "description": "Respuestas HTTP 4xx y 5xx de los servicios que participan en la preparación. Una línea en cero indica ausencia de errores.",
+      "title": "Respuestas 4xx/5xx durante la preparación",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 49
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true,
+          "width": 200
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (outcome) (increase(nerva_onboarding_work_executions_total{job_type=\"credential_reconciliation\"}[$__rate_interval]))",
+          "legendFormat": "{{outcome}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "description": "Comprobaciones realizadas mientras la persona crea su acceso. Un resultado retry puede ser una espera normal, no una falla técnica.",
+      "title": "Finalización del acceso",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 58
+      },
+      "id": 13,
+      "panels": [
         {
           "datasource": {
             "type": "loki",
             "uid": "loki"
           },
-          "editorMode": "code",
-          "expr": "{service_namespace=\"nerva\"}",
-          "queryType": "range",
-          "refId": "A"
-        }
-      ],
-      "title": "Eventos recientes",
-      "type": "logs"
-    },
-    {
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 27
-      },
-      "id": 15,
-      "targets": [
+          "description": "Hitos funcionales y fallos relevantes. Omite reclamos rutinarios y la espera normal de credenciales.",
+          "gridPos": {
+            "h": 11,
+            "w": 24,
+            "x": 0,
+            "y": 59
+          },
+          "id": 14,
+          "options": {
+            "dedupStrategy": "none",
+            "enableInfiniteScrolling": false,
+            "enableLogDetails": true,
+            "prettifyLogMessage": false,
+            "showCommonLabels": false,
+            "showLabels": false,
+            "showTime": true,
+            "sortOrder": "Descending",
+            "wrapLogMessage": true
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "editorMode": "code",
+              "expr": "{service_namespace=\"nerva\", service_name=~\"api-gateway|home-banking-bff|.*-service\"} | event_name != \"\" | event_name != \"onboarding.work.claimed\" | (job_type != \"credential_reconciliation\" or event_name != \"onboarding.work.retry\") | line_format \"{{.service_name}} · {{.event_name}}{{if .job_type}} · {{.job_type}}{{end}}{{if .work_outcome}} · {{.work_outcome}}{{end}}\"",
+              "queryType": "range",
+              "refId": "A"
+            }
+          ],
+          "title": "Eventos operativos recientes",
+          "type": "logs"
+        },
         {
           "datasource": {
             "type": "tempo",
             "uid": "tempo"
           },
-          "limit": 20,
-          "query": "{ resource.service.namespace = \"nerva\" }",
-          "queryType": "traceql",
-          "refId": "A",
-          "tableType": "traces"
+          "description": "Trazas del recorrido dentro del período seleccionado. Un onboarding puede generar varias trazas al cruzar esperas humanas y workers durables. Si no hay filas, ampliá el período.",
+          "gridPos": {
+            "h": 12,
+            "w": 24,
+            "x": 0,
+            "y": 70
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "inspect": false
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "startTime"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 180
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "traceService"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 190
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "traceName"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 300
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "traceDuration"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 110
+                  }
+                ]
+              }
+            ]
+          },
+          "id": 15,
+          "options": {
+            "cellHeight": "sm",
+            "enablePagination": false,
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": [
+              {
+                "desc": true,
+                "displayName": "Inicio"
+              }
+            ]
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "limit": 20,
+              "query": "{ resource.service.namespace = \"nerva\" && resource.service.name = \"onboarding-service\" && name !~ \".*actuator.*\" } with (most_recent=true)",
+              "queryType": "traceql",
+              "refId": "A",
+              "tableType": "traces"
+            }
+          ],
+          "title": "Trazas recientes del recorrido",
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "nested": true
+                },
+                "indexByName": {
+                  "Start time": 0,
+                  "Service": 1,
+                  "Name": 2,
+                  "Duration": 3,
+                  "Trace ID": 4
+                },
+                "renameByName": {
+                  "Start time": "Inicio",
+                  "Duration": "Duración",
+                  "Trace ID": "Traza",
+                  "Name": "Operación inicial",
+                  "Service": "Servicio inicial"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "gridPos": {
+            "h": 12,
+            "w": 24,
+            "x": 0,
+            "y": 82
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "inspect": false
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "startTime"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 180
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "traceService"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 190
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "traceName"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 300
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "traceDuration"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 110
+                  }
+                ]
+              }
+            ]
+          },
+          "id": 16,
+          "options": {
+            "cellHeight": "sm",
+            "enablePagination": false,
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": [
+              {
+                "desc": true,
+                "displayName": "Inicio"
+              }
+            ]
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "tempo",
+                "uid": "tempo"
+              },
+              "limit": 20,
+              "query": "{ resource.service.name = \"onboarding-service\" && name =~ \"onboarding.provisioning.*\" } with (most_recent=true)",
+              "queryType": "traceql",
+              "refId": "A",
+              "tableType": "traces"
+            }
+          ],
+          "description": "Trazas de las operaciones durables que crean cliente, cuenta, vínculo de identidad y activación dentro del período seleccionado. Si no hay filas, ampliá el período.",
+          "title": "Trazas de preparación",
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "nested": true
+                },
+                "indexByName": {
+                  "Start time": 0,
+                  "Service": 1,
+                  "Name": 2,
+                  "Duration": 3,
+                  "Trace ID": 4
+                },
+                "renameByName": {
+                  "Start time": "Inicio",
+                  "Duration": "Duración",
+                  "Trace ID": "Traza",
+                  "Name": "Operación inicial",
+                  "Service": "Servicio inicial"
+                }
+              }
+            }
+          ],
+          "type": "table"
         }
       ],
-      "title": "Trazas recientes",
-      "type": "traces"
+      "title": "Investigación del recorrido",
+      "type": "row"
     }
   ],
-  "refresh": "15s",
+  "refresh": "30s",
   "schemaVersion": 41,
   "tags": [
     "nerva",
-    "onboarding",
-    "observability"
+    "observability",
+    "nerva-navigation",
+    "onboarding"
   ],
   "templating": {
-    "list": [
-      {
-        "current": {
-          "selected": true,
-          "text": "Todos",
-          "value": "$__all"
-        },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "prometheus"
-        },
-        "definition": "label_values(up, job)",
-        "allValue": ".*",
-        "includeAll": true,
-        "label": "Servicio",
-        "multi": true,
-        "name": "job",
-        "options": [],
-        "query": {
-          "query": "label_values(up, job)",
-          "refId": "PrometheusVariableQueryEditor-VariableQuery"
-        },
-        "refresh": 1,
-        "regex": "",
-        "sort": 1,
-        "type": "query"
-      }
-    ]
+    "list": []
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-6h",
     "to": "now"
   },
   "timepicker": {
@@ -703,8 +974,8 @@
     ]
   },
   "timezone": "browser",
-  "title": "Nerva · Onboarding",
+  "title": "10 · Onboarding",
   "uid": "nerva-onboarding",
-  "version": 1,
+  "version": 2,
   "weekStart": "monday"
 }

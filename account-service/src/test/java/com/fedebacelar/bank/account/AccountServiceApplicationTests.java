@@ -1,15 +1,31 @@
 package com.fedebacelar.bank.account;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.fedebacelar.bank.account.infrastructure.config.W3cFeignTracePropagationInterceptor;
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
+import io.opentelemetry.api.OpenTelemetry;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 class AccountServiceApplicationTests {
 
+	@Autowired
+	private ApplicationContext applicationContext;
+
+	@Autowired
+	private OpenTelemetry openTelemetry;
+
 	@Test
-	void contextLoads() {
+	void contextLoadsWithObservabilityDisabledByDefault() {
+		assertThat(openTelemetry).isSameAs(OpenTelemetry.noop());
+		assertThat(applicationContext.getBeansOfType(W3cFeignTracePropagationInterceptor.class)).isEmpty();
+		assertThat(applicationContext.getBeansOfType(PrometheusMeterRegistry.class)).isEmpty();
 	}
 
 }

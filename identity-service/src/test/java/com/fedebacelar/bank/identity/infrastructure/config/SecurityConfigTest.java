@@ -140,6 +140,12 @@ class SecurityConfigTest {
     }
 
     @Test
+    void shouldExposePrometheusWithoutToken() throws Exception {
+        mockMvc.perform(get("/actuator/prometheus"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void shouldExposeSwaggerUiWithoutTokenWhenPublicDocsAreEnabled() throws Exception {
         mockMvc.perform(get("/swagger-ui.html"))
                 .andExpect(status().isOk());
@@ -197,11 +203,15 @@ class SecurityConfigTest {
     }
 
     @RestController
-    @RequestMapping("/actuator/health")
+    @RequestMapping("/actuator")
     public static class TestActuatorController {
 
-        @GetMapping
+        @GetMapping("/health")
         void health() {
+        }
+
+        @GetMapping("/prometheus")
+        void prometheus() {
         }
     }
 

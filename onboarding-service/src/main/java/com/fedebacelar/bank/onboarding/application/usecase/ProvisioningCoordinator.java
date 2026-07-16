@@ -167,8 +167,20 @@ public class ProvisioningCoordinator {
         OnboardingProvisioningStep step = stepRepository.findByApplicationIdAndStepType(application.id(), type).orElseThrow();
         if (step.status() == ProvisioningStepStatus.SUCCEEDED) return;
         String requestHash = fingerprintFor(application, applicant, type);
-        step = stepRepository.save(step.start(requestHash, Instant.now(clock)));
-        String reference = switch (type) {
+        OnboardingProvisioningStep runningStep = stepRepository.save(step.start(requestHash, Instant.now(clock)));
+        telemetry.observeProvisioningStep(type, () -> {
+            String reference = executeStepOperation(application, applicant, type);
+            stepRepository.save(runningStep.succeed(reference, Instant.now(clock)));
+            return reference;
+        });
+    }
+
+    private String executeStepOperation(
+            OnboardingApplication application,
+            ApplicantData applicant,
+            ProvisioningStepType type
+    ) {
+        return switch (type) {
             case CREATE_CUSTOMER -> customerPort.createCustomer(application.id(), application.email(), applicant).toString();
             case APPROVE_CUSTOMER_KYC -> {
                 customerPort.approveKyc(reference(application.id(), ProvisioningStepType.CREATE_CUSTOMER));
@@ -189,7 +201,6 @@ public class ProvisioningCoordinator {
                 yield userId;
             }
         };
-        stepRepository.save(step.succeed(reference, Instant.now(clock)));
     }
 
     private void complete(OnboardingWorkItem workItem, Instant now) {

@@ -25,6 +25,7 @@ class ApiGatewayApplicationTests {
         assertThat(openTelemetry).isSameAs(OpenTelemetry.noop());
         assertThat(applicationContext.getBeansOfType(PrometheusMeterRegistry.class)).isEmpty();
         assertThat(applicationContext.getBeansOfType(W3cTracePropagationFilter.class)).isEmpty();
+        assertThat(applicationContext.containsBean("gatewayRouteClientObservationMeterFilter")).isFalse();
         Span span = openTelemetry.getTracer("nerva-test").spanBuilder("disabled-by-default").startSpan();
         try {
             assertThat(span.getSpanContext().isValid()).isFalse();

@@ -18,6 +18,10 @@ La imagen trae Pyroscope embebido y ejecuta su proceso interno, pero Nerva no
 configura un pipeline, datasource ni puerto de profiling. Por eso no lo usa y
 queda fuera del alcance de esta etapa.
 
+Los scrapes de Prometheus y las sondas de salud no se almacenan como trazas.
+Siguen alimentando las métricas operativas, sin ocultar los recorridos reales en
+Tempo.
+
 ## Requisitos
 
 - Docker Engine con Docker Compose v2.
@@ -66,8 +70,8 @@ a este endpoint:
 http://localhost:4318
 ```
 
-En cada terminal de API Gateway, BFF, Onboarding y Notification, iniciá el
-proceso con el perfil activo:
+En cada terminal de API Gateway, BFF, Onboarding, Notification, Document,
+Customer, Account e Identity, iniciá el proceso con el perfil activo:
 
 ```powershell
 $env:SPRING_PROFILES_ACTIVE = "observability"
@@ -75,8 +79,8 @@ $env:OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:4318"
 .\mvnw.cmd spring-boot:run
 ```
 
-Las variables afectan sólo a ese proceso y su terminal. Config Server, Eureka
-y el resto de los servicios continúan iniciándose con su perfil habitual.
+Las variables afectan sólo a ese proceso y su terminal. Config Server y Eureka
+continúan iniciándose con su perfil habitual.
 
 Prometheus consulta cada 15 segundos:
 
@@ -86,15 +90,43 @@ Prometheus consulta cada 15 segundos:
 | Home Banking BFF | `host.docker.internal:8086/web/actuator/prometheus` |
 | Onboarding | `host.docker.internal:8087/actuator/prometheus` |
 | Notification | `host.docker.internal:8083/actuator/prometheus` |
+| Document | `host.docker.internal:8084/actuator/prometheus` |
+| Customer | `host.docker.internal:8080/actuator/prometheus` |
+| Account | `host.docker.internal:8081/actuator/prometheus` |
+| Identity | `host.docker.internal:8082/actuator/prometheus` |
 
 Estos endpoints operativos están pensados sólo para procesos locales o una red
 privada. El Gateway impide acceder a ellos a través de `/web/actuator/**`; no
 deben exponerse directamente a Internet.
 
-El dashboard provisionado aparece en **Dashboards → Nerva → Nerva ·
-Onboarding**. Sus dos secciones son **Estado del ecosistema** y **Recorrido del
-cliente**. Al principio algunos paneles estarán vacíos hasta que los servicios
-generen tráfico.
+## Dashboards provisionados
+
+Grafana mantiene una única carpeta **Nerva** con tres dashboards poblados:
+
+- **00 · Resumen operativo**: disponibilidad de los ocho servicios, trabajo
+  pendiente y señales HTTP generales. Nunca oculta servicios mediante filtros.
+- **10 · Onboarding**: solicitud, comunicaciones, automatizaciones, preparación
+  de la cuenta y finalización del acceso.
+- **90 · Diagnóstico por servicio**: señales HTTP, JVM, pool, logs y trazas para
+  el servicio elegido en un selector único.
+
+La navegación superior conserva el rango temporal al cambiar de dashboard. Los
+gráficos multi-serie usan ancho suficiente y las filas de investigación parten
+plegadas. Las consultas ocasionales siguen perteneciendo a **Explore** y no se
+convierten automáticamente en paneles permanentes.
+
+Los JSON bajo `grafana/dashboards` son la fuente de verdad: Grafana no permite
+guardarlos desde la interfaz y elimina un dashboard provisionado cuando su
+archivo deja de existir. No se crean carpetas ni dashboards para dominios que
+todavía no tienen telemetría real.
+
+Al principio algunos paneles estarán vacíos hasta que los servicios generen
+tráfico.
+
+El recorrido completo aparece como varias trazas relacionadas por la misma
+ventana temporal: las esperas humanas y los workers durables comienzan raíces
+nuevas deliberadamente. No se mantiene un trace abierto ni se persiste
+`traceparent` durante esas esperas.
 
 ## Diagnóstico
 

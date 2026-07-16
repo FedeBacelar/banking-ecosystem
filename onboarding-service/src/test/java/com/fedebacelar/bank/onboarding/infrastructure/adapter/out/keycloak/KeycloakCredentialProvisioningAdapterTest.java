@@ -17,6 +17,14 @@ import com.fedebacelar.bank.onboarding.infrastructure.adapter.out.keycloak.dto.K
 import com.fedebacelar.bank.onboarding.infrastructure.adapter.out.keycloak.dto.KeycloakUserResponse;
 import feign.FeignException;
 import feign.Request;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.trace.SdkTracerProvider;
+import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
+import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
@@ -24,9 +32,19 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 class KeycloakCredentialProvisioningAdapterTest {
+
+    private SdkTracerProvider tracerProvider;
+
+    @AfterEach
+    void tearDown() {
+        if (tracerProvider != null) {
+            tracerProvider.close();
+        }
+    }
 
     @Test
     void reconcilesRealmRolesWhenCreateResponseWasLostAfterUserCreation() {
@@ -86,6 +104,82 @@ class KeycloakCredentialProvisioningAdapterTest {
     }
 
     @Test
+    void representsKeycloakAsAClientDependencyWithoutIdentityData() {
+        KeycloakAdminFeignClient client = mock(KeycloakAdminFeignClient.class);
+        InMemorySpanExporter exporter = InMemorySpanExporter.create();
+
+        adapter(
+                client,
+                "http://localhost:8085/web/auth/login/onboarding-completion",
+                openTelemetry(exporter)
+        ).sendCredentialSetupEmail("sensitive-keycloak-user-id");
+
+        var span = exporter.getFinishedSpanItems().getFirst();
+        assertThat(span.getName()).isEqualTo("keycloak.admin.send_actions_email");
+        assertThat(span.getKind()).isEqualTo(SpanKind.CLIENT);
+        assertThat(span.getAttributes().asMap()).containsOnly(
+                java.util.Map.entry(
+                        io.opentelemetry.api.common.AttributeKey.stringKey("peer.service"),
+                        "keycloak"
+                ),
+                java.util.Map.entry(
+                        io.opentelemetry.api.common.AttributeKey.stringKey("nerva.keycloak.operation"),
+                        "send_actions_email"
+                )
+        );
+        assertThat(span.toString())
+                .doesNotContain("sensitive-keycloak-user-id")
+                .doesNotContain("banking-ecosystem")
+                .doesNotContain("onboarding-completion");
+    }
+
+    @Test
+    void telemetryFailureDoesNotPreventTheKeycloakRequest() {
+        KeycloakAdminFeignClient client = mock(KeycloakAdminFeignClient.class);
+        OpenTelemetry openTelemetry = mock(OpenTelemetry.class);
+        Tracer tracer = mock(Tracer.class);
+        when(openTelemetry.getTracer(anyString())).thenReturn(tracer);
+        when(tracer.spanBuilder(anyString())).thenThrow(new IllegalStateException("collector unavailable"));
+
+        adapter(
+                client,
+                "http://localhost:8085/web/auth/login/onboarding-completion",
+                openTelemetry
+        ).sendCredentialSetupEmail("keycloak-user-id");
+
+        verify(client).executeActionsEmail(
+                anyString(), anyString(), anyString(), anyString(),
+                org.mockito.ArgumentMatchers.anyInt(), any()
+        );
+    }
+
+    @Test
+    void marksARealKeycloakFailureAndPropagatesItWithoutSensitiveDetails() {
+        KeycloakAdminFeignClient client = mock(KeycloakAdminFeignClient.class);
+        IllegalStateException failure = new IllegalStateException("sensitive identity-provider detail");
+        when(client.getUser("banking-ecosystem", "sensitive-keycloak-user-id")).thenThrow(failure);
+        InMemorySpanExporter exporter = InMemorySpanExporter.create();
+        KeycloakCredentialProvisioningAdapter adapter = adapter(
+                client,
+                "http://localhost:8085/web/auth/login/onboarding-completion",
+                openTelemetry(exporter)
+        );
+
+        assertThatThrownBy(() -> adapter.getCredentialSetupState("sensitive-keycloak-user-id"))
+                .isSameAs(failure);
+
+        var span = exporter.getFinishedSpanItems().getFirst();
+        assertThat(span.getStatus().getStatusCode()).isEqualTo(StatusCode.ERROR);
+        assertThat(span.getAttributes().asMap()).containsEntry(
+                io.opentelemetry.api.common.AttributeKey.stringKey("error.type"),
+                "IllegalStateException"
+        );
+        assertThat(span.toString())
+                .doesNotContain("sensitive-keycloak-user-id")
+                .doesNotContain("sensitive identity-provider detail");
+    }
+
+    @Test
     void acceptsAnHttpsCredentialCompletionRedirect() {
         KeycloakAdminFeignClient client = mock(KeycloakAdminFeignClient.class);
         String redirectUri = "https://bank.nerva.example/web/auth/login/onboarding-completion";
@@ -137,9 +231,31 @@ class KeycloakCredentialProvisioningAdapterTest {
             KeycloakAdminFeignClient client,
             String redirectUri
     ) {
+        return adapter(client, redirectUri, OpenTelemetry.noop());
+    }
+
+    private KeycloakCredentialProvisioningAdapter adapter(
+            KeycloakAdminFeignClient client,
+            String redirectUri,
+            OpenTelemetry openTelemetry
+    ) {
         return new KeycloakCredentialProvisioningAdapter(
-                client, "banking-ecosystem", "home-banking-bff", redirectUri, Duration.ofHours(24)
+                client,
+                "banking-ecosystem",
+                "home-banking-bff",
+                redirectUri,
+                Duration.ofHours(24),
+                openTelemetry
         );
+    }
+
+    private OpenTelemetry openTelemetry(InMemorySpanExporter exporter) {
+        tracerProvider = SdkTracerProvider.builder()
+                .addSpanProcessor(SimpleSpanProcessor.create(exporter))
+                .build();
+        return OpenTelemetrySdk.builder()
+                .setTracerProvider(tracerProvider)
+                .build();
     }
 
     private ApplicantData applicant(UUID applicationId) {

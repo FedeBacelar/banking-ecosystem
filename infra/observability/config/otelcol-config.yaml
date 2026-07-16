@@ -19,6 +19,14 @@ extensions:
     path: /ready
 
 processors:
+  filter/telemetry_noise:
+    error_mode: ignore
+    traces:
+      span:
+        - 'attributes["url.path"] == "/actuator/prometheus"'
+        - 'attributes["url.path"] == "/web/actuator/prometheus"'
+        - 'attributes["url.path"] == "/actuator/health"'
+        - 'attributes["url.path"] == "/web/actuator/health"'
   transform/privacy:
     error_mode: ignore
     trace_statements:
@@ -33,6 +41,8 @@ processors:
         statements:
           - delete_key(span.attributes, "url.query")
           - delete_key(span.attributes, "url.full")
+          - delete_key(span.attributes, "url.path")
+          - delete_key(span.attributes, "url.original")
           - delete_key(span.attributes, "http.url")
           - delete_key(span.attributes, "http.target")
           - delete_key(span.attributes, "client.address")
@@ -53,6 +63,7 @@ processors:
           - delete_key(span.attributes, "db.user")
           - delete_key(span.attributes, "exception.message")
           - delete_key(span.attributes, "exception.stacktrace")
+          - delete_matching_keys(span.attributes, "(?i)(aws[._-]s3|s3).*(object|key)")
           - delete_matching_keys(span.attributes, "(?i)(^|[._-])(authorization|cookie|password|passwd|secret|token|api[._-]?key|email|e[._-]?mail|dni|username|user[._-]?name|credential|otp|pin)([._-]|$)")
           - set(span.status.message, "")
       - context: spanevent
@@ -106,7 +117,7 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [transform/privacy, batch]
+      processors: [filter/telemetry_noise, transform/privacy, batch]
       exporters: [otlp_http/traces]
     metrics:
       receivers: [otlp, prometheus/collector]

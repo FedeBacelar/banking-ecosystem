@@ -36,6 +36,7 @@ class ObservabilityProfileTest {
                 .isTrue();
         assertThat(applicationContext.getBeansOfType(PrometheusMeterRegistry.class)).hasSize(1);
         assertThat(applicationContext.getBeansOfType(W3cTracePropagationFilter.class)).hasSize(1);
+        assertThat(applicationContext.containsBean("gatewayRouteClientObservationMeterFilter")).isTrue();
         Span span = openTelemetry.getTracer("nerva-test").spanBuilder("enabled-profile").startSpan();
         try {
             assertThat(span.getSpanContext().isValid()).isTrue();

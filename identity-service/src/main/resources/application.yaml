@@ -3,3 +3,13 @@ spring:
     name: identity-service
   config:
     import: "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+
+otel:
+  sdk:
+    disabled: true
+
+management:
+  prometheus:
+    metrics:
+      export:
+        enabled: false

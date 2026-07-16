@@ -6,6 +6,8 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
+import io.opentelemetry.api.OpenTelemetry;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -14,11 +16,13 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -45,10 +49,22 @@ class CustomerApiE2ETest {
     @LocalServerPort
     private int port;
 
+    @Autowired
+    private ApplicationContext applicationContext;
+
+    @Autowired
+    private OpenTelemetry openTelemetry;
+
     @MockitoBean
     private JwtDecoder jwtDecoder;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Test
+    void keepsObservabilityDisabledByDefault() {
+        assertThat(openTelemetry).isSameAs(OpenTelemetry.noop());
+        assertThat(applicationContext.getBeansOfType(PrometheusMeterRegistry.class)).isEmpty();
+    }
 
     @Test
     void completesNaturalPersonLifecycle() throws Exception {
