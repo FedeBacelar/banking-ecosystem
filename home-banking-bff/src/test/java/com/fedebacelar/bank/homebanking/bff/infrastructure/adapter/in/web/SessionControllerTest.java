@@ -1,5 +1,6 @@
 package com.fedebacelar.bank.homebanking.bff.infrastructure.adapter.in.web;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -14,12 +15,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fedebacelar.bank.homebanking.bff.application.port.in.GetAuthenticatedHomeContextUseCase;
 import com.fedebacelar.bank.homebanking.bff.domain.model.AuthenticatedUser;
 import com.fedebacelar.bank.homebanking.bff.domain.model.HomeBankingContext;
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Span;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.test.context.TestPropertySource;
@@ -30,6 +35,7 @@ import tools.jackson.databind.ObjectMapper;
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(properties = {
+        "otel.sdk.disabled=false",
         "spring.security.oauth2.client.registration.keycloak.client-id=home-banking-bff",
         "spring.security.oauth2.client.registration.keycloak.client-secret=local-bff-secret",
         "spring.security.oauth2.client.registration.keycloak.authorization-grant-type=authorization_code",
@@ -49,8 +55,26 @@ class SessionControllerTest {
     @Autowired
     private ClientRegistrationRepository clientRegistrationRepository;
 
+    @Autowired
+    private ApplicationContext applicationContext;
+
+    @Autowired
+    private OpenTelemetry openTelemetry;
+
     @MockitoBean
     private GetAuthenticatedHomeContextUseCase getAuthenticatedHomeContextUseCase;
+
+    @Test
+    void shouldKeepObservabilityDisabledByDefault() {
+        assertThat(openTelemetry).isSameAs(OpenTelemetry.noop());
+        assertThat(applicationContext.getBeansOfType(PrometheusMeterRegistry.class)).isEmpty();
+        Span span = openTelemetry.getTracer("nerva-test").spanBuilder("disabled-by-default").startSpan();
+        try {
+            assertThat(span.getSpanContext().isValid()).isFalse();
+        } finally {
+            span.end();
+        }
+    }
 
     @Test
     void shouldReturnProblemDetailForAnonymousApiRequest() throws Exception {

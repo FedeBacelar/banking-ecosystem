@@ -12,3 +12,13 @@ onboarding:
 eureka:
   client:
     enabled: false
+
+otel:
+  sdk:
+    disabled: true
+
+management:
+  prometheus:
+    metrics:
+      export:
+        enabled: false

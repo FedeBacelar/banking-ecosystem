@@ -18,6 +18,7 @@ import com.fedebacelar.bank.onboarding.application.port.out.OnboardingProvisioni
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingStatusHistoryRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingWorkItemRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingUniquenessReservationPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTelemetryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.ProvisioningFailureClassifierPort;
 import com.fedebacelar.bank.onboarding.domain.enums.ApplicantDocumentType;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingApplicationStatus;
@@ -62,6 +63,7 @@ class ProvisioningCoordinatorTest {
     private final ProvisioningFailureClassifierPort failureClassifier = mock(ProvisioningFailureClassifierPort.class);
     private final OnboardingProvisioningProperties properties = new OnboardingProvisioningProperties();
     private final TransactionTemplate transactions = mock(TransactionTemplate.class);
+    private final OnboardingTelemetryPort telemetry = mock(OnboardingTelemetryPort.class);
     private final AtomicReference<OnboardingApplication> persistedApplication = new AtomicReference<>();
     private final Map<ProvisioningStepType, OnboardingProvisioningStep> persistedSteps = new EnumMap<>(ProvisioningStepType.class);
     private UUID customerId;
@@ -116,7 +118,7 @@ class ProvisioningCoordinatorTest {
         when(identities.createOrResolve(customerId, userId)).thenReturn(UUID.randomUUID());
         coordinator = new ProvisioningCoordinator(applications, applicants, steps, history, workItems,
                 customers, accounts, credentials, identities, reservations, properties, failureClassifier, transactions,
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                telemetry, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test
@@ -149,6 +151,10 @@ class ProvisioningCoordinatorTest {
         verify(workItems).save(org.mockito.ArgumentMatchers.argThat(
                 work -> work.jobType() == WorkflowJobType.CREDENTIAL_RECONCILIATION));
         verify(reservations).convertByApplicationId(applicationId, NOW);
+        verify(telemetry).recordWorkOutcome(
+                OnboardingTelemetryPort.WorkType.PROVISIONING,
+                OnboardingTelemetryPort.WorkOutcome.SUCCEEDED
+        );
     }
 
     private void succeeded(UUID applicationId, ProvisioningStepType type, String reference) {

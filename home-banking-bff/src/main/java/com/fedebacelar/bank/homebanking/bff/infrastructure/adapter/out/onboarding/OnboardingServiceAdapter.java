@@ -30,8 +30,8 @@ public class OnboardingServiceAdapter implements OnboardingServicePort {
 
     private final WebClient webClient;
 
-    public OnboardingServiceAdapter(WebClient.Builder loadBalancedWebClientBuilder) {
-        this.webClient = loadBalancedWebClientBuilder.build();
+    public OnboardingServiceAdapter(WebClient internalServiceWebClient) {
+        this.webClient = internalServiceWebClient;
     }
 
     @Override

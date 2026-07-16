@@ -22,6 +22,7 @@ The repository is organized as a monorepo. Each service owns its code, configura
 - `infra/keycloak`: local OAuth2/OpenID Connect identity provider, service clients, and banking login theme.
 - `infra/minio`: local S3-compatible object storage for banking documents.
 - `infra/mailpit`: local SMTP capture server and email inspection UI.
+- `infra/observability`: local metrics, logs, traces, and Grafana dashboards for the onboarding journey.
 - `docs`: centralized business, technical, implementation, and database documentation.
 
 ## Local Infrastructure
@@ -104,6 +105,19 @@ MinIO console:
 ```txt
 http://localhost:9001
 ```
+
+Start the optional local observability stack:
+
+```powershell
+docker compose -f infra/observability/docker-compose.yml up -d
+```
+
+Grafana is available at `http://localhost:3000`. Start API Gateway, Home Banking
+BFF, Onboarding, and Notification with the `observability` Spring profile to
+populate the provisioned `Nerva · Onboarding` dashboard. The applications keep
+OpenTelemetry disabled by default, and remain functional if the local stack is
+not running. See `infra/observability/README.md` for credentials, endpoints,
+retention, and verification commands.
 
 ## Run Locally
 

@@ -3,3 +3,15 @@ spring:
     name: home-banking-bff
   config:
     import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+
+otel:
+  sdk:
+    # Observability is opt-in. Only application-observability.yaml may enable
+    # the SDK; an environment variable alone must not change the base profile.
+    disabled: true
+
+management:
+  prometheus:
+    metrics:
+      export:
+        enabled: false

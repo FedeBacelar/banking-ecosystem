@@ -10,6 +10,7 @@ import com.fedebacelar.bank.onboarding.application.port.out.OnboardingProvisioni
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingStatusHistoryRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingWorkItemRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingProvisioningPolicyPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTelemetryPort;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingActorType;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingApplicationStatus;
 import com.fedebacelar.bank.onboarding.domain.enums.ProvisioningStepStatus;
@@ -44,15 +45,18 @@ public class CredentialSetupReconciler {
     private final OnboardingProvisioningPolicyPort provisioningPolicy;
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
+    private final OnboardingTelemetryPort telemetry;
 
     public CredentialSetupReconciler(OnboardingApplicationRepositoryPort applications,
             OnboardingProvisioningStepRepositoryPort steps, OnboardingStatusHistoryRepositoryPort history,
             OnboardingWorkItemRepositoryPort workItems, CredentialProvisioningPort credentials,
             CustomerProvisioningPort customers, AccountProvisioningPort accounts, IdentityProvisioningPort identities,
-            OnboardingProvisioningPolicyPort provisioningPolicy, TransactionTemplate transactionTemplate, Clock clock) {
+            OnboardingProvisioningPolicyPort provisioningPolicy, TransactionTemplate transactionTemplate,
+            OnboardingTelemetryPort telemetry, Clock clock) {
         this.applications = applications; this.steps = steps; this.history = history; this.workItems = workItems;
         this.credentials = credentials; this.customers = customers; this.accounts = accounts; this.identities = identities;
-        this.provisioningPolicy = provisioningPolicy; this.transactionTemplate = transactionTemplate; this.clock = clock;
+        this.provisioningPolicy = provisioningPolicy; this.transactionTemplate = transactionTemplate;
+        this.telemetry = telemetry; this.clock = clock;
     }
 
     public void reconcile(OnboardingWorkItem item) {
@@ -60,6 +64,10 @@ public class CredentialSetupReconciler {
                 .orElseThrow(() -> new OnboardingApplicationNotFoundException(item.applicationId()));
         if (application.status() != OnboardingApplicationStatus.CREDENTIAL_SETUP_PENDING) {
             workItems.save(item.succeed(Instant.now(clock)));
+            telemetry.recordWorkOutcome(
+                    OnboardingTelemetryPort.WorkType.CREDENTIAL_RECONCILIATION,
+                    OnboardingTelemetryPort.WorkOutcome.SUCCEEDED
+            );
             return;
         }
         OnboardingProvisioningStep invitation = steps.findByApplicationIdAndStepType(
@@ -97,8 +105,13 @@ public class CredentialSetupReconciler {
                 OnboardingApplication completed = applications.save(current.complete(now));
                 history.save(OnboardingStatusHistory.transition(current.id(), current.status(), completed.status(),
                         "CREDENTIAL_SETUP_COMPLETED", OnboardingActorType.CREDENTIAL_RECONCILIATION, now));
+                telemetry.recordApplicationEvent(OnboardingTelemetryPort.ApplicationEvent.COMPLETED);
             }
             workItems.save(item.succeed(now));
+            telemetry.recordWorkOutcome(
+                    OnboardingTelemetryPort.WorkType.CREDENTIAL_RECONCILIATION,
+                    OnboardingTelemetryPort.WorkOutcome.SUCCEEDED
+            );
         });
     }
 
@@ -112,12 +125,20 @@ public class CredentialSetupReconciler {
         transactionTemplate.executeWithoutResult(status -> {
             updateRunningActivationStep(item.applicationId(), false, delay, now);
             workItems.save(item.retry("CREDENTIAL_RECONCILIATION_ERROR", now.plus(delay), now));
+            telemetry.recordWorkOutcome(
+                    OnboardingTelemetryPort.WorkType.CREDENTIAL_RECONCILIATION,
+                    OnboardingTelemetryPort.WorkOutcome.RETRY
+            );
         });
     }
 
     private void waitForApplicant(OnboardingWorkItem item, String code) {
         Instant now = Instant.now(clock);
         workItems.save(item.waitUntil(code, now.plus(provisioningPolicy.credentialReconciliationDelay()), now));
+        telemetry.recordWorkOutcome(
+                OnboardingTelemetryPort.WorkType.CREDENTIAL_RECONCILIATION,
+                OnboardingTelemetryPort.WorkOutcome.RETRY
+        );
     }
 
     private void expireCredentialSetup(OnboardingWorkItem item) {
@@ -133,6 +154,10 @@ public class CredentialSetupReconciler {
                 ));
             }
             workItems.save(item.fail("CREDENTIAL_SETUP_EXPIRED", now));
+            telemetry.recordWorkOutcome(
+                    OnboardingTelemetryPort.WorkType.CREDENTIAL_RECONCILIATION,
+                    OnboardingTelemetryPort.WorkOutcome.EXHAUSTED
+            );
         });
     }
 
@@ -149,6 +174,10 @@ public class CredentialSetupReconciler {
                 ));
             }
             workItems.save(item.fail("CREDENTIAL_RECONCILIATION_FAILED", now));
+            telemetry.recordWorkOutcome(
+                    OnboardingTelemetryPort.WorkType.CREDENTIAL_RECONCILIATION,
+                    OnboardingTelemetryPort.WorkOutcome.EXHAUSTED
+            );
         });
     }
 

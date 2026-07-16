@@ -11,6 +11,7 @@ import com.fedebacelar.bank.onboarding.application.port.out.OnboardingStatusHist
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingWorkItemRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingUniquenessReservationPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingProvisioningPolicyPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTelemetryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.ProvisioningFailureClassifierPort;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingActorType;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingApplicationStatus;
@@ -68,6 +69,7 @@ public class ProvisioningCoordinator {
     private final ProvisioningFailureClassifierPort failureClassifier;
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
+    private final OnboardingTelemetryPort telemetry;
 
     public ProvisioningCoordinator(OnboardingApplicationRepositoryPort applicationRepository,
             OnboardingApplicantDataRepositoryPort applicantRepository,
@@ -79,7 +81,7 @@ public class ProvisioningCoordinator {
             OnboardingUniquenessReservationPort reservationPort,
             OnboardingProvisioningPolicyPort provisioningPolicy,
             ProvisioningFailureClassifierPort failureClassifier,
-            TransactionTemplate transactionTemplate, Clock clock) {
+            TransactionTemplate transactionTemplate, OnboardingTelemetryPort telemetry, Clock clock) {
         this.applicationRepository = applicationRepository;
         this.applicantRepository = applicantRepository;
         this.stepRepository = stepRepository;
@@ -93,6 +95,7 @@ public class ProvisioningCoordinator {
         this.provisioningPolicy = provisioningPolicy;
         this.failureClassifier = failureClassifier;
         this.transactionTemplate = transactionTemplate;
+        this.telemetry = telemetry;
         this.clock = clock;
     }
 
@@ -123,6 +126,10 @@ public class ProvisioningCoordinator {
 
             if (retryable && workItem.attempts() < provisioningPolicy.maxAttempts()) {
                 workItemRepository.save(workItem.retry("PROVISIONING_EXECUTION_ERROR", now.plus(provisioningPolicy.retryDelay(workItem.attempts())), now));
+                telemetry.recordWorkOutcome(
+                        OnboardingTelemetryPort.WorkType.PROVISIONING,
+                        OnboardingTelemetryPort.WorkOutcome.RETRY
+                );
                 return;
             }
             OnboardingApplication application = requireApplication(workItem.applicationId());
@@ -132,6 +139,10 @@ public class ProvisioningCoordinator {
                 saveHistory(application, failed, retryable ? "PROVISIONING_RETRIES_EXHAUSTED" : "PROVISIONING_NON_RETRYABLE_FAILURE", now);
             }
             workItemRepository.save(workItem.fail("PROVISIONING_EXECUTION_ERROR", now));
+            telemetry.recordWorkOutcome(
+                    OnboardingTelemetryPort.WorkType.PROVISIONING,
+                    OnboardingTelemetryPort.WorkOutcome.EXHAUSTED
+            );
         });
     }
 
@@ -189,6 +200,10 @@ public class ProvisioningCoordinator {
         reservationPort.convertByApplicationId(application.id(), now);
         workItemRepository.findByApplicationIdAndJobType(application.id(), WorkflowJobType.CREDENTIAL_RECONCILIATION)
                 .orElseGet(() -> workItemRepository.save(OnboardingWorkItem.pending(application.id(), WorkflowJobType.CREDENTIAL_RECONCILIATION, now)));
+        telemetry.recordWorkOutcome(
+                OnboardingTelemetryPort.WorkType.PROVISIONING,
+                OnboardingTelemetryPort.WorkOutcome.SUCCEEDED
+        );
     }
 
     private UUID reference(UUID applicationId, ProvisioningStepType type) { return UUID.fromString(stringReference(applicationId, type)); }

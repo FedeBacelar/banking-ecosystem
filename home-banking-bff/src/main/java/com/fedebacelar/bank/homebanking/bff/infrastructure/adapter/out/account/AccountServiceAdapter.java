@@ -13,8 +13,8 @@ public class AccountServiceAdapter implements GetCustomerAccountsPort {
 
     private final WebClient webClient;
 
-    public AccountServiceAdapter(WebClient.Builder loadBalancedWebClientBuilder) {
-        this.webClient = loadBalancedWebClientBuilder.build();
+    public AccountServiceAdapter(WebClient internalServiceWebClient) {
+        this.webClient = internalServiceWebClient;
     }
 
     @Override

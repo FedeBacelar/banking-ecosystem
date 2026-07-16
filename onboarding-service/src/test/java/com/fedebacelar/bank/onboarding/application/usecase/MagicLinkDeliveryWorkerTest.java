@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -12,6 +13,7 @@ import com.fedebacelar.bank.onboarding.application.port.out.MagicLinkDeliveryPol
 import com.fedebacelar.bank.onboarding.application.port.out.MagicLinkDeliveryRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.NotificationPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingWorkItemRepositoryPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTelemetryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.PayloadCipherPort;
 import com.fedebacelar.bank.onboarding.domain.enums.WorkflowJobStatus;
 import com.fedebacelar.bank.onboarding.domain.enums.WorkflowJobType;
@@ -36,10 +38,11 @@ class MagicLinkDeliveryWorkerTest {
     private final PayloadCipherPort cipher = mock(PayloadCipherPort.class);
     private final NotificationPort notifications = mock(NotificationPort.class);
     private final MagicLinkDeliveryPolicyPort policy = mock(MagicLinkDeliveryPolicyPort.class);
+    private final OnboardingTelemetryPort telemetry = mock(OnboardingTelemetryPort.class);
     private final MagicLinkDeliveryCompletionService completion =
-            new MagicLinkDeliveryCompletionService(deliveries, workItems);
+            new MagicLinkDeliveryCompletionService(deliveries, workItems, telemetry);
     private final MagicLinkDeliveryWorker worker = new MagicLinkDeliveryWorker(
-            workItems, deliveries, cipher, notifications, completion, policy,
+            workItems, deliveries, cipher, notifications, completion, policy, telemetry,
             Clock.fixed(NOW, ZoneOffset.UTC)
     );
 
@@ -48,6 +51,10 @@ class MagicLinkDeliveryWorkerTest {
 
     @BeforeEach
     void setUp() {
+        doAnswer(invocation -> {
+            ((Runnable) invocation.getArgument(1)).run();
+            return null;
+        }).when(telemetry).observeWorkerExecution(any(), any());
         UUID applicationId = UUID.randomUUID();
         item = OnboardingWorkItem.pending(applicationId, WorkflowJobType.MAGIC_LINK_DELIVERY, NOW.minusSeconds(5))
                 .claim(NOW.minusSeconds(1), LEASE);

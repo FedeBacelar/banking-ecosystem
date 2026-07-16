@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import com.fedebacelar.bank.notification.application.command.SendEmailNotificationCommand;
 import com.fedebacelar.bank.notification.application.port.out.EmailDeliveryPort;
 import com.fedebacelar.bank.notification.application.port.out.NotificationRepositoryPort;
+import com.fedebacelar.bank.notification.application.port.out.NotificationTelemetryPort;
 import com.fedebacelar.bank.notification.application.port.out.TemplateRendererPort;
 import com.fedebacelar.bank.notification.domain.enums.NotificationStatus;
 import com.fedebacelar.bank.notification.domain.enums.NotificationTemplateCode;
@@ -46,10 +47,12 @@ class NotificationServiceTest {
     private final NotificationRepositoryPort repository = mock(NotificationRepositoryPort.class);
     private final TemplateRendererPort renderer = mock(TemplateRendererPort.class);
     private final EmailDeliveryPort emailDelivery = mock(EmailDeliveryPort.class);
+    private final NotificationTelemetryPort telemetry = mock(NotificationTelemetryPort.class);
     private final NotificationService service = new NotificationService(
             repository,
             renderer,
             emailDelivery,
+            telemetry,
             Clock.fixed(NOW, ZoneOffset.UTC)
     );
 
@@ -76,6 +79,10 @@ class NotificationServiceTest {
             assertThat(notification.requestFingerprint())
                     .isEqualTo(fingerprint("person@example.com", VARIABLES));
         });
+        verify(telemetry).recordDelivery(
+                NotificationTemplateCode.ONBOARDING_EMAIL_MAGIC_LINK,
+                NotificationTelemetryPort.DeliveryOutcome.SENT
+        );
     }
 
     @Test
@@ -111,6 +118,10 @@ class NotificationServiceTest {
         ArgumentCaptor<Notification> persisted = ArgumentCaptor.forClass(Notification.class);
         verify(repository, org.mockito.Mockito.times(2)).save(persisted.capture());
         assertThat(persisted.getAllValues().getLast().contentRedacted()).isTrue();
+        verify(telemetry).recordDelivery(
+                NotificationTemplateCode.ONBOARDING_EMAIL_MAGIC_LINK,
+                NotificationTelemetryPort.DeliveryOutcome.FAILED
+        );
     }
 
     @Test
@@ -135,6 +146,10 @@ class NotificationServiceTest {
         verify(renderer).render(NotificationTemplateCode.ONBOARDING_EMAIL_MAGIC_LINK, VARIABLES);
         verifyNoInteractions(emailDelivery);
         verify(repository, org.mockito.Mockito.never()).save(any());
+        verify(telemetry).recordDelivery(
+                NotificationTemplateCode.ONBOARDING_EMAIL_MAGIC_LINK,
+                NotificationTelemetryPort.DeliveryOutcome.REPLAYED
+        );
     }
 
     @Test
@@ -326,6 +341,7 @@ class NotificationServiceTest {
                         "http://localhost:8090"
                 )),
                 emailDelivery,
+                telemetry,
                 Clock.fixed(NOW, ZoneOffset.UTC)
         );
     }

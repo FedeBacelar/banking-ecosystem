@@ -19,6 +19,7 @@ import com.fedebacelar.bank.onboarding.application.port.out.OnboardingApplicatio
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingEmailRequestGuardPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingReviewPolicyPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingStatusHistoryRepositoryPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTelemetryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingWorkItemRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.PayloadCipherPort;
 import com.fedebacelar.bank.onboarding.application.port.out.TokenGeneratorPort;
@@ -56,6 +57,7 @@ class OnboardingApplicationServiceTest {
     private final PayloadCipherPort cipher = mock(PayloadCipherPort.class);
     private final MagicLinkFactoryPort magicLinks = mock(MagicLinkFactoryPort.class);
     private final OnboardingReviewPolicyPort reviewPolicy = mock(OnboardingReviewPolicyPort.class);
+    private final OnboardingTelemetryPort telemetry = mock(OnboardingTelemetryPort.class);
     private final OnboardingApplicationService service = new OnboardingApplicationService(
             applications,
             history,
@@ -68,6 +70,7 @@ class OnboardingApplicationServiceTest {
             magicLinks,
             Clock.fixed(NOW, ZoneOffset.UTC),
             reviewPolicy,
+            telemetry,
             30,
             120,
             15,
@@ -104,6 +107,7 @@ class OnboardingApplicationServiceTest {
         verify(workItems).save(org.mockito.ArgumentMatchers.argThat(
                 item -> item.jobType() == WorkflowJobType.MAGIC_LINK_DELIVERY
         ));
+        verify(telemetry).recordApplicationEvent(OnboardingTelemetryPort.ApplicationEvent.CREATED);
     }
 
     @Test

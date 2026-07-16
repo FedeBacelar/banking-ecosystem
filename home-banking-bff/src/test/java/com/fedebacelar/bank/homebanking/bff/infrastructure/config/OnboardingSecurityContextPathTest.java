@@ -18,7 +18,10 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.util.UUID;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Span;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
@@ -28,6 +31,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
         "server.servlet.context-path=/web",
+        "management.endpoints.web.exposure.include=health,info,prometheus",
+        "management.prometheus.metrics.export.enabled=true",
         "spring.security.oauth2.client.registration.keycloak.client-id=home-banking-bff",
         "spring.security.oauth2.client.registration.keycloak.client-secret=local-bff-secret",
         "spring.security.oauth2.client.registration.keycloak.authorization-grant-type=authorization_code",
@@ -43,6 +48,9 @@ class OnboardingSecurityContextPathTest {
 
     @LocalServerPort
     private int port;
+
+    @Autowired
+    private OpenTelemetry openTelemetry;
 
     @MockitoBean
     private OnboardingFlowService onboardingFlowService;
@@ -162,6 +170,29 @@ class OnboardingSecurityContextPathTest {
         assertThat(response.headers().firstValue("Location")).isEmpty();
         assertThat(response.headers().firstValue("Cache-Control")).contains("no-store");
         assertThat(response.body()).contains("AUTHENTICATION_REQUIRED");
+    }
+
+    @Test
+    void shouldExposePrometheusDirectlyThroughTheInternalContextPath() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(uri("/web/actuator/prometheus"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client().send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertThat(response.statusCode()).isEqualTo(HttpStatus.OK.value());
+        assertThat(response.body()).contains("jvm_info");
+    }
+
+    @Test
+    void shouldKeepTelemetryDisabledByDefault() {
+        Span span = openTelemetry.getTracer("nerva-test").spanBuilder("disabled-by-default").startSpan();
+        try {
+            assertThat(span.getSpanContext().isValid()).isFalse();
+        } finally {
+            span.end();
+        }
     }
 
     private CsrfCookie exchangeMagicLink() throws Exception {

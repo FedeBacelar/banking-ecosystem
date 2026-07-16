@@ -13,7 +13,9 @@ import org.springframework.web.bind.annotation.RestController;
         properties = {
                 "spring.cloud.gateway.server.webflux.routes[0].id=test-bff",
                 "spring.cloud.gateway.server.webflux.routes[0].uri=forward:/test/web",
-                "spring.cloud.gateway.server.webflux.routes[0].predicates[0]=Path=/web/**"
+                "spring.cloud.gateway.server.webflux.routes[0].predicates[0]=Path=/web/**",
+                "management.endpoints.web.exposure.include=health,info,prometheus",
+                "management.prometheus.metrics.export.enabled=true"
         }
 )
 @Import(SecurityConfigTest.TestRouteController.class)
@@ -62,6 +64,22 @@ class SecurityConfigTest {
                 .uri("/actuator/health")
                 .exchange()
                 .expectStatus().isOk();
+    }
+
+    @Test
+    void shouldExposePrometheusDirectlyWithoutAuthentication() {
+        webTestClient().get()
+                .uri("/actuator/prometheus")
+                .exchange()
+                .expectStatus().isOk();
+    }
+
+    @Test
+    void shouldNeverProxyActuatorThroughThePublicWebRoute() {
+        webTestClient().get()
+                .uri("/web/actuator/prometheus")
+                .exchange()
+                .expectStatus().isUnauthorized();
     }
 
     private WebTestClient webTestClient() {

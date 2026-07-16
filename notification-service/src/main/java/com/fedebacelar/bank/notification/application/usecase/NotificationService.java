@@ -5,6 +5,7 @@ import com.fedebacelar.bank.notification.application.mapper.NotificationDetailsM
 import com.fedebacelar.bank.notification.application.port.in.SendEmailNotificationUseCase;
 import com.fedebacelar.bank.notification.application.port.out.EmailDeliveryPort;
 import com.fedebacelar.bank.notification.application.port.out.NotificationRepositoryPort;
+import com.fedebacelar.bank.notification.application.port.out.NotificationTelemetryPort;
 import com.fedebacelar.bank.notification.application.port.out.TemplateRendererPort;
 import com.fedebacelar.bank.notification.application.view.NotificationDetails;
 import com.fedebacelar.bank.notification.domain.enums.NotificationStatus;
@@ -18,23 +19,30 @@ import java.util.Map;
 import java.util.Objects;
 import org.springframework.stereotype.Service;
 
+import static com.fedebacelar.bank.notification.application.port.out.NotificationTelemetryPort.DeliveryOutcome.FAILED;
+import static com.fedebacelar.bank.notification.application.port.out.NotificationTelemetryPort.DeliveryOutcome.REPLAYED;
+import static com.fedebacelar.bank.notification.application.port.out.NotificationTelemetryPort.DeliveryOutcome.SENT;
+
 @Service
 public class NotificationService implements SendEmailNotificationUseCase {
 
     private final NotificationRepositoryPort repository;
     private final TemplateRendererPort templateRenderer;
     private final EmailDeliveryPort emailDelivery;
+    private final NotificationTelemetryPort telemetry;
     private final Clock clock;
 
     public NotificationService(
             NotificationRepositoryPort repository,
             TemplateRendererPort templateRenderer,
             EmailDeliveryPort emailDelivery,
+            NotificationTelemetryPort telemetry,
             Clock clock
     ) {
         this.repository = repository;
         this.templateRenderer = templateRenderer;
         this.emailDelivery = emailDelivery;
+        this.telemetry = telemetry;
         this.clock = clock;
     }
 
@@ -54,6 +62,7 @@ public class NotificationService implements SendEmailNotificationUseCase {
             if (auditRecord != existing) {
                 auditRecord = repository.save(auditRecord);
             }
+            telemetry.recordDelivery(command.templateCode(), REPLAYED);
             return NotificationDetailsMapper.toDetails(auditRecord);
         }
 
@@ -71,10 +80,12 @@ public class NotificationService implements SendEmailNotificationUseCase {
         try {
             emailDelivery.deliver(delivery);
             auditRecord = repository.save(auditRecord.markSent(Instant.now(clock)));
+            telemetry.recordDelivery(command.templateCode(), SENT);
         } catch (EmailDeliveryException exception) {
             auditRecord = repository.save(auditRecord.markFailed(
                     sanitizedError(exception), Instant.now(clock)
             ));
+            telemetry.recordDelivery(command.templateCode(), FAILED);
         }
 
         return NotificationDetailsMapper.toDetails(auditRecord);

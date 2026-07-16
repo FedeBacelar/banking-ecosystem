@@ -8,6 +8,7 @@ import com.fedebacelar.bank.onboarding.application.port.out.OnboardingDocumentRe
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingReviewCheckRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingStatusHistoryRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTermsAcceptanceRepositoryPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTelemetryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingWorkItemRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingUniquenessReservationPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingReviewPolicyPort;
@@ -62,6 +63,7 @@ public class AutoReviewService {
     private final OnboardingReviewPolicyPort reviewPolicy;
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
+    private final OnboardingTelemetryPort telemetry;
 
     public AutoReviewService(
             OnboardingApplicationRepositoryPort applicationRepository,
@@ -76,6 +78,7 @@ public class AutoReviewService {
             OnboardingUniquenessReservationPort reservationPort,
             OnboardingReviewPolicyPort reviewPolicy,
             TransactionTemplate transactionTemplate,
+            OnboardingTelemetryPort telemetry,
             Clock clock
     ) {
         this.applicationRepository = applicationRepository;
@@ -90,6 +93,7 @@ public class AutoReviewService {
         this.reservationPort = reservationPort;
         this.reviewPolicy = reviewPolicy;
         this.transactionTemplate = transactionTemplate;
+        this.telemetry = telemetry;
         this.clock = clock;
     }
 
@@ -117,9 +121,17 @@ public class AutoReviewService {
                     saveHistory(application, failed, "AUTO_REVIEW_TECHNICAL_FAILURE", OnboardingActorType.AUTO_REVIEW, now);
                 }
                 workItemRepository.save(workItem.fail(errorCode, now));
+                telemetry.recordWorkOutcome(
+                        OnboardingTelemetryPort.WorkType.AUTO_REVIEW,
+                        OnboardingTelemetryPort.WorkOutcome.EXHAUSTED
+                );
                 return;
             }
             workItemRepository.save(workItem.retry(errorCode, now.plus(reviewPolicy.retryDelay(workItem.attempts())), now));
+            telemetry.recordWorkOutcome(
+                    OnboardingTelemetryPort.WorkType.AUTO_REVIEW,
+                    OnboardingTelemetryPort.WorkOutcome.RETRY
+            );
         });
     }
 
@@ -234,8 +246,13 @@ public class AutoReviewService {
         }
         if (rejected) {
             reservationPort.releaseByApplicationId(current.id(), now);
+            telemetry.recordApplicationEvent(OnboardingTelemetryPort.ApplicationEvent.REJECTED);
         }
         workItemRepository.save(workItem.succeed(now));
+        telemetry.recordWorkOutcome(
+                OnboardingTelemetryPort.WorkType.AUTO_REVIEW,
+                OnboardingTelemetryPort.WorkOutcome.SUCCEEDED
+        );
     }
 
     private OnboardingApplication requireApplication(java.util.UUID applicationId) {

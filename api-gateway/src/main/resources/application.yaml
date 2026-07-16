@@ -8,3 +8,15 @@ spring:
 # evaluated only after the rate-limit resolver validates an explicit proxy CIDR.
 server:
   forward-headers-strategy: none
+
+otel:
+  sdk:
+    # Observability is opt-in. Only application-observability.yaml may enable
+    # the SDK; an environment variable alone must not change the base profile.
+    disabled: true
+
+management:
+  prometheus:
+    metrics:
+      export:
+        enabled: false

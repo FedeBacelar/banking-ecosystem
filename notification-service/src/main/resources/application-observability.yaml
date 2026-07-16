@@ -1,0 +1,9 @@
+otel:
+  sdk:
+    disabled: ${OTEL_SDK_DISABLED:false}
+
+management:
+  prometheus:
+    metrics:
+      export:
+        enabled: true

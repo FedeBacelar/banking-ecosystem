@@ -13,8 +13,8 @@ public class IdentityServiceAdapter implements ResolveIdentityLinkPort {
 
     private final WebClient webClient;
 
-    public IdentityServiceAdapter(WebClient.Builder loadBalancedWebClientBuilder) {
-        this.webClient = loadBalancedWebClientBuilder.build();
+    public IdentityServiceAdapter(WebClient internalServiceWebClient) {
+        this.webClient = internalServiceWebClient;
     }
 
     @Override

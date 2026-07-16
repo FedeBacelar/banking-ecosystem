@@ -5,6 +5,7 @@ import com.fedebacelar.bank.onboarding.application.port.out.CredentialInvitation
 import com.fedebacelar.bank.onboarding.application.port.out.CredentialProvisioningPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingApplicationRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingProvisioningStepRepositoryPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTelemetryPort;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingApplicationStatus;
 import com.fedebacelar.bank.onboarding.domain.enums.ProvisioningStepStatus;
 import com.fedebacelar.bank.onboarding.domain.enums.ProvisioningStepType;
@@ -13,21 +14,18 @@ import com.fedebacelar.bank.onboarding.domain.model.OnboardingApplication;
 import com.fedebacelar.bank.onboarding.domain.model.OnboardingProvisioningStep;
 import java.time.Clock;
 import java.time.Instant;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
 public class CredentialInvitationDeliveryWorker {
-    private static final Logger LOGGER = LoggerFactory.getLogger(CredentialInvitationDeliveryWorker.class);
-
     private final CredentialInvitationDeliveryRepositoryPort deliveries;
     private final OnboardingApplicationRepositoryPort applications;
     private final OnboardingProvisioningStepRepositoryPort steps;
     private final CredentialProvisioningPort credentials;
     private final CredentialInvitationDeliveryPolicyPort policy;
     private final Clock clock;
+    private final OnboardingTelemetryPort telemetry;
 
     public CredentialInvitationDeliveryWorker(
             CredentialInvitationDeliveryRepositoryPort deliveries,
@@ -35,6 +33,7 @@ public class CredentialInvitationDeliveryWorker {
             OnboardingProvisioningStepRepositoryPort steps,
             CredentialProvisioningPort credentials,
             CredentialInvitationDeliveryPolicyPort policy,
+            OnboardingTelemetryPort telemetry,
             Clock clock
     ) {
         this.deliveries = deliveries;
@@ -42,6 +41,7 @@ public class CredentialInvitationDeliveryWorker {
         this.steps = steps;
         this.credentials = credentials;
         this.policy = policy;
+        this.telemetry = telemetry;
         this.clock = clock;
     }
 
@@ -54,7 +54,15 @@ public class CredentialInvitationDeliveryWorker {
             if (delivery == null) {
                 return;
             }
-            deliver(delivery);
+            telemetry.observeWorkerExecution(
+                    OnboardingTelemetryPort.WorkType.CREDENTIAL_INVITATION_DELIVERY,
+                    () -> {
+                        telemetry.recordWorkClaimed(
+                                OnboardingTelemetryPort.WorkType.CREDENTIAL_INVITATION_DELIVERY
+                        );
+                        deliver(delivery);
+                    }
+            );
         }
     }
 
@@ -63,6 +71,7 @@ public class CredentialInvitationDeliveryWorker {
         OnboardingApplication application = applications.findById(delivery.applicationId()).orElse(null);
         if (application == null || application.status() != OnboardingApplicationStatus.CREDENTIAL_SETUP_PENDING) {
             deliveries.save(delivery.fail("CREDENTIAL_INVITATION_NOT_APPLICABLE", now));
+            recordOutcome(OnboardingTelemetryPort.WorkOutcome.EXHAUSTED);
             return;
         }
 
@@ -74,12 +83,14 @@ public class CredentialInvitationDeliveryWorker {
                 || invitationStep.externalReference() == null
                 || invitationStep.externalReference().isBlank()) {
             deliveries.save(delivery.fail("CREDENTIAL_INVITATION_NOT_AVAILABLE", now));
+            recordOutcome(OnboardingTelemetryPort.WorkOutcome.EXHAUSTED);
             return;
         }
 
         try {
             credentials.sendCredentialSetupEmail(invitationStep.externalReference());
             deliveries.save(delivery.succeed(Instant.now(clock)));
+            recordOutcome(OnboardingTelemetryPort.WorkOutcome.SUCCEEDED);
         } catch (RuntimeException exception) {
             handleFailure(delivery, exception, Instant.now(clock));
         }
@@ -90,12 +101,9 @@ public class CredentialInvitationDeliveryWorker {
             RuntimeException exception,
             Instant now
     ) {
-        LOGGER.warn(
-                "Credential invitation delivery failed for deliveryId={} applicationId={} errorType={}",
-                delivery.id(), delivery.applicationId(), exception.getClass().getSimpleName()
-        );
         if (delivery.attempts() >= policy.maxAttempts()) {
             deliveries.save(delivery.fail("CREDENTIAL_INVITATION_DELIVERY_FAILED", now));
+            recordOutcome(OnboardingTelemetryPort.WorkOutcome.EXHAUSTED);
             return;
         }
         deliveries.save(delivery.retry(
@@ -103,5 +111,13 @@ public class CredentialInvitationDeliveryWorker {
                 now.plus(policy.retryDelay(delivery.attempts())),
                 now
         ));
+        recordOutcome(OnboardingTelemetryPort.WorkOutcome.RETRY);
+    }
+
+    private void recordOutcome(OnboardingTelemetryPort.WorkOutcome outcome) {
+        telemetry.recordWorkOutcome(
+                OnboardingTelemetryPort.WorkType.CREDENTIAL_INVITATION_DELIVERY,
+                outcome
+        );
     }
 }

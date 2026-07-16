@@ -11,8 +11,8 @@ public class CustomerServiceAdapter implements GetCustomerPort {
 
     private final WebClient webClient;
 
-    public CustomerServiceAdapter(WebClient.Builder loadBalancedWebClientBuilder) {
-        this.webClient = loadBalancedWebClientBuilder.build();
+    public CustomerServiceAdapter(WebClient internalServiceWebClient) {
+        this.webClient = internalServiceWebClient;
     }
 
     @Override

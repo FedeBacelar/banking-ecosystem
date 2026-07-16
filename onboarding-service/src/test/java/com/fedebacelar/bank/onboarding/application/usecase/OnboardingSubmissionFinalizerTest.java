@@ -15,6 +15,7 @@ import com.fedebacelar.bank.onboarding.application.port.out.OnboardingDocumentRe
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingReviewPolicyPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingStatusHistoryRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTermsAcceptanceRepositoryPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTelemetryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingWorkItemRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.TokenHashingPort;
 import com.fedebacelar.bank.onboarding.domain.enums.ApplicantDocumentType;
@@ -43,6 +44,7 @@ class OnboardingSubmissionFinalizerTest {
     private final OnboardingWorkItemRepositoryPort workItems = mock(OnboardingWorkItemRepositoryPort.class);
     private final TokenHashingPort hashing = mock(TokenHashingPort.class);
     private final OnboardingReviewPolicyPort reviewPolicy = mock(OnboardingReviewPolicyPort.class);
+    private final OnboardingTelemetryPort telemetry = mock(OnboardingTelemetryPort.class);
     private final OnboardingSubmissionFinalizer finalizer = new OnboardingSubmissionFinalizer(
             applications,
             applicantData,
@@ -52,6 +54,7 @@ class OnboardingSubmissionFinalizerTest {
             workItems,
             hashing,
             reviewPolicy,
+            telemetry,
             Clock.fixed(NOW, ZoneOffset.UTC)
     );
 
@@ -88,6 +91,7 @@ class OnboardingSubmissionFinalizerTest {
         verify(workItems).save(org.mockito.ArgumentMatchers.argThat(
                 item -> item.jobType() == WorkflowJobType.AUTO_REVIEW
         ));
+        verify(telemetry).recordApplicationEvent(OnboardingTelemetryPort.ApplicationEvent.SUBMITTED);
     }
 
     @Test
@@ -106,6 +110,7 @@ class OnboardingSubmissionFinalizerTest {
 
         assertThat(result.status()).isEqualTo(OnboardingApplicationStatus.CREDENTIAL_SETUP_FAILED);
         verify(applicantData, never()).save(any());
+        verify(telemetry, never()).recordApplicationEvent(any());
         verify(documentReferences, never()).save(any());
         verify(terms, never()).save(any());
         verify(workItems, never()).save(any());

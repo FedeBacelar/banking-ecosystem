@@ -2,6 +2,7 @@ package com.fedebacelar.bank.onboarding.infrastructure.config;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Instant;
@@ -25,13 +26,20 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@WebMvcTest(controllers = SecurityConfigTest.TestOnboardingController.class)
+@WebMvcTest(controllers = {
+        SecurityConfigTest.TestOnboardingController.class,
+        SecurityConfigTest.TestPrometheusController.class
+})
 @ImportAutoConfiguration({
         SecurityAutoConfiguration.class,
         ServletWebSecurityAutoConfiguration.class,
         SecurityFilterAutoConfiguration.class
 })
-@Import({SecurityConfig.class, SecurityConfigTest.TestOnboardingController.class})
+@Import({
+        SecurityConfig.class,
+        SecurityConfigTest.TestOnboardingController.class,
+        SecurityConfigTest.TestPrometheusController.class
+})
 @TestPropertySource(properties = "banking.security.public-docs-enabled=false")
 class SecurityConfigTest {
 
@@ -106,6 +114,12 @@ class SecurityConfigTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void prometheusEndpointDoesNotRequireACustomerToken() throws Exception {
+        mockMvc.perform(get("/actuator/prometheus"))
+                .andExpect(status().isOk());
+    }
+
     private String tokenWithRoles(String... roles) {
         String token = String.join("-", roles).toLowerCase() + "-token";
         Jwt jwt = Jwt.withTokenValue(token)
@@ -138,6 +152,14 @@ class SecurityConfigTest {
 
         @PostMapping("/applications/{applicationId}/provisioning/retry")
         void retryProvisioning() {
+        }
+    }
+
+    @RestController
+    public static class TestPrometheusController {
+
+        @org.springframework.web.bind.annotation.GetMapping("/actuator/prometheus")
+        void prometheus() {
         }
     }
 }

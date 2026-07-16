@@ -1,0 +1,86 @@
+management:
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      service: ${spring.application.name}
+      namespace: nerva
+      environment: ${DEPLOYMENT_ENVIRONMENT_NAME:local}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        http.client.requests: true
+
+logging:
+  level:
+    root: WARN
+    com.fedebacelar.bank: INFO
+  structured:
+    format:
+      console: ecs
+
+otel:
+  sdk:
+    disabled: ${OTEL_SDK_DISABLED:false}
+  service:
+    name: ${OTEL_SERVICE_NAME:${spring.application.name}}
+  resource:
+    attributes:
+      service.namespace: nerva
+      service.version: ${SERVICE_VERSION:0.0.1-SNAPSHOT}
+      deployment.environment.name: ${DEPLOYMENT_ENVIRONMENT_NAME:local}
+  propagators:
+    - tracecontext
+  traces:
+    exporter: otlp
+    sampler: always_on
+  metrics:
+    exporter: none
+  logs:
+    exporter: otlp
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}
+      protocol: http/protobuf
+      timeout: 3000
+  bsp:
+    schedule:
+      delay: 1000
+    max:
+      queue:
+        size: 2048
+    export:
+      timeout: 3000
+  blrp:
+    schedule:
+      delay: 1000
+    max:
+      queue:
+        size: 2048
+    export:
+      timeout: 3000
+  instrumentation:
+    common:
+      db:
+        query-sanitization:
+          enabled: true
+    logback-appender:
+      experimental-log-attributes: false
+      experimental:
+        capture-code-attributes: false
+        capture-marker-attribute: false
+        capture-key-value-pair-attributes: true
+        capture-logger-context-attributes: false
+        capture-mdc-attributes: correlationId
+
+spring:
+  cloud:
+    openfeign:
+      micrometer:
+        enabled: true

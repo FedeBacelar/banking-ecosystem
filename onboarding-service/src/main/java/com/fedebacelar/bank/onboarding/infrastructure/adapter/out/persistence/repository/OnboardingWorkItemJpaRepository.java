@@ -32,4 +32,16 @@ public interface OnboardingWorkItemJpaRepository extends JpaRepository<Onboardin
             @Param("now") Instant now,
             Pageable pageable
     );
+
+    @Query("""
+            select item.jobType as jobType,
+                   count(item) as pendingCount,
+                   min(item.createdAt) as oldestCreatedAt
+              from OnboardingWorkItemEntity item
+             where item.status in :activeStatuses
+             group by item.jobType
+            """)
+    List<OnboardingWorkBacklogProjection> summarizeBacklog(
+            @Param("activeStatuses") Set<WorkflowJobStatus> activeStatuses
+    );
 }

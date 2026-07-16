@@ -3,6 +3,7 @@ package com.fedebacelar.bank.onboarding.application.usecase;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -13,6 +14,7 @@ import com.fedebacelar.bank.onboarding.application.port.out.CredentialInvitation
 import com.fedebacelar.bank.onboarding.application.port.out.CredentialProvisioningPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingApplicationRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingProvisioningStepRepositoryPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTelemetryPort;
 import com.fedebacelar.bank.onboarding.domain.enums.ProvisioningStepType;
 import com.fedebacelar.bank.onboarding.domain.enums.WorkflowJobStatus;
 import com.fedebacelar.bank.onboarding.domain.model.CredentialInvitationDelivery;
@@ -37,8 +39,9 @@ class CredentialInvitationDeliveryWorkerTest {
     private final OnboardingProvisioningStepRepositoryPort steps = mock(OnboardingProvisioningStepRepositoryPort.class);
     private final CredentialProvisioningPort credentials = mock(CredentialProvisioningPort.class);
     private final CredentialInvitationDeliveryPolicyPort policy = mock(CredentialInvitationDeliveryPolicyPort.class);
+    private final OnboardingTelemetryPort telemetry = mock(OnboardingTelemetryPort.class);
     private final CredentialInvitationDeliveryWorker worker = new CredentialInvitationDeliveryWorker(
-            deliveries, applications, steps, credentials, policy, Clock.fixed(NOW, ZoneOffset.UTC)
+            deliveries, applications, steps, credentials, policy, telemetry, Clock.fixed(NOW, ZoneOffset.UTC)
     );
 
     private OnboardingApplication application;
@@ -47,6 +50,10 @@ class CredentialInvitationDeliveryWorkerTest {
 
     @BeforeEach
     void setUp() {
+        doAnswer(invocation -> {
+            ((Runnable) invocation.getArgument(1)).run();
+            return null;
+        }).when(telemetry).observeWorkerExecution(any(), any());
         application = credentialPendingApplication();
         delivery = CredentialInvitationDelivery.pending(
                 application.id(), "idempotency-hash", NOW.minusSeconds(10)

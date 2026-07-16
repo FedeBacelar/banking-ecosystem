@@ -16,6 +16,7 @@ import com.fedebacelar.bank.onboarding.application.port.out.OnboardingDocumentRe
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingReviewCheckRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingStatusHistoryRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTermsAcceptanceRepositoryPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTelemetryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingUniquenessReservationPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingWorkItemRepositoryPort;
 import com.fedebacelar.bank.onboarding.domain.enums.ApplicantDocumentType;
@@ -61,6 +62,7 @@ class AutoReviewServiceTest {
     private final OnboardingUniquenessReservationPort reservations = mock(OnboardingUniquenessReservationPort.class);
     private final OnboardingReviewProperties properties = new OnboardingReviewProperties();
     private final TransactionTemplate transactions = mock(TransactionTemplate.class);
+    private final OnboardingTelemetryPort telemetry = mock(OnboardingTelemetryPort.class);
     private final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
     private final AtomicReference<OnboardingApplication> persistedApplication = new AtomicReference<>();
     private final List<OnboardingReviewCheck> persistedChecks = new ArrayList<>();
@@ -109,7 +111,7 @@ class AutoReviewServiceTest {
         claimedWorkItem = OnboardingWorkItem.pending(submitted.id(), WorkflowJobType.AUTO_REVIEW, NOW.minusSeconds(30))
                 .claim(NOW.minusSeconds(20), Duration.ofMinutes(2));
         service = new AutoReviewService(applications, applicants, documents, terms, checks, history, workItems,
-                customers, documentValidation, reservations, properties, transactions, clock);
+                customers, documentValidation, reservations, properties, transactions, telemetry, clock);
     }
 
     @Test
@@ -146,6 +148,11 @@ class AutoReviewServiceTest {
                 .isEqualTo(ReviewCheckOutcome.FAILED);
         verify(reservations).releaseByApplicationId(submitted.id(), NOW);
         verify(workItems, never()).findByApplicationIdAndJobType(submitted.id(), WorkflowJobType.PROVISIONING);
+        verify(telemetry).recordApplicationEvent(OnboardingTelemetryPort.ApplicationEvent.REJECTED);
+        verify(telemetry).recordWorkOutcome(
+                OnboardingTelemetryPort.WorkType.AUTO_REVIEW,
+                OnboardingTelemetryPort.WorkOutcome.SUCCEEDED
+        );
     }
 
     private ApplicantData applicant(OnboardingApplication application, LocalDate birthDate) {

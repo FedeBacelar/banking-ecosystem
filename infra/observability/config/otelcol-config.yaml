@@ -1,0 +1,118 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  prometheus/collector:
+    config:
+      scrape_configs:
+        - job_name: opentelemetry-collector
+          scrape_interval: 1s
+          static_configs:
+            - targets: [127.0.0.1:8888]
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+    path: /ready
+
+processors:
+  transform/privacy:
+    error_mode: ignore
+    trace_statements:
+      - context: resource
+        statements:
+          - delete_key(resource.attributes, "process.command_args")
+          - delete_key(resource.attributes, "process.command_line")
+          - delete_key(resource.attributes, "process.executable.path")
+          - delete_key(resource.attributes, "host.name")
+          - delete_matching_keys(resource.attributes, "(?i)(^|[._-])(authorization|cookie|password|passwd|secret|token|api[._-]?key|email|e[._-]?mail|dni|username|user[._-]?name|credential|otp|pin)([._-]|$)")
+      - context: span
+        statements:
+          - delete_key(span.attributes, "url.query")
+          - delete_key(span.attributes, "url.full")
+          - delete_key(span.attributes, "http.url")
+          - delete_key(span.attributes, "http.target")
+          - delete_key(span.attributes, "client.address")
+          - delete_key(span.attributes, "network.peer.address")
+          - delete_key(span.attributes, "network.local.address")
+          - delete_key(span.attributes, "server.address")
+          - delete_key(span.attributes, "net.peer.ip")
+          - delete_key(span.attributes, "net.host.ip")
+          - delete_key(span.attributes, "net.sock.peer.addr")
+          - delete_key(span.attributes, "net.sock.host.addr")
+          - delete_key(span.attributes, "http.client_ip")
+          - delete_key(span.attributes, "http.request.header.x-forwarded-for")
+          - delete_key(span.attributes, "http.request.header.x-real-ip")
+          - delete_key(span.attributes, "http.request.header.forwarded")
+          - delete_key(span.attributes, "enduser.id")
+          - delete_key(span.attributes, "user.id")
+          - delete_key(span.attributes, "session.id")
+          - delete_key(span.attributes, "db.user")
+          - delete_key(span.attributes, "exception.message")
+          - delete_key(span.attributes, "exception.stacktrace")
+          - delete_matching_keys(span.attributes, "(?i)(^|[._-])(authorization|cookie|password|passwd|secret|token|api[._-]?key|email|e[._-]?mail|dni|username|user[._-]?name|credential|otp|pin)([._-]|$)")
+          - set(span.status.message, "")
+      - context: spanevent
+        statements:
+          - delete_key(spanevent.attributes, "exception.message")
+          - delete_key(spanevent.attributes, "exception.stacktrace")
+          - delete_matching_keys(spanevent.attributes, "(?i)(^|[._-])(authorization|cookie|password|passwd|secret|token|api[._-]?key|email|e[._-]?mail|dni|username|user[._-]?name|credential|otp|pin)([._-]|$)")
+    log_statements:
+      - context: resource
+        statements:
+          - delete_key(resource.attributes, "process.command_args")
+          - delete_key(resource.attributes, "process.command_line")
+          - delete_key(resource.attributes, "process.executable.path")
+          - delete_key(resource.attributes, "host.name")
+          - delete_matching_keys(resource.attributes, "(?i)(^|[._-])(authorization|cookie|password|passwd|secret|token|api[._-]?key|email|e[._-]?mail|dni|username|user[._-]?name|credential|otp|pin)([._-]|$)")
+      - context: log
+        statements:
+          - set(log.body, "Exception captured; sensitive details removed") where log.attributes["exception.type"] != nil
+          - delete_key(log.attributes, "net.peer.ip")
+          - delete_key(log.attributes, "net.host.ip")
+          - delete_key(log.attributes, "net.sock.peer.addr")
+          - delete_key(log.attributes, "net.sock.host.addr")
+          - delete_key(log.attributes, "http.client_ip")
+          - delete_key(log.attributes, "http.request.header.x-forwarded-for")
+          - delete_key(log.attributes, "http.request.header.x-real-ip")
+          - delete_key(log.attributes, "http.request.header.forwarded")
+          - delete_key(log.attributes, "enduser.id")
+          - delete_key(log.attributes, "user.id")
+          - delete_key(log.attributes, "session.id")
+          - delete_key(log.attributes, "exception.message")
+          - delete_key(log.attributes, "exception.stacktrace")
+          - delete_matching_keys(log.attributes, "(?i)(^|[._-])(authorization|cookie|password|passwd|secret|token|api[._-]?key|email|e[._-]?mail|dni|username|user[._-]?name|credential|otp|pin)([._-]|$)")
+  batch:
+
+exporters:
+  otlp_http/metrics:
+    endpoint: http://127.0.0.1:9090/api/v1/otlp
+    tls:
+      insecure: true
+  otlp_http/traces:
+    endpoint: http://127.0.0.1:4418
+    tls:
+      insecure: true
+  otlp_http/logs:
+    endpoint: http://127.0.0.1:3100/otlp
+    tls:
+      insecure: true
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [transform/privacy, batch]
+      exporters: [otlp_http/traces]
+    metrics:
+      receivers: [otlp, prometheus/collector]
+      processors: [batch]
+      exporters: [otlp_http/metrics]
+    logs:
+      receivers: [otlp]
+      processors: [transform/privacy, batch]
+      exporters: [otlp_http/logs]

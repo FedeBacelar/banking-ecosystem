@@ -17,7 +17,7 @@ class OnboardingServiceAdapterTest {
     @Test
     void resolvesCompletionThroughTheInternalBodyContractWithoutPuttingTheSubjectInTheUrl() {
         AtomicReference<ClientRequest> capturedRequest = new AtomicReference<>();
-        WebClient.Builder webClientBuilder = WebClient.builder().exchangeFunction(request -> {
+        WebClient webClient = WebClient.builder().exchangeFunction(request -> {
             capturedRequest.set(request);
             return Mono.just(ClientResponse.create(HttpStatus.OK)
                     .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
@@ -28,8 +28,8 @@ class OnboardingServiceAdapterTest {
                             }
                             """)
                     .build());
-        });
-        OnboardingServiceAdapter adapter = new OnboardingServiceAdapter(webClientBuilder);
+        }).build();
+        OnboardingServiceAdapter adapter = new OnboardingServiceAdapter(webClient);
 
         var result = adapter.getCompletionStatus("keycloak-user-id", "internal-token");
 
@@ -45,7 +45,7 @@ class OnboardingServiceAdapterTest {
     @Test
     void forwardsTheCredentialInvitationIdempotencyKey() {
         AtomicReference<ClientRequest> capturedRequest = new AtomicReference<>();
-        WebClient.Builder webClientBuilder = WebClient.builder().exchangeFunction(request -> {
+        WebClient webClient = WebClient.builder().exchangeFunction(request -> {
             capturedRequest.set(request);
             return Mono.just(ClientResponse.create(HttpStatus.ACCEPTED)
                     .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
@@ -58,8 +58,8 @@ class OnboardingServiceAdapterTest {
                             }
                             """)
                     .build());
-        });
-        OnboardingServiceAdapter adapter = new OnboardingServiceAdapter(webClientBuilder);
+        }).build();
+        OnboardingServiceAdapter adapter = new OnboardingServiceAdapter(webClient);
 
         adapter.resendCredentialInvitation(
                 "continuation-token",

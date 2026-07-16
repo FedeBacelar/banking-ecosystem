@@ -6,3 +6,13 @@ spring:
       - "optional:file:.env[.properties]"
       - "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
 
+otel:
+  sdk:
+    disabled: true
+
+management:
+  prometheus:
+    metrics:
+      export:
+        enabled: false
+

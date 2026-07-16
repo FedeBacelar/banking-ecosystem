@@ -13,6 +13,7 @@ import com.fedebacelar.bank.onboarding.application.port.out.MagicLinkFactoryPort
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingApplicationRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingEmailRequestGuardPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingStatusHistoryRepositoryPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTelemetryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingWorkItemRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingReviewPolicyPort;
 import com.fedebacelar.bank.onboarding.application.port.out.PayloadCipherPort;
@@ -71,6 +72,7 @@ public class OnboardingApplicationService implements
     private final Duration applicationTtl;
     private final Duration magicLinkRequestCooldown;
     private final OnboardingReviewPolicyPort reviewPolicy;
+    private final OnboardingTelemetryPort telemetry;
 
     public OnboardingApplicationService(
             OnboardingApplicationRepositoryPort repository,
@@ -84,6 +86,7 @@ public class OnboardingApplicationService implements
             MagicLinkFactoryPort magicLinkFactory,
             Clock clock,
             OnboardingReviewPolicyPort reviewPolicy,
+            OnboardingTelemetryPort telemetry,
             @Value("${onboarding.magic-link.ttl-minutes:30}") long magicLinkTtlMinutes,
             @Value("${onboarding.continuation.ttl-minutes:120}") long continuationTtlMinutes,
             @Value("${onboarding.application.ttl-days:15}") long applicationTtlDays,
@@ -100,6 +103,7 @@ public class OnboardingApplicationService implements
         this.magicLinkFactory = magicLinkFactory;
         this.clock = clock;
         this.reviewPolicy = reviewPolicy;
+        this.telemetry = telemetry;
         this.magicLinkTtl = Duration.ofMinutes(magicLinkTtlMinutes);
         this.continuationTtl = Duration.ofMinutes(continuationTtlMinutes);
         this.applicationTtl = Duration.ofDays(applicationTtlDays);
@@ -166,6 +170,7 @@ public class OnboardingApplicationService implements
         OnboardingApplication saved = repository.save(application);
         saveHistory(saved, null, saved.status(), "APPLICATION_STARTED", now);
         enqueueMagicLink(saved, token, now);
+        telemetry.recordApplicationEvent(OnboardingTelemetryPort.ApplicationEvent.CREATED);
         return OnboardingApplicationDetailsMapper.toDetails(saved);
     }
 

@@ -47,4 +47,14 @@ public interface CredentialInvitationDeliveryJpaRepository
             @Param("now") Instant now,
             Pageable pageable
     );
+
+    @Query("""
+            select count(delivery) as pendingCount,
+                   min(delivery.createdAt) as oldestCreatedAt
+              from CredentialInvitationDeliveryEntity delivery
+             where delivery.status in :activeStatuses
+            """)
+    CredentialInvitationBacklogProjection summarizeBacklog(
+            @Param("activeStatuses") Set<WorkflowJobStatus> activeStatuses
+    );
 }

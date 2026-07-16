@@ -3,6 +3,7 @@ package com.fedebacelar.bank.onboarding.application.usecase;
 import com.fedebacelar.bank.onboarding.application.port.out.MagicLinkDeliveryRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.NotificationPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingWorkItemRepositoryPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTelemetryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.PayloadCipherPort;
 import com.fedebacelar.bank.onboarding.application.port.out.MagicLinkDeliveryPolicyPort;
 import com.fedebacelar.bank.onboarding.domain.enums.WorkflowJobType;
@@ -11,15 +12,11 @@ import com.fedebacelar.bank.onboarding.domain.model.OnboardingWorkItem;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
 public class MagicLinkDeliveryWorker {
-    private static final Logger LOGGER = LoggerFactory.getLogger(MagicLinkDeliveryWorker.class);
-
     private final OnboardingWorkItemRepositoryPort workItemRepository;
     private final MagicLinkDeliveryRepositoryPort deliveryRepository;
     private final PayloadCipherPort payloadCipher;
@@ -27,6 +24,7 @@ public class MagicLinkDeliveryWorker {
     private final MagicLinkDeliveryCompletionService completionService;
     private final MagicLinkDeliveryPolicyPort deliveryPolicy;
     private final Clock clock;
+    private final OnboardingTelemetryPort telemetry;
 
     public MagicLinkDeliveryWorker(
             OnboardingWorkItemRepositoryPort workItemRepository,
@@ -35,6 +33,7 @@ public class MagicLinkDeliveryWorker {
             NotificationPort notificationPort,
             MagicLinkDeliveryCompletionService completionService,
             MagicLinkDeliveryPolicyPort deliveryPolicy,
+            OnboardingTelemetryPort telemetry,
             Clock clock
     ) {
         this.workItemRepository = workItemRepository;
@@ -43,6 +42,7 @@ public class MagicLinkDeliveryWorker {
         this.notificationPort = notificationPort;
         this.completionService = completionService;
         this.deliveryPolicy = deliveryPolicy;
+        this.telemetry = telemetry;
         this.clock = clock;
     }
 
@@ -57,7 +57,10 @@ public class MagicLinkDeliveryWorker {
             if (item == null) {
                 return;
             }
-            deliver(item);
+            telemetry.observeWorkerExecution(OnboardingTelemetryPort.WorkType.MAGIC_LINK_DELIVERY, () -> {
+                telemetry.recordWorkClaimed(OnboardingTelemetryPort.WorkType.MAGIC_LINK_DELIVERY);
+                deliver(item);
+            });
         }
     }
 
@@ -89,10 +92,6 @@ public class MagicLinkDeliveryWorker {
     }
 
     private void handleFailure(OnboardingWorkItem item, RuntimeException exception, Instant now) {
-        LOGGER.warn(
-                "Magic-link delivery failed for applicationId={} errorType={}",
-                item.applicationId(), exception.getClass().getSimpleName()
-        );
         if (item.attempts() >= deliveryPolicy.maxAttempts()) {
             completionService.fail(item, "MAGIC_LINK_DELIVERY_FAILED", now);
             return;

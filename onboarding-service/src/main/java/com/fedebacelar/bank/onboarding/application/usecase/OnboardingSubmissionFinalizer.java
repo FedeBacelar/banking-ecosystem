@@ -6,6 +6,7 @@ import com.fedebacelar.bank.onboarding.application.port.out.OnboardingApplicatio
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingDocumentReferenceRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingStatusHistoryRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTermsAcceptanceRepositoryPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTelemetryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingWorkItemRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingReviewPolicyPort;
 import com.fedebacelar.bank.onboarding.application.port.out.TokenHashingPort;
@@ -42,6 +43,7 @@ public class OnboardingSubmissionFinalizer {
     private final OnboardingWorkItemRepositoryPort workItemRepository;
     private final TokenHashingPort tokenHashingPort;
     private final OnboardingReviewPolicyPort reviewPolicy;
+    private final OnboardingTelemetryPort telemetry;
     private final Clock clock;
 
     public OnboardingSubmissionFinalizer(
@@ -53,6 +55,7 @@ public class OnboardingSubmissionFinalizer {
             OnboardingWorkItemRepositoryPort workItemRepository,
             TokenHashingPort tokenHashingPort,
             OnboardingReviewPolicyPort reviewPolicy,
+            OnboardingTelemetryPort telemetry,
             Clock clock
     ) {
         this.applicationRepository = applicationRepository;
@@ -63,6 +66,7 @@ public class OnboardingSubmissionFinalizer {
         this.workItemRepository = workItemRepository;
         this.tokenHashingPort = tokenHashingPort;
         this.reviewPolicy = reviewPolicy;
+        this.telemetry = telemetry;
         this.clock = clock;
     }
 
@@ -107,6 +111,7 @@ public class OnboardingSubmissionFinalizer {
                 .orElseGet(() -> workItemRepository.save(
                         OnboardingWorkItem.pending(application.id(), WorkflowJobType.AUTO_REVIEW, now)
                 ));
+        telemetry.recordApplicationEvent(OnboardingTelemetryPort.ApplicationEvent.SUBMITTED);
         return details(submitted);
     }
 

@@ -18,6 +18,7 @@ import com.fedebacelar.bank.onboarding.application.port.out.OnboardingApplicatio
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingProvisioningStepRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingStatusHistoryRepositoryPort;
 import com.fedebacelar.bank.onboarding.application.port.out.OnboardingWorkItemRepositoryPort;
+import com.fedebacelar.bank.onboarding.application.port.out.OnboardingTelemetryPort;
 import com.fedebacelar.bank.onboarding.domain.enums.OnboardingApplicationStatus;
 import com.fedebacelar.bank.onboarding.domain.enums.ProvisioningStepType;
 import com.fedebacelar.bank.onboarding.domain.enums.WorkflowJobStatus;
@@ -54,6 +55,7 @@ class CredentialSetupReconcilerTest {
     private final IdentityProvisioningPort identities = mock(IdentityProvisioningPort.class);
     private final OnboardingProvisioningProperties policy = new OnboardingProvisioningProperties();
     private final TransactionTemplate transactions = mock(TransactionTemplate.class);
+    private final OnboardingTelemetryPort telemetry = mock(OnboardingTelemetryPort.class);
     private final AtomicReference<OnboardingApplication> persistedApplication = new AtomicReference<>();
     private final Map<ProvisioningStepType, OnboardingProvisioningStep> persistedSteps =
             new EnumMap<>(ProvisioningStepType.class);
@@ -108,7 +110,7 @@ class CredentialSetupReconcilerTest {
 
         reconciler = new CredentialSetupReconciler(
                 applications, steps, history, workItems, credentials, customers, accounts, identities,
-                policy, transactions, Clock.fixed(NOW, ZoneOffset.UTC)
+                policy, transactions, telemetry, Clock.fixed(NOW, ZoneOffset.UTC)
         );
     }
 
@@ -127,6 +129,10 @@ class CredentialSetupReconcilerTest {
         verifyNoInteractions(customers, accounts, identities);
         assertThat(persistedApplication.get().status())
                 .isEqualTo(OnboardingApplicationStatus.CREDENTIAL_SETUP_PENDING);
+        verify(telemetry).recordWorkOutcome(
+                OnboardingTelemetryPort.WorkType.CREDENTIAL_RECONCILIATION,
+                OnboardingTelemetryPort.WorkOutcome.RETRY
+        );
     }
 
     @Test
@@ -149,6 +155,11 @@ class CredentialSetupReconcilerTest {
         verify(workItems).save(org.mockito.ArgumentMatchers.argThat(
                 saved -> saved.status() == WorkflowJobStatus.SUCCEEDED
         ));
+        verify(telemetry).recordApplicationEvent(OnboardingTelemetryPort.ApplicationEvent.COMPLETED);
+        verify(telemetry).recordWorkOutcome(
+                OnboardingTelemetryPort.WorkType.CREDENTIAL_RECONCILIATION,
+                OnboardingTelemetryPort.WorkOutcome.SUCCEEDED
+        );
     }
 
     @Test
@@ -221,6 +232,10 @@ class CredentialSetupReconcilerTest {
                 saved -> saved.status() == WorkflowJobStatus.FAILED
                         && "CREDENTIAL_RECONCILIATION_FAILED".equals(saved.lastErrorCode())
         ));
+        verify(telemetry).recordWorkOutcome(
+                OnboardingTelemetryPort.WorkType.CREDENTIAL_RECONCILIATION,
+                OnboardingTelemetryPort.WorkOutcome.EXHAUSTED
+        );
     }
 
     private void succeeded(UUID applicationId, ProvisioningStepType type, String reference, Instant completedAt) {
