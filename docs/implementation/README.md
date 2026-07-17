@@ -47,6 +47,13 @@ banking-web
 - [api-gateway](platform/api-gateway.md)
 - [keycloak](platform/keycloak.md)
 
+## Local Runtime Infrastructure
+
+- [MySQL](../technical/infrastructure/local-mysql.md)
+- [MinIO](../technical/infrastructure/minio.md)
+- [Mailpit](../technical/infrastructure/mailpit.md)
+- [Observability](../technical/infrastructure/observability.md)
+
 ## Documentation Rule
 
 Each service folder only documents that service.

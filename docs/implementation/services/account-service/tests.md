@@ -10,7 +10,7 @@ cd account-service
 Current verified result:
 
 ```txt
-17 tests passing
+45 tests passing
 ```
 
 ## Test Types
@@ -27,12 +27,14 @@ AccountTest
 
 ### Use Case Tests
 
-Validate account opening behavior and customer validation orchestration.
+Validate account opening, lifecycle transitions, idempotency, and customer validation orchestration.
 
-Current example:
+Current examples:
 
 ```txt
 OpenAccountServiceTest
+IdempotentAccountOpeningServiceTest
+AccountLifecycleServiceTest
 ```
 
 ### Web Adapter Tests
@@ -49,10 +51,35 @@ AccountWebAdapterTest
 
 Validate database mappings and repository behavior with MySQL Testcontainers.
 
-Current example:
+Current examples:
 
 ```txt
 AccountPersistenceAdapterIntegrationTest
+IdempotentAccountOpeningIntegrationTest
+```
+
+### Security and Integration Tests
+
+Validate endpoint capabilities, service-owned client credentials, authorization-header replacement,
+and W3C trace propagation across the Account to Customer boundary.
+
+Current examples:
+
+```txt
+SecurityConfigTest
+OAuth2ClientCredentialsTokenAdapterTest
+CustomerFeignTracePropagationIntegrationTest
+```
+
+### Observability Profile Tests
+
+Validate that telemetry remains opt-in and that the Prometheus endpoint is available only when the
+`observability` profile is enabled.
+
+Current example:
+
+```txt
+ObservabilityProfileTest
 ```
 
 ## Testing Rule

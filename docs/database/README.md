@@ -11,6 +11,6 @@ The SVG file is a visual export used for quick reading.
 Validate the DBML and regenerate the visual export from the repository root:
 
 ```powershell
-npx --yes --package @dbml/cli dbml2sql docs/database/schema.dbml --mysql -o $env:TEMP/banking-schema.sql
-npx --yes --package @softwaretechnik/dbml-renderer dbml-renderer -i docs/database/schema.dbml -o docs/database/erd.svg
+npx.cmd --yes --package @dbml/cli@8.3.1-custom-metadata.2 dbml2sql docs/database/schema.dbml --mysql -o $env:TEMP/banking-schema.sql
+npx.cmd --yes --package @softwaretechnik/dbml-renderer@1.0.31 dbml-renderer -i docs/database/schema.dbml -o docs/database/erd.svg
 ```

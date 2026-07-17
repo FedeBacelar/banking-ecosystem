@@ -1,2 +1,6 @@
 **/mvnw text eol=lf
 **/*.cmd text eol=crlf
+design-system/generated/nerva-tokens.css text eol=lf
+infra/keycloak/themes/banking/login/resources/css/nerva-tokens.css text eol=lf
+banking-web/src/styles/_nerva-tokens.css text eol=lf
+infra/keycloak/password-blacklists/nerva-passwords.txt text eol=lf

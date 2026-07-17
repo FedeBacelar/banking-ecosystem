@@ -10,7 +10,7 @@ cd customer-service
 Current verified result:
 
 ```txt
-24 tests passing
+43 tests passing
 ```
 
 ## Test Types
@@ -64,6 +64,18 @@ Current example:
 
 ```txt
 CustomerApiE2ETest
+```
+
+### Security and Observability Tests
+
+Validate endpoint capabilities and confirm that telemetry remains opt-in, with Prometheus exposed
+only under the `observability` profile.
+
+Current examples:
+
+```txt
+SecurityConfigTest
+ObservabilityProfileTest
 ```
 
 ## Testing Rule

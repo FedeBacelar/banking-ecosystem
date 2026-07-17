@@ -30,6 +30,7 @@ Constraints:
 ```txt
 PRIMARY KEY (id)
 UNIQUE (provider, provider_subject)
+UNIQUE (customer_id, provider)
 ```
 
 Indexes:
@@ -42,3 +43,6 @@ idx_identity_link_status
 `customer_id` is a logical reference to `customer-service`.
 
 There is no physical foreign key because each service owns its own database.
+
+The second unique constraint allows at most one identity per provider for a customer.
+Flyway migrations `V1` through `V2` create the current schema.

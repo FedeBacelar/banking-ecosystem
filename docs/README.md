@@ -78,4 +78,5 @@ Keycloak for human and machine identity in the local environment.
 MinIO for document object storage.
 Mailpit for local SMTP capture and email inspection.
 Home Banking BFF for browser sessions and public web contracts through the gateway.
+OpenTelemetry Collector, Prometheus, Loki, Tempo, and Grafana through the pinned local LGTM development stack.
 ```

@@ -8,6 +8,7 @@ The current setup uses Spring Cloud Config Server in native mode, which reads th
 
 ```txt
 application.yaml
+application-observability.yaml
 customer-service.yaml
 account-service.yaml
 identity-service.yaml

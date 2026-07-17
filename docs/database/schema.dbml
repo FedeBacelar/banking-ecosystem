@@ -356,7 +356,7 @@ Table notification_db.notification {
   request_fingerprint char(64)
   subject varchar(255) [not null]
   body text [not null]
-  html_body text
+  html_body mediumtext
   status notification_status [not null]
   attempt_count int [not null, default: 0]
   last_error text
@@ -379,6 +379,8 @@ Table notification_db.notification {
 
 Table document_db.document {
   id char(36) [pk, not null]
+  idempotency_key varchar(200)
+  content_sha256 char(64)
   business_context varchar(80) [not null]
   business_reference_id varchar(120) [not null]
   category banking_document_category [not null]
@@ -394,6 +396,8 @@ Table document_db.document {
   version bigint [not null, default: 0]
 
   indexes {
+    idempotency_key [unique, name: 'uk_document_idempotency_key']
+    content_sha256 [name: 'idx_document_content_sha256']
     object_key [unique, name: 'uk_document_object_key']
     (business_context, business_reference_id) [name: 'idx_document_business_reference']
     category [name: 'idx_document_category']
@@ -401,15 +405,15 @@ Table document_db.document {
     created_at [name: 'idx_document_created_at']
   }
 
-  Note: 'Document metadata and object storage location persisted by document-service.'
+  Note: 'Document metadata and object storage location persisted by document-service. The optional idempotency key and content hash make upload retries safe.'
 }
 
 Table onboarding_db.onboarding_application {
   id char(36) [pk, not null]
   email varchar(255) [not null]
   status onboarding_application_status [not null]
-  review_mode varchar(20) [not null]
-  review_policy_version varchar(80) [not null]
+  review_mode varchar(20) [not null, default: 'AUTO']
+  review_policy_version varchar(80) [not null, default: 'AR_DNI_SAVINGS_V1']
   magic_link_token_hash char(64) [not null]
   magic_link_expires_at timestamp(6) [not null]
   magic_link_consumed_at timestamp(6)
@@ -519,6 +523,7 @@ Table onboarding_db.onboarding_review_check {
 
   indexes {
     (application_id, check_type) [unique, name: 'uk_onboarding_review_check_application_type']
+    application_id [name: 'idx_onboarding_review_check_application']
   }
 }
 
@@ -559,6 +564,7 @@ Table onboarding_db.onboarding_provisioning_step {
 
   indexes {
     (application_id, step_type) [unique, name: 'uk_onboarding_provisioning_application_step']
+    (step_type, external_reference) [unique, name: 'uk_onboarding_provisioning_step_reference']
     (status, next_attempt_at) [name: 'idx_onboarding_provisioning_due']
   }
 }
@@ -580,7 +586,7 @@ Table onboarding_db.onboarding_uniqueness_reservation {
 
 Table onboarding_db.onboarding_magic_link_delivery {
   application_id char(36) [pk, not null]
-  delivery_id char(36) [not null, unique]
+  delivery_id char(36) [not null]
   recipient varchar(255) [not null]
   encrypted_magic_link text
   expires_at timestamp(6) [not null]
@@ -590,6 +596,7 @@ Table onboarding_db.onboarding_magic_link_delivery {
   version bigint [not null, default: 0]
 
   indexes {
+    delivery_id [unique, name: 'uk_magic_link_delivery_id']
     (sent_at, expires_at) [name: 'idx_magic_link_delivery_pending']
   }
 
@@ -603,6 +610,29 @@ Table onboarding_db.onboarding_email_request_guard {
   updated_at timestamp(6) [not null]
 
   Note: 'Serializes application starts and enforces the enumeration-safe email cooldown.'
+}
+
+Table onboarding_db.onboarding_credential_invitation_delivery {
+  id char(36) [pk, not null]
+  application_id char(36) [not null]
+  idempotency_key_hash char(64) [not null]
+  status varchar(30) [not null]
+  attempts int [not null, default: 0]
+  next_attempt_at timestamp(6) [not null]
+  locked_until timestamp(6)
+  last_error_code varchar(80)
+  sent_at timestamp(6)
+  created_at timestamp(6) [not null]
+  updated_at timestamp(6) [not null]
+  version bigint [not null, default: 0]
+
+  indexes {
+    (application_id, idempotency_key_hash) [unique, name: 'uk_credential_invitation_application_key']
+    (status, next_attempt_at) [name: 'idx_credential_invitation_due']
+    (application_id, created_at) [name: 'idx_credential_invitation_application_created']
+  }
+
+  Note: 'Durable credential invitation delivery intent with idempotency, retry scheduling, and lease-based claiming.'
 }
 
 Ref: customer_db.natural_person.party_id > customer_db.party.id
@@ -625,3 +655,4 @@ Ref: onboarding_db.onboarding_work_item.application_id > onboarding_db.onboardin
 Ref: onboarding_db.onboarding_provisioning_step.application_id > onboarding_db.onboarding_application.id
 Ref: onboarding_db.onboarding_uniqueness_reservation.application_id > onboarding_db.onboarding_application.id
 Ref: onboarding_db.onboarding_magic_link_delivery.application_id > onboarding_db.onboarding_application.id
+Ref: onboarding_db.onboarding_credential_invitation_delivery.application_id > onboarding_db.onboarding_application.id
